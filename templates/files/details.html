@@ -1,0 +1,198 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ file.name }}{% endblock %}
+{% block page_title %}{{ file.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('files.index') }}">Files</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ file.name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page fr-page" x-data="{ view: {{ view | tojson }} }" x-cloak>
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon"><i class="fas fa-paperclip"></i></div>
+      <div>
+        <h1 style="word-break:break-word;">{{ file.name }}</h1>
+        <p class="sw-hero-sub">{{ file.category }} · {{ file.type }} · v{{ file.version }} · {{ file.size_label }}</p>
+        <div class="sw-hero-badges">
+          {% if file.shared %}<span class="sw-badge sw-badge--accent">Shared</span>{% endif %}
+          {% for t in file.tags %}<span class="sw-badge sw-badge--muted">{{ t }}</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="sw-hero-actions">
+      <a href="{{ url_for('files.download', item_id=item_id) }}" class="btn btn-primary btn-sm"><i class="fas fa-download"></i> Download</a>
+      {% if file.previewable %}
+      <button type="button" class="btn btn-secondary btn-sm" @click="view = 'preview'"><i class="fas fa-eye"></i> Preview</button>
+      {% endif %}
+      <a href="{{ url_for('files.index') }}" class="btn btn-ghost btn-sm">Repository</a>
+    </div>
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div>
+    <nav class="sw-subtabs">
+      {% for key, label in [('overview','Overview'),('versions','Versions'),('links','Linked objects'),('permissions','Permissions'),('activity','Activity'),('preview','Preview')] %}
+      <button type="button" class="sw-subtab" :class="{ 'is-active': view === '{{ key }}' }" @click="view = '{{ key }}'">{{ label }}</button>
+      {% endfor %}
+    </nav>
+
+    <div class="sw-detail-body">
+      <div x-show="view === 'overview'">
+        <dl class="sw-stat-row">
+          <div class="sw-stat"><dt>Uploaded</dt><dd>{{ file.uploaded }}</dd></div>
+          <div class="sw-stat"><dt>By</dt><dd>{{ file.uploaded_by }}</dd></div>
+          <div class="sw-stat"><dt>Storage</dt><dd>{{ file.storage_backend|capitalize }}</dd></div>
+          <div class="sw-stat"><dt>Version</dt><dd>v{{ file.version }}</dd></div>
+        </dl>
+        <p class="fr-desc">{{ file.description or 'No description.' }}</p>
+        {% if file.links %}
+        <h3 class="fr-section-title">Linked to</h3>
+        <ul class="fr-link-list">
+          {% for l in file.links %}
+          <li><a href="{{ l.url }}"><i class="fas fa-link"></i> {{ l.label }}</a> <span class="fr-muted">({{ l.type }})</span></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+
+      <div x-show="view === 'versions'" x-cloak>
+        <div class="fr-version-rail">
+          {% for v in detail.versions %}
+          <div class="fr-version-step {% if loop.first %}is-current{% endif %}">
+            <span class="fr-version-dot">v{{ v.version }}</span>
+            <div>
+              <strong>{{ v.date }}</strong> · {{ v.by }} · {{ v.size_label }}
+              <p>{{ v.note }}</p>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <form method="post" action="{{ url_for('files.new_version', item_id=item_id) }}" enctype="multipart/form-data" class="uf-card" style="margin-top:16px;padding:0;">
+          <section class="uf-section">
+            <div class="uf-section-head">
+              <span class="uf-section-num"><i class="fas fa-code-branch"></i></span>
+              <div><h2>Upload new version</h2><p>Previous versions are retained.</p></div>
+            </div>
+            <div class="uf-section-body">
+              <div class="uf-field"><span class="uf-field-label">File</span><input type="file" name="file" required /></div>
+              <div class="uf-field"><span class="uf-field-label">Note</span><input name="version_note" placeholder="What changed" /></div>
+            </div>
+          </section>
+          <div class="uf-actions"><button type="submit" class="btn btn-primary">Save version</button></div>
+        </form>
+      </div>
+
+      <div x-show="view === 'links'" x-cloak>
+        <p class="fr-desc">One file can belong to multiple things — asset + vendor + server.</p>
+        {% if detail.links %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Object</th><th>Type</th><th></th></tr></thead>
+            <tbody>
+              {% for l in detail.links %}
+              <tr>
+                <td><strong>{{ l.label }}</strong></td>
+                <td>{{ l.type }}</td>
+                <td>{% if l.url %}<a class="btn btn-ghost btn-sm" href="{{ l.url }}">Open</a>{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty">Not linked yet. Attach this file to an IT object.</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('files.add_link', item_id=item_id) }}" class="uf-card" style="margin-top:16px;padding:0;">
+          <section class="uf-section">
+            <div class="uf-section-head">
+              <span class="uf-section-num"><i class="fas fa-link"></i></span>
+              <div><h2>Add linked object</h2><p>Make this file appear on that record’s Files tab.</p></div>
+            </div>
+            <div class="uf-section-body uf-grid-2">
+              <div class="uf-field">
+                <span class="uf-field-label">Type</span>
+                <select name="link_type" required>
+                  <option value="computer">Computer</option>
+                  <option value="server">Server</option>
+                  <option value="asset">Asset</option>
+                  <option value="vendor">Vendor</option>
+                  <option value="software">Software</option>
+                  <option value="network_device">Network device</option>
+                  <option value="ticket">Ticket</option>
+                </select>
+              </div>
+              <div class="uf-field">
+                <span class="uf-field-label">Object ID</span>
+                <input type="number" name="link_id" min="1" required placeholder="1" />
+              </div>
+            </div>
+          </section>
+          <div class="uf-actions"><button type="submit" class="btn btn-primary">Link</button></div>
+        </form>
+      </div>
+
+      <div x-show="view === 'permissions'" x-cloak>
+        <p class="fr-desc">Sensitive files (contracts, finance) can be limited to Asset Manager or Super Admin.</p>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Principal</th><th>View</th><th>Download</th><th>Manage</th></tr></thead>
+            <tbody>
+              {% for p in detail.permissions %}
+              <tr>
+                <td>{{ p.user or p.role_name or '—' }}</td>
+                <td>{{ 'Yes' if p.can_view else 'No' }}</td>
+                <td>{{ 'Yes' if p.can_download else 'No' }}</td>
+                <td>{{ 'Yes' if p.can_manage else 'No' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div x-show="view === 'activity'" x-cloak>
+        <ul class="fr-activity">
+          {% for a in detail.activities %}
+          <li>
+            <time>{{ a.when }}</time>
+            <strong>{{ a.message }}</strong>
+            <span class="fr-muted">{{ a.actor }} · {{ a.type }}</span>
+          </li>
+          {% else %}
+          <li class="fr-muted">No activity yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div x-show="view === 'preview'" x-cloak>
+        {% if file.previewable and file.has_blob %}
+          {% if file.type in ['PNG','JPG','JPEG','GIF','WEBP'] %}
+          <img class="fr-preview-img" src="{{ url_for('files.preview', item_id=item_id) }}" alt="{{ file.name }}" />
+          {% elif file.type == 'PDF' %}
+          <iframe class="fr-preview-frame" src="{{ url_for('files.preview', item_id=item_id) }}" title="PDF preview"></iframe>
+          {% else %}
+          <iframe class="fr-preview-frame fr-preview-text" src="{{ url_for('files.preview', item_id=item_id) }}" title="Text preview"></iframe>
+          {% endif %}
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-eye"></i><br>Preview is available for PDF, images, and text once a blob is stored. Binary packages (EXE, MSI, ZIP, DMP) download only.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ license.product }}{% endblock %}
+{% block page_title %}{{ license.product }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('licenses.index') }}">Licenses</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ license.product }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page" x-data="{ view: {{ view | tojson }} }" x-cloak>
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon"><i class="fas fa-key"></i></div>
+      <div>
+        <h1>{{ license.product }}</h1>
+        <p class="sw-hero-sub">{{ license.vendor }} · {{ license.type }} · {{ license.sku }}</p>
+        <div class="sw-hero-badges">
+          <span class="sw-badge
+            {% if license.status in ['Active', 'Fully assigned'] %}sw-badge--success
+            {% elif license.status == 'Warning' %}sw-badge--warning
+            {% else %}sw-badge--danger{% endif %}">{{ license.status }}</span>
+          <span class="sw-badge sw-badge--muted">{{ license.assigned }} / {{ license.purchased }} seats</span>
+          {% if license.software_id %}
+          <a class="sw-badge sw-badge--accent" href="{{ url_for('software.details', item_id=license.software_id) }}">Linked software</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="sw-hero-actions">
+      <a href="{{ url_for('licenses.edit', item_id=item_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+      <a href="{{ url_for('licenses.index') }}" class="btn btn-ghost btn-sm">All licenses</a>
+    </div>
+  </section>
+
+  <div>
+    <nav class="sw-subtabs" role="tablist">
+      {% for key, label in [
+        ('overview','Overview'),
+        ('users','Assigned users'),
+        ('devices','Assigned devices'),
+        ('purchase','Purchase information'),
+        ('renewals','Renewal history'),
+        ('activity','Activity')
+      ] %}
+      <button type="button" class="sw-subtab" :class="{ 'is-active': view === '{{ key }}' }" @click="view = '{{ key }}'">{{ label }}</button>
+      {% endfor %}
+    </nav>
+
+    <div class="sw-detail-body">
+      <div x-show="view === 'overview'">
+        <dl class="sw-stat-row">
+          <div class="sw-stat"><dt>Purchased</dt><dd>{{ license.purchased }}</dd></div>
+          <div class="sw-stat"><dt>Assigned</dt><dd>{{ license.assigned }}</dd></div>
+          <div class="sw-stat"><dt>Available</dt><dd style="{% if license.available < 0 %}color:#dc2626{% endif %}">{{ license.available }}</dd></div>
+          <div class="sw-stat"><dt>Utilization</dt><dd>{{ license.utilization }}%</dd></div>
+        </dl>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <tbody>
+              <tr><th style="width:200px;">Product</th><td>{{ license.product }}</td></tr>
+              <tr><th>Vendor</th><td>{{ license.vendor }}</td></tr>
+              <tr><th>Type</th><td>{{ license.type }}</td></tr>
+              <tr><th>SKU</th><td><code>{{ license.sku }}</code></td></tr>
+              <tr><th>Owner</th><td>{{ license.owner }}</td></tr>
+              <tr><th>Term</th><td>{{ license.start }} → {{ license.expiry }}</td></tr>
+              <tr><th>Contract</th><td>{{ license.contract or '—' }}</td></tr>
+              <tr><th>Notes</th><td>{{ license.notes }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        {% if license.status == 'Overused' %}
+        <p class="uf-flash" style="margin-top:14px;">⚠ Overused — reclaim idle seats or purchase additional licenses before audit.</p>
+        {% elif license.status == 'Expired' %}
+        <p class="uf-flash" style="margin-top:14px;">Expired — renew Software Assurance or retire dependent workloads.</p>
+        {% elif license.status == 'Warning' %}
+        <p class="uf-flash" style="margin-top:14px;border-color:#fde68a;background:#fffbeb;color:#92400e;">Expiring within 90 days — start renewal paperwork.</p>
+        {% endif %}
+      </div>
+
+      <div x-show="view === 'users'" x-cloak>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>User</th><th>Email</th><th>Department</th><th>Seat</th><th>Assigned</th></tr></thead>
+            <tbody>
+              {% for u in detail.users %}
+              <tr>
+                <td><strong>{{ u.name }}</strong></td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.department }}</td>
+                <td><span class="sw-badge sw-badge--muted">{{ u.seat }}</span></td>
+                <td>{{ u.assigned }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div x-show="view === 'devices'" x-cloak>
+        {% if detail.devices %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Computer</th><th>User</th><th>Department</th><th>Assigned</th></tr></thead>
+            <tbody>
+              {% for d in detail.devices %}
+              <tr>
+                <td><strong>{{ d.hostname }}</strong></td>
+                <td>{{ d.user }}</td>
+                <td>{{ d.department }}</td>
+                <td>{{ d.assigned }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-laptop"></i><br>No device assignments in the demo set for this license.</p>
+        {% endif %}
+      </div>
+
+      <div x-show="view === 'purchase'" x-cloak>
+        <dl class="sw-stat-row">
+          <div class="sw-stat"><dt>PO number</dt><dd>{{ detail.purchase.po_number }}</dd></div>
+          <div class="sw-stat"><dt>Annual cost</dt><dd>
+            {% if detail.purchase.cost_annual %}
+            R{{ '{:,.0f}'.format(detail.purchase.cost_annual) }}
+            {% else %}
+            —
+            {% endif %}
+          </dd></div>
+          <div class="sw-stat"><dt>Order date</dt><dd>{{ detail.purchase.order_date }}</dd></div>
+          <div class="sw-stat"><dt>Cost centre</dt><dd>{{ detail.purchase.cost_centre }}</dd></div>
+        </dl>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <tbody>
+              <tr><th style="width:200px;">Vendor</th><td>{{ detail.purchase.vendor }}</td></tr>
+              <tr><th>Reseller</th><td>{{ detail.purchase.reseller }}</td></tr>
+              <tr><th>Contract</th><td>{{ detail.purchase.contract or '—' }}</td></tr>
+              <tr><th>SKU</th><td><code>{{ detail.purchase.sku }}</code></td></tr>
+              <tr><th>Payment terms</th><td>{{ detail.purchase.payment_terms }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div x-show="view === 'renewals'" x-cloak>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Date</th><th>Action</th><th>Seats</th><th>Term</th><th>Cost (ZAR)</th></tr></thead>
+            <tbody>
+              {% for r in detail.renewals %}
+              <tr>
+                <td>{{ r.date }}</td>
+                <td>{{ r.action }}</td>
+                <td>{{ r.seats or '—' }}</td>
+                <td>{{ r.term }}</td>
+                <td>{% if r.cost %}R{{ '{:,.0f}'.format(r.cost) }}{% else %}—{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div x-show="view === 'activity'" x-cloak>
+        <ul class="sw-timeline">
+          {% for a in detail.activity %}
+          <li class="{% if a.tone %}is-{{ a.tone }}{% endif %}">
+            <strong>{{ a.title }}</strong>
+            <span>{{ a.when }} · {{ a.meta }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

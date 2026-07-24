@@ -1,0 +1,224 @@
+/* ============================================================
+   UITOP — Sidebar Navigation
+   ============================================================ */
+
+.uitop-sidebar {
+  position: fixed;
+  top: var(--topbar-height);
+  left: 0;
+  width: var(--sidebar-width);
+  height: calc(100vh - var(--topbar-height));
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  z-index: var(--z-sidebar);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition:
+    transform var(--transition-slow),
+    width var(--transition-slow);
+}
+
+/* Sidebar user block */
+.uitop-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid var(--sidebar-border);
+  background: linear-gradient(135deg, var(--bg-secondary), transparent);
+}
+
+.uitop-sidebar-user .uitop-avatar {
+  width: 42px;
+  height: 42px;
+  font-size: 14px;
+}
+
+.uitop-sidebar-user-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.uitop-sidebar-user-role {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0.3px;
+}
+
+/* Nav scroll area */
+.uitop-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 10px;
+  scrollbar-width: thin;
+}
+
+/* Section labels */
+.uitop-nav-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  padding: 16px 12px 8px;
+  margin-top: 4px;
+  position: relative;
+}
+
+.uitop-nav-label:first-child {
+  padding-top: 4px;
+  margin-top: 0;
+}
+
+/* Nav links */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  margin: 2px 0;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+  transform: translateY(-50%);
+  transition: height var(--transition-base);
+}
+
+.sidebar-link i {
+  width: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.sidebar-link:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
+
+.sidebar-link:hover i {
+  color: var(--text-secondary);
+}
+
+.sidebar-link:hover::before {
+  height: 16px;
+}
+
+.sidebar-link.is-active {
+  background: var(--bg-active);
+  color: var(--accent-text);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--accent-soft);
+}
+
+.sidebar-link.is-active i {
+  color: var(--accent);
+}
+
+.sidebar-link.is-active::before {
+  height: 24px;
+}
+
+.sidebar-link:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Sidebar footer */
+.uitop-sidebar-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-top: 1px solid var(--sidebar-border);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+}
+
+.uitop-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--emerald-500);
+}
+
+.uitop-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--emerald-500);
+  box-shadow:
+    0 0 0 2px var(--emerald-400),
+    0 0 8px var(--emerald-400);
+  animation: statusPulse 2.5s ease-in-out infinite;
+}
+
+.uitop-status--offline {
+  color: var(--text-muted);
+}
+
+.uitop-status--offline .uitop-status-dot {
+  background: var(--text-muted);
+  box-shadow: none;
+  animation: none;
+}
+
+.uitop-status--warning {
+  color: var(--amber-500);
+}
+
+.uitop-status--warning .uitop-status-dot {
+  background: var(--amber-500);
+  box-shadow: 0 0 0 2px var(--amber-400), 0 0 8px var(--amber-400);
+}
+
+/* Collapsed sidebar variant */
+body.sidebar-collapsed .uitop-sidebar {
+  width: var(--sidebar-collapsed);
+}
+
+body.sidebar-collapsed .uitop-sidebar-user,
+body.sidebar-collapsed .uitop-nav-label,
+body.sidebar-collapsed .sidebar-link span,
+body.sidebar-collapsed .uitop-sidebar-foot span:first-child {
+  display: none;
+}
+
+body.sidebar-collapsed .sidebar-link {
+  justify-content: center;
+  padding: 12px;
+}
+
+body.sidebar-collapsed .sidebar-link i {
+  width: auto;
+  font-size: 16px;
+}
+
+body.sidebar-collapsed .uitop-main {
+  margin-left: var(--sidebar-collapsed);
+}

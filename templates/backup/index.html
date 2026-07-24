@@ -1,0 +1,309 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Backup & Restore{% endblock %}
+{% block page_title %}Backup & Restore{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page" x-data="backupHub()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>Backup &amp; Restore</h1>
+      <p>Protect managed devices with jobs, schedules, recovery points, and restore workflows — agent-driven later.</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('backup.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> New backup job</a>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="sw-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Protected devices</p><p class="sw-kpi-value">{{ kpis.protected_devices }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Successful backups</p><p class="sw-kpi-value">{{ kpis.successful }}</p></article>
+    <article class="sw-kpi is-danger"><p class="sw-kpi-label">Failed backups</p><p class="sw-kpi-value">{{ kpis.failed }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Storage used</p><p class="sw-kpi-value">{{ kpis.storage_tb }} TB</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Recovery points</p><p class="sw-kpi-value">{{ '{:,}'.format(kpis.recovery_points) }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Restore jobs</p><p class="sw-kpi-value">{{ kpis.restore_jobs }}</p></article>
+  </div>
+
+  <nav class="sw-tabs" role="tablist">
+    <template x-for="t in tabs" :key="t.id">
+      <button type="button" class="sw-tab" :class="{ 'is-active': tab === t.id }" @click="setTab(t.id)" x-text="t.label"></button>
+    </template>
+  </nav>
+
+  {# Overview #}
+  <section class="sw-panel" x-show="tab === 'overview'" x-cloak>
+    <p class="sw-note"><strong>Ops overview.</strong> Jump to failed jobs or active restores below. Full history is under History.</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>When</th><th>Event</th><th>Detail</th></tr></thead>
+        <tbody>
+          <template x-for="h in data.history.slice(0,5)" :key="h.when + h.title">
+            <tr>
+              <td x-text="h.when"></td>
+              <td><strong x-text="h.title"></strong></td>
+              <td x-text="h.meta"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# Jobs #}
+  <section class="sw-panel" x-show="tab === 'jobs'" x-cloak>
+    <div class="sw-toolbar">
+      <div class="sw-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="search" placeholder="Search jobs…" x-model="qJobs" />
+      </div>
+    </div>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Job</th>
+            <th>Target</th>
+            <th>Type</th>
+            <th>Last backup</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="j in filteredJobs" :key="j.id">
+            <tr>
+              <td>
+                <strong><a :href="'/backup/' + j.id" x-text="j.name"></a></strong>
+                <div style="font-size:11.5px;color:#64748b;" x-text="j.policy"></div>
+              </td>
+              <td x-text="j.target"></td>
+              <td x-text="j.type"></td>
+              <td x-text="j.last_backup"></td>
+              <td>
+                <span class="sw-badge"
+                  :class="{
+                    'sw-badge--success': j.status === 'Success',
+                    'sw-badge--accent': j.status === 'Running',
+                    'sw-badge--danger': j.status === 'Failed'
+                  }"
+                  x-text="j.status"></span>
+                <div class="sw-progress" style="margin-top:6px;" x-show="j.progress"><i :style="'width:' + (j.progress||0) + '%'"></i></div>
+              </td>
+              <td><a class="btn btn-ghost btn-sm" :href="'/backup/' + j.id">View</a></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# Restore #}
+  <section class="sw-panel" x-show="tab === 'restore'" x-cloak>
+    <p class="sw-note">Choose a device and recovery point, then queue a restore. Agent execution is future work.</p>
+    <form method="post" action="{{ url_for('backup.start_restore') }}" class="uf-section-body" style="padding:16px;display:grid;gap:12px;max-width:560px;">
+      <div class="uf-field">
+        <span class="uf-field-label">Device</span>
+        <select name="device">
+          <option>PC-022</option>
+          <option>SRV-001</option>
+          <option>SQL-PROD</option>
+          <option>PC-001</option>
+        </select>
+      </div>
+      <div class="uf-field">
+        <span class="uf-field-label">Recovery point</span>
+        <select name="point">
+          <template x-for="p in data.points" :key="p.id">
+            <option :value="p.id" x-text="p.device + ' · ' + p.when + ' · ' + p.type"></option>
+          </template>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary" style="justify-self:start;"><i class="fas fa-rotate-left"></i> Start restore</button>
+    </form>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Device</th><th>Point</th><th>Started</th><th>Progress</th><th>Status</th><th>By</th></tr></thead>
+        <tbody>
+          <template x-for="r in data.restores" :key="r.id">
+            <tr>
+              <td><strong x-text="r.device"></strong></td>
+              <td x-text="r.point"></td>
+              <td x-text="r.started"></td>
+              <td style="min-width:120px;"><div class="sw-progress"><i :style="'width:' + r.progress + '%'"></i></div></td>
+              <td>
+                <span class="sw-badge"
+                  :class="{
+                    'sw-badge--success': r.status === 'Completed',
+                    'sw-badge--accent': r.status === 'Running',
+                    'sw-badge--muted': r.status === 'Queued'
+                  }"
+                  x-text="r.status"></span>
+              </td>
+              <td x-text="r.requested_by"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# Schedules #}
+  <section class="sw-panel" x-show="tab === 'schedules'" x-cloak>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Name</th><th>Cadence</th><th>Time</th><th>Scope</th><th>Enabled</th></tr></thead>
+        <tbody>
+          <template x-for="s in data.schedules" :key="s.name">
+            <tr>
+              <td><strong x-text="s.name"></strong></td>
+              <td x-text="s.cadence"></td>
+              <td x-text="s.time"></td>
+              <td x-text="s.scope"></td>
+              <td><span class="sw-bool" :class="s.enabled ? 'is-yes' : 'is-no'"><i class="fas" :class="s.enabled ? 'fa-check' : 'fa-xmark'"></i></span></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# Storage #}
+  <section class="sw-panel" x-show="tab === 'storage'" x-cloak>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Target</th><th>Type</th><th>Used</th><th>Capacity</th><th>Status</th></tr></thead>
+        <tbody>
+          <template x-for="s in data.storage" :key="s.name">
+            <tr>
+              <td><strong x-text="s.name"></strong></td>
+              <td x-text="s.type"></td>
+              <td>
+                <div x-text="s.used_tb + ' / ' + s.capacity_tb + ' TB'"></div>
+                <div class="sw-progress" style="margin-top:6px;"><i :style="'width:' + Math.round((s.used_tb/s.capacity_tb)*100) + '%'"></i></div>
+              </td>
+              <td x-text="s.capacity_tb + ' TB'"></td>
+              <td><span class="sw-badge sw-badge--success" x-text="s.status"></span></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# Recovery points #}
+  <section class="sw-panel" x-show="tab === 'points'" x-cloak>
+    <div class="sw-toolbar">
+      <div class="sw-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="search" placeholder="Filter by device…" x-model="qPoints" />
+      </div>
+    </div>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Device</th><th>When</th><th>Type</th><th>Size</th><th>Job</th><th></th></tr></thead>
+        <tbody>
+          <template x-for="p in filteredPoints" :key="p.id">
+            <tr>
+              <td><strong x-text="p.device"></strong></td>
+              <td x-text="p.when"></td>
+              <td x-text="p.type"></td>
+              <td x-text="p.size_gb + ' GB'"></td>
+              <td x-text="p.job"></td>
+              <td>
+                <form method="post" action="{{ url_for('backup.start_restore') }}" style="display:inline;">
+                  <input type="hidden" name="point" :value="p.id" />
+                  <button type="submit" class="btn btn-secondary btn-sm">Restore</button>
+                </form>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# History #}
+  <section class="sw-panel" x-show="tab === 'history'" x-cloak>
+    <ul class="sw-timeline" style="padding:18px;">
+      <template x-for="h in data.history" :key="h.when + h.title">
+        <li :class="h.tone ? 'is-' + h.tone : ''">
+          <strong x-text="h.title"></strong>
+          <span x-text="h.when + ' · ' + h.meta"></span>
+        </li>
+      </template>
+    </ul>
+  </section>
+
+  {# Policies #}
+  <section class="sw-panel" x-show="tab === 'policies'" x-cloak>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Policy</th><th>Schedule</th><th>Retain</th><th>Encrypt</th><th>Scope</th></tr></thead>
+        <tbody>
+          <template x-for="p in data.policies" :key="p.name">
+            <tr>
+              <td><strong x-text="p.name"></strong></td>
+              <td x-text="p.schedule"></td>
+              <td x-text="p.retain_days + ' days'"></td>
+              <td><span class="sw-bool" :class="p.encrypt ? 'is-yes' : 'is-no'"><i class="fas" :class="p.encrypt ? 'fa-check' : 'fa-xmark'"></i></span></td>
+              <td x-text="p.scope"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+window.__BACKUP__ = {{ payload | tojson }};
+function backupHub() {
+  var params = new URLSearchParams(window.location.search);
+  return {
+    data: window.__BACKUP__ || {},
+    tab: params.get("tab") || {{ tab | tojson }},
+    qJobs: "",
+    qPoints: "",
+    tabs: [
+      { id: "overview", label: "Overview" },
+      { id: "jobs", label: "Backup jobs" },
+      { id: "restore", label: "Restore jobs" },
+      { id: "schedules", label: "Schedules" },
+      { id: "storage", label: "Storage" },
+      { id: "points", label: "Recovery points" },
+      { id: "history", label: "History" },
+      { id: "policies", label: "Policies" },
+    ],
+    get filteredJobs() {
+      var q = this.qJobs.trim().toLowerCase();
+      if (!q) return this.data.jobs || [];
+      return (this.data.jobs || []).filter(function (j) {
+        return [j.name, j.target, j.type, j.status].join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    },
+    get filteredPoints() {
+      var q = this.qPoints.trim().toLowerCase();
+      if (!q) return this.data.points || [];
+      return (this.data.points || []).filter(function (p) {
+        return [p.device, p.job, p.type].join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    },
+    setTab: function (id) {
+      this.tab = id;
+      var url = new URL(window.location.href);
+      url.searchParams.set("tab", id);
+      window.history.replaceState({}, "", url);
+    },
+  };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,6 @@
+{% extends "layouts/base.html" %}
+{# Optional dashboard-specific layout wrapper #}
+{% block head %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}" />
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Asset requests{% endblock %}
+{% block page_title %}Requests{% endblock %}
+
+{% block content %}
+<header class="comp-header" style="margin-bottom:20px;">
+  <div>
+    <h1>Asset requests</h1>
+    <p>Pending and historical equipment requests.</p>
+  </div>
+  <a href="{{ url_for('assets.request_asset') }}" class="btn btn-primary">New request</a>
+</header>
+
+<section class="comp-table-wrap">
+  <div class="table-scroll">
+    <table class="comp-table">
+      <thead><tr><th>ID</th><th>Title</th><th>Requester</th><th>Category</th><th>Status</th><th>Created</th></tr></thead>
+      <tbody>
+        {% for r in requests %}
+        <tr>
+          <td>#{{ r.id }}</td>
+          <td>{{ r.title }}</td>
+          <td>{{ r.requester or '—' }}</td>
+          <td>{{ r.category or '—' }}</td>
+          <td>{{ r.status }}</td>
+          <td>{{ r.created_at or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No requests yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

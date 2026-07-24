@@ -1,0 +1,50 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ job.name }}{% endblock %}
+{% block page_title %}{{ job.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('backup.index', tab='jobs') }}">Backup</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ job.name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page">
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon"><i class="fas fa-hard-drive"></i></div>
+      <div>
+        <h1>{{ job.name }}</h1>
+        <p class="sw-hero-sub">{{ job.target }} · {{ job.type }} · {{ job.storage }}</p>
+        <div class="sw-hero-badges">
+          <span class="sw-badge {% if job.status == 'Success' %}sw-badge--success{% elif job.status == 'Running' %}sw-badge--accent{% else %}sw-badge--danger{% endif %}">{{ job.status }}</span>
+          <span class="sw-badge sw-badge--muted">{{ job.schedule }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="sw-hero-actions">
+      <a href="{{ url_for('backup.index', tab='jobs') }}" class="btn btn-ghost btn-sm">All jobs</a>
+    </div>
+  </section>
+
+  <section class="sw-panel" style="padding:18px;">
+    <dl class="sw-stat-row">
+      <div class="sw-stat"><dt>Last backup</dt><dd>{{ job.last_backup }}</dd></div>
+      <div class="sw-stat"><dt>Size</dt><dd>{{ job.size_gb }} GB</dd></div>
+      <div class="sw-stat"><dt>Policy</dt><dd>{{ job.policy }}</dd></div>
+      <div class="sw-stat"><dt>Target type</dt><dd>{{ job.target_type }}</dd></div>
+    </dl>
+    {% if job.error %}
+    <p class="uf-flash">{{ job.error }}</p>
+    {% endif %}
+    <p style="color:var(--slate-600);">When the Windows agent is wired, this job will push to enrolled devices and publish recovery points automatically.</p>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+<header class="uitop-topbar" role="banner">
+  <div class="uitop-topbar-inner">
+    <div class="uitop-topbar-left">
+      <button type="button" class="uitop-menu-btn" id="uitop-menu-btn" aria-label="Toggle navigation" aria-controls="uitop-sidebar" aria-expanded="false">
+        <i class="fas fa-bars-staggered" aria-hidden="true"></i>
+      </button>
+      <a href="{{ url_for('dashboard.index') }}" class="uitop-brand" aria-label="UITOP home">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="" class="uitop-brand-logo" width="34" height="34" />
+        <span class="uitop-brand-text">
+          <span class="uitop-brand-name">UITOP</span>
+          <span class="uitop-brand-sub">Umzinyathi IT Ops</span>
+        </span>
+      </a>
+    </div>
+
+    <div class="uitop-topbar-search" role="search">
+      <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+      <input type="search" placeholder="Search assets, tickets, devices…" aria-label="Global search" autocomplete="off" />
+    </div>
+
+    <div class="uitop-topbar-right">
+      <button type="button" class="uitop-icon-btn" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+        <i class="fas fa-moon" id="theme-icon-moon" aria-hidden="true"></i>
+        <i class="fas fa-sun is-hidden" id="theme-icon-sun" aria-hidden="true"></i>
+      </button>
+
+      <a href="{{ url_for('ai.index') }}" class="uitop-btn-ai" aria-label="Open AI Assistant">
+        <i class="fas fa-sparkles" aria-hidden="true"></i>
+        <span>Ask AI</span>
+      </a>
+
+      <a href="/notifications/" class="uitop-icon-btn" title="Notifications" aria-label="Notifications">
+        <i class="fas fa-bell" aria-hidden="true"></i>
+        <span class="uitop-badge">3</span>
+      </a>
+
+      <a href="/profile/" class="uitop-user-chip" title="Profile" aria-label="User profile">
+        <span class="uitop-avatar">{{ demo_user.initials }}</span>
+        <span class="uitop-user-name">{{ demo_user.name.split(' ')[0] }}</span>
+      </a>
+
+      <a href="{{ url_for('auth.logout') }}" class="uitop-logout-btn" title="Log out" aria-label="Log out">
+        <i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i>
+      </a>
+    </div>
+  </div>
+</header>
+<div class="uitop-dimmer" id="uitop-dimmer" aria-hidden="true"></div>

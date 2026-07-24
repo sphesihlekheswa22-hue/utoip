@@ -1,0 +1,406 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Software{% endblock %}
+{% block page_title %}Software Management{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page" x-data="softwareHub()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>Software Management</h1>
+      <p>Catalog, agent-discovered installs, deployments, updates, requests, blacklist, and license compliance — not a simple CRUD list.</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('software.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add to catalog</a>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="sw-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Total titles</p><p class="sw-kpi-value">{{ kpis.titles }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Installed applications</p><p class="sw-kpi-value">{{ '{:,}'.format(kpis.installs) }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Approved</p><p class="sw-kpi-value">{{ kpis.approved }}</p></article>
+    <article class="sw-kpi is-danger"><p class="sw-kpi-label">Unauthorized</p><p class="sw-kpi-value">{{ kpis.unauthorized }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Outdated</p><p class="sw-kpi-value">{{ kpis.outdated }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Expiring licenses</p><p class="sw-kpi-value">{{ kpis.expiring_licenses }}</p></article>
+  </div>
+
+  <nav class="sw-tabs" role="tablist" aria-label="Software sections">
+    <template x-for="t in tabs" :key="t.id">
+      <button type="button" class="sw-tab" role="tab" :class="{ 'is-active': tab === t.id }" @click="setTab(t.id)" x-text="t.label"></button>
+    </template>
+  </nav>
+
+  {# ── Catalog ── #}
+  <section class="sw-panel" x-show="tab === 'catalog'" x-cloak>
+    <p class="sw-note"><strong>IT-managed catalog.</strong> Approved titles IT can deploy. Installed copies come from the agent — never typed in by hand.</p>
+    <div class="sw-toolbar">
+      <div class="sw-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="search" placeholder="Search catalog…" x-model="q" />
+      </div>
+      <select x-model="catFilter">
+        <option value="">All categories</option>
+        <template x-for="c in categories" :key="c"><option :value="c" x-text="c"></option></template>
+      </select>
+      <select x-model="approvedFilter">
+        <option value="">Approval</option>
+        <option value="yes">Approved</option>
+        <option value="no">Not approved</option>
+      </select>
+    </div>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Software</th>
+            <th>Vendor</th>
+            <th>Current version</th>
+            <th>Category</th>
+            <th>Approved</th>
+            <th>Deployable</th>
+            <th>Installs</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="s in filteredCatalog" :key="s.id">
+            <tr>
+              <td>
+                <div class="sw-name">
+                  <span class="sw-name-icon"><i class="fas fa-cube"></i></span>
+                  <div>
+                    <strong><a :href="'/software/' + s.id" x-text="s.name"></a></strong>
+                    <span x-show="s.blacklisted" class="sw-badge sw-badge--danger">Blacklisted</span>
+                  </div>
+                </div>
+              </td>
+              <td x-text="s.vendor"></td>
+              <td><code x-text="s.version"></code></td>
+              <td x-text="s.category"></td>
+              <td>
+                <span class="sw-bool" :class="s.approved ? 'is-yes' : 'is-no'"><i class="fas" :class="s.approved ? 'fa-check' : 'fa-xmark'"></i></span>
+              </td>
+              <td>
+                <span class="sw-bool" :class="s.deployable ? 'is-yes' : 'is-no'"><i class="fas" :class="s.deployable ? 'fa-check' : 'fa-xmark'"></i></span>
+              </td>
+              <td x-text="s.installed_count"></td>
+              <td>
+                <div class="sw-actions-inline">
+                  <a class="btn btn-ghost btn-sm" :href="'/software/' + s.id">View</a>
+                  <a class="btn btn-ghost btn-sm" :href="'/software/' + s.id + '/edit'">Edit</a>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <p class="sw-empty" x-show="filteredCatalog.length === 0">No catalog titles match.</p>
+    </div>
+  </section>
+
+  {# ── Installed (agent) ── #}
+  <section class="sw-panel" x-show="tab === 'installed'" x-cloak>
+    <p class="sw-note"><strong>Agent inventory.</strong> Synced from managed computers — never enter installed apps manually.</p>
+    <div class="sw-toolbar">
+      <div class="sw-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="search" placeholder="Search PC, user, or app…" x-model="qInstalled" />
+      </div>
+    </div>
+    <div class="sw-pc-grid">
+      <template x-for="pc in filteredComputers" :key="pc.computer_id">
+        <article class="sw-pc-card">
+          <h3 x-text="pc.hostname"></h3>
+          <p class="meta"><span x-text="pc.user"></span> · <span x-text="pc.department"></span></p>
+          <div class="sw-app-chips">
+            <template x-for="app in pc.apps" :key="app.software_id + app.name">
+              <a class="sw-app-chip" :class="{ 'is-bad': app.status === 'Unauthorized' }" :href="'/software/' + app.software_id" :title="app.version + ' · ' + app.status" x-text="app.name"></a>
+            </template>
+          </div>
+        </article>
+      </template>
+    </div>
+    <p class="sw-empty" x-show="filteredComputers.length === 0">No endpoints match.</p>
+  </section>
+
+  {# ── Deployment ── #}
+  <section class="sw-panel" x-show="tab === 'deployment'" x-cloak>
+    <p class="sw-note"><strong>Deployment</strong> is a future control plane — sample jobs show progress UX.</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Software</th>
+            <th>Target</th>
+            <th>Progress</th>
+            <th>Success</th>
+            <th>Failed</th>
+            <th>Status</th>
+            <th>Started</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="d in data.deployments" :key="d.id">
+            <tr>
+              <td>
+                <strong><a :href="'/software/' + d.software_id" x-text="d.software"></a></strong>
+                <div style="font-size:11.5px;color:#64748b;" x-text="'v' + d.version"></div>
+              </td>
+              <td x-text="d.target"></td>
+              <td style="min-width:120px;">
+                <div class="sw-progress" :title="d.progress + '%'"><i :style="'width:' + d.progress + '%'"></i></div>
+              </td>
+              <td x-text="d.success + '/' + d.computers"></td>
+              <td x-text="d.failed"></td>
+              <td>
+                <span class="sw-badge"
+                  :class="{
+                    'sw-badge--accent': d.status === 'In progress',
+                    'sw-badge--success': d.status === 'Completed',
+                    'sw-badge--muted': d.status === 'Queued'
+                  }"
+                  x-text="d.status"></span>
+              </td>
+              <td x-text="d.started"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# ── Updates ── #}
+  <section class="sw-panel" x-show="tab === 'updates'" x-cloak>
+    <p class="sw-note">Compare catalog latest vs typical installed versions across the estate.</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Software</th>
+            <th>Catalog / latest</th>
+            <th>Typical installed</th>
+            <th>Affected PCs</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="u in data.updates" :key="u.software_id">
+            <tr>
+              <td><a :href="'/software/' + u.software_id" x-text="u.name"></a></td>
+              <td><code x-text="u.current"></code></td>
+              <td><code x-text="u.installed_typical"></code></td>
+              <td x-text="u.affected"></td>
+              <td><span class="sw-badge sw-badge--warning" x-text="u.status"></span></td>
+              <td><button type="button" class="btn btn-secondary btn-sm" @click="toast('Deploy update queued (demo)')">Deploy update</button></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# ── Requests ── #}
+  <section class="sw-panel" x-show="tab === 'requests'" x-cloak>
+    <p class="sw-note">Employees request software; IT approves then deploys from catalog (or adds a new title).</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Software</th>
+            <th>Requester</th>
+            <th>Department</th>
+            <th>Justification</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="r in data.requests" :key="r.id">
+            <tr>
+              <td>
+                <strong x-text="r.software"></strong>
+                <div style="font-size:11.5px;color:#64748b;" x-text="r.requested"></div>
+              </td>
+              <td x-text="r.requester"></td>
+              <td x-text="r.department"></td>
+              <td style="max-width:280px;" x-text="r.justification"></td>
+              <td>
+                <span class="sw-badge"
+                  :class="{
+                    'sw-badge--warning': r.status === 'Pending',
+                    'sw-badge--success': r.status === 'Approved',
+                    'sw-badge--danger': r.status === 'Denied'
+                  }"
+                  x-text="r.status"></span>
+              </td>
+              <td>
+                <div class="sw-actions-inline" x-show="r.status === 'Pending'">
+                  <form :action="'/software/requests/' + r.id + '/approve'" method="post" style="display:inline;">
+                    <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                  </form>
+                  <form :action="'/software/requests/' + r.id + '/deny'" method="post" style="display:inline;">
+                    <button type="submit" class="btn btn-secondary btn-sm">Deny</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# ── Blacklist ── #}
+  <section class="sw-panel" x-show="tab === 'blacklist'" x-cloak>
+    <p class="sw-note">If an agent detects blacklisted software, UITOP raises an alert — and can auto-remove when policy allows.</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Software</th>
+            <th>Reason</th>
+            <th>Action</th>
+            <th>Detections</th>
+            <th>Auto-remove</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="b in data.blacklist" :key="b.name">
+            <tr>
+              <td>
+                <strong>
+                  <template x-if="b.software_id"><a :href="'/software/' + b.software_id" x-text="b.name"></a></template>
+                  <template x-if="!b.software_id"><span x-text="b.name"></span></template>
+                </strong>
+                <div style="font-size:11.5px;color:#64748b;" x-text="b.vendor"></div>
+              </td>
+              <td x-text="b.reason"></td>
+              <td><span class="sw-badge sw-badge--danger" x-text="b.action"></span></td>
+              <td x-text="b.detections"></td>
+              <td>
+                <span class="sw-bool" :class="b.auto_remove ? 'is-yes' : 'is-no'">
+                  <i class="fas" :class="b.auto_remove ? 'fa-check' : 'fa-xmark'"></i>
+                </span>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# ── Licenses ── #}
+  <section class="sw-panel" x-show="tab === 'licenses'" x-cloak>
+    <p class="sw-note">Purchased seats vs agent-reported installs. Full seat register lives in <a href="{{ url_for('licenses.index') }}"><strong>Licenses</strong></a>.</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Software</th>
+            <th>Purchased</th>
+            <th>Installed</th>
+            <th>Remaining</th>
+            <th>Expires</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="l in data.licenses" :key="l.software_id">
+            <tr>
+              <td>
+                <a :href="'/software/' + l.software_id" x-text="l.name"></a>
+                <div style="font-size:11.5px;color:#64748b;" x-text="l.vendor"></div>
+              </td>
+              <td x-text="l.purchased"></td>
+              <td x-text="l.installed"></td>
+              <td>
+                <strong :style="l.over ? 'color:#dc2626' : ''" x-text="l.remaining"></strong>
+              </td>
+              <td x-text="l.expires"></td>
+              <td>
+                <span class="sw-badge"
+                  :class="l.over ? 'sw-badge--danger' : (l.expiring_soon ? 'sw-badge--warning' : 'sw-badge--success')"
+                  x-text="l.over ? 'Over licensed' : (l.expiring_soon ? 'Expiring soon' : 'Compliant')"></span>
+              </td>
+              <td>
+                <a class="btn btn-ghost btn-sm" x-show="l.license_id" :href="'/licenses/' + l.license_id">License</a>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+window.__SOFTWARE__ = {{ payload | tojson }};
+function softwareHub() {
+  var data = window.__SOFTWARE__ || {};
+  var params = new URLSearchParams(window.location.search);
+  return {
+    data: data,
+    tab: params.get("tab") || {{ tab | tojson }},
+    q: "",
+    qInstalled: "",
+    catFilter: "",
+    approvedFilter: "",
+    tabs: [
+      { id: "catalog", label: "Software Catalog" },
+      { id: "installed", label: "Installed Software" },
+      { id: "deployment", label: "Deployment" },
+      { id: "updates", label: "Updates" },
+      { id: "requests", label: "Software Requests" },
+      { id: "blacklist", label: "Blacklist" },
+      { id: "licenses", label: "License Compliance" },
+    ],
+    get categories() {
+      var set = {};
+      (this.data.catalog || []).forEach(function (s) { set[s.category] = true; });
+      return Object.keys(set).sort();
+    },
+    get filteredCatalog() {
+      var q = this.q.trim().toLowerCase();
+      var cat = this.catFilter;
+      var ap = this.approvedFilter;
+      return (this.data.catalog || []).filter(function (s) {
+        if (cat && s.category !== cat) return false;
+        if (ap === "yes" && !s.approved) return false;
+        if (ap === "no" && s.approved) return false;
+        if (!q) return true;
+        return [s.name, s.vendor, s.category, s.version].join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    },
+    get filteredComputers() {
+      var q = this.qInstalled.trim().toLowerCase();
+      if (!q) return this.data.computers || [];
+      return (this.data.computers || []).filter(function (pc) {
+        var apps = (pc.apps || []).map(function (a) { return a.name; }).join(" ");
+        return [pc.hostname, pc.user, pc.department, apps].join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    },
+    setTab: function (id) {
+      this.tab = id;
+      var url = new URL(window.location.href);
+      url.searchParams.set("tab", id);
+      window.history.replaceState({}, "", url);
+    },
+    toast: function (msg) {
+      alert(msg);
+    },
+  };
+}
+</script>
+{% endblock %}

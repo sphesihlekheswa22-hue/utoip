@@ -1,0 +1,102 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Edit {{ vendor.name }}{% endblock %}
+{% block page_title %}Edit vendor{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('vendors.index') }}">Vendors</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('vendors.details', item_id=item_id) }}">{{ vendor.name }}</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Edit</span>
+{% endblock %}
+
+{% block content %}
+<div class="uf-page uf-page--wide">
+  <header class="uf-hero">
+    <div class="uf-hero-inner">
+      <div>
+        <p class="uf-eyebrow"><i class="fas fa-handshake"></i> Supplier register</p>
+        <h1>Edit {{ vendor.name }}</h1>
+        <p>Update commercial, support, and address details. Archive from the list instead of deleting.</p>
+      </div>
+    </div>
+  </header>
+
+  <form method="post" class="uf-card">
+    <section class="uf-section">
+      <div class="uf-section-head">
+        <span class="uf-section-num">1</span>
+        <div><h2>Basic</h2><p>{{ vendor.category }}</p></div>
+      </div>
+      <div class="uf-section-body">
+        <div class="uf-field">
+          <span class="uf-field-label">Vendor name <span class="req">*</span></span>
+          <input name="name" required value="{{ vendor.name }}" />
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Category</span>
+            <select name="category">
+              {% for c in categories %}
+              <option {% if vendor.category == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Status</span>
+            <select name="status">
+              <option {% if vendor.status == 'Active' %}selected{% endif %}>Active</option>
+              <option {% if vendor.status == 'Archived' %}selected{% endif %}>Archived</option>
+            </select>
+          </div>
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Website</span>
+            <input name="website" value="{{ vendor.website or '' }}" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Primary contact</span>
+            <input name="contact_name" value="{{ vendor.contact_name or '' }}" />
+          </div>
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Email</span>
+            <input name="email" type="email" value="{{ vendor.email or '' }}" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Phone</span>
+            <input name="phone" value="{{ vendor.phone or '' }}" />
+          </div>
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Support email</span>
+            <input name="support_email" value="{{ vendor.support_email or '' }}" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">SLA</span>
+            <input name="sla" value="{{ vendor.sla or '' }}" />
+          </div>
+        </div>
+        <div class="uf-field">
+          <span class="uf-field-label">Address</span>
+          <input name="address" value="{{ vendor.address or '' }}" />
+        </div>
+        <div class="uf-field">
+          <span class="uf-field-label">Notes</span>
+          <textarea name="notes" rows="3">{{ vendor.notes or '' }}</textarea>
+        </div>
+      </div>
+    </section>
+    <div class="uf-actions">
+      <a href="{{ url_for('vendors.details', item_id=item_id) }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

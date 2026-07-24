@@ -1,0 +1,128 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Assets{% endblock %}
+{% block page_title %}Assets{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="assetsDashboard()" x-cloak>
+  <header class="comp-header">
+    <div>
+      <h1>Assets</h1>
+      <p>Ownership and lifecycle — linked to discovered computers, servers, network, and printers. Not a second place to type in devices.</p>
+    </div>
+    <div class="comp-toolbar-actions">
+      <a href="{{ url_for('assets.link_page') }}" class="btn btn-primary"><i class="fas fa-link"></i> Link discovered device</a>
+      <a href="{{ url_for('assets.request_asset') }}" class="btn btn-secondary"><i class="fas fa-hand-holding"></i> Request asset</a>
+      <a href="{{ url_for('assets.create') }}" class="btn btn-ghost"><i class="fas fa-box"></i> Register non-IT</a>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;background:{% if cat == 'success' %}rgba(26,155,142,.1){% else %}rgba(220,38,38,.08){% endif %};">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% if empty or not assets %}
+  <div class="comp-empty">
+    <div class="comp-empty-art" aria-hidden="true"><i class="fas fa-boxes-stacked"></i></div>
+    <h2>No assets yet.</h2>
+    <p>Link a discovered computer/server/printer, request equipment, or register a non-IT store item.</p>
+    <div class="comp-empty-actions">
+      <a href="{{ url_for('assets.link_page') }}" class="btn btn-primary"><i class="fas fa-link"></i> Link device</a>
+      <a href="{{ url_for('assets.create') }}" class="btn btn-secondary">Register non-IT</a>
+    </div>
+  </div>
+  {% else %}
+
+  <div class="comp-kpi-grid">
+    <article class="comp-kpi is-accent"><p class="comp-kpi-label">Total assets</p><p class="comp-kpi-value">{{ kpis.total }}</p></article>
+    <article class="comp-kpi is-success"><p class="comp-kpi-label">Assigned / in use</p><p class="comp-kpi-value">{{ kpis.assigned }}</p></article>
+    <article class="comp-kpi"><p class="comp-kpi-label">In store</p><p class="comp-kpi-value">{{ kpis.in_store }}</p></article>
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">In repair</p><p class="comp-kpi-value">{{ kpis.in_repair }}</p></article>
+    <article class="comp-kpi is-success"><p class="comp-kpi-label">Linked to inventory</p><p class="comp-kpi-value">{{ kpis.linked }}</p></article>
+  </div>
+
+  <div class="comp-toolbar">
+    <div class="comp-search">
+      <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+      <input type="search" placeholder="Search tag, name, serial, assignee…" x-model="q" aria-label="Search assets" />
+    </div>
+    <div class="comp-toolbar-actions">
+      <a href="{{ url_for('assets.categories_list') }}" class="btn btn-ghost btn-sm">Categories</a>
+      <a href="{{ url_for('assets.requests_list') }}" class="btn btn-ghost btn-sm">Requests</a>
+      <button type="button" class="btn btn-ghost btn-sm" @click="location.reload()"><i class="fas fa-rotate"></i> Refresh</button>
+    </div>
+  </div>
+
+  <section class="comp-table-wrap">
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Asset tag</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Assignee</th>
+            <th>Status</th>
+            <th>Linked device</th>
+            <th>Location</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="a in filtered" :key="a.id">
+            <tr>
+              <td><code x-text="a.asset_tag"></code></td>
+              <td><strong x-text="a.name"></strong></td>
+              <td x-text="a.category || '—'"></td>
+              <td x-text="a.assignee"></td>
+              <td><span class="badge" :class="statusBadge(a.status)" x-text="a.status_label"></span></td>
+              <td>
+                <template x-if="a.linked">
+                  <a :href="a.linked.url" x-text="a.linked.label"></a>
+                </template>
+                <template x-if="!a.linked"><span>—</span></template>
+              </td>
+              <td x-text="a.location || '—'"></td>
+              <td><a class="btn btn-ghost btn-sm" :href="'/assets/' + a.id">View</a></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+<script>
+window.__ASSETS__ = {{ assets | tojson }};
+function assetsDashboard() {
+  return {
+    q: "",
+    assets: window.__ASSETS__ || [],
+    get filtered() {
+      var q = this.q.trim().toLowerCase();
+      if (!q) return this.assets;
+      return this.assets.filter(function (a) {
+        var blob = [a.asset_tag, a.name, a.category, a.assignee, a.serial_number, a.location, a.status_label].join(" ").toLowerCase();
+        return blob.indexOf(q) !== -1;
+      });
+    },
+    statusBadge(s) {
+      if (s === "assigned" || s === "in_use") return "badge-success";
+      if (s === "in_repair") return "badge-warning";
+      if (s === "disposed") return "badge-danger";
+      return "badge-muted";
+    }
+  };
+}
+</script>
+{% endblock %}

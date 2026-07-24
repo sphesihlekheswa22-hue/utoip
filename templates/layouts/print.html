@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% block title %}Print{% endblock %} — UITOP</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+  <style>
+    body { background: #fff; color: #0f172a; font-family: "Plus Jakarta Sans", sans-serif; }
+    @media print { .no-print { display: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="no-print" style="padding:1rem;">
+    <button type="button" onclick="window.print()" class="btn btn-primary">Print</button>
+  </header>
+  <main style="padding:1.5rem; max-width:900px; margin:0 auto;">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<section class="panel quick-panel">
+  <header class="chart-panel-header">
+    <div>
+      <h2 class="chart-panel-title">Quick actions</h2>
+      <p class="chart-panel-subtitle">Jump into common workflows</p>
+    </div>
+  </header>
+  <div class="quick-actions quick-actions--grid">
+    <a href="{{ url_for('computers.install_agent') }}" class="quick-action"><i class="fas fa-download"></i><span>Install Agent</span></a>
+    <a href="{{ url_for('helpdesk.create') }}" class="quick-action"><i class="fas fa-ticket"></i><span>New ticket</span></a>
+    <a href="{{ url_for('backup.create') }}" class="quick-action"><i class="fas fa-hard-drive"></i><span>Schedule backup</span></a>
+    <a href="{{ url_for('users.create') }}" class="quick-action"><i class="fas fa-user-plus"></i><span>Invite user</span></a>
+    <a href="{{ url_for('ai.index') }}" class="quick-action"><i class="fas fa-sparkles"></i><span>Ask AI</span></a>
+    <a href="{{ url_for('reports.index') }}" class="quick-action"><i class="fas fa-file-lines"></i><span>Run report</span></a>
+    <a href="{{ url_for('monitoring.index') }}" class="quick-action"><i class="fas fa-heart-pulse"></i><span>System health</span></a>
+    <a href="{{ url_for('assets.create') }}" class="quick-action"><i class="fas fa-box"></i><span>Register asset</span></a>
+  </div>
+</section>

@@ -1,0 +1,331 @@
+/* ============================================================
+   UITOP — Topbar
+   Brand, search, actions, user chip
+   ============================================================ */
+
+.uitop-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-height);
+  z-index: var(--z-topbar);
+  background: var(--topbar-bg);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border-bottom: 1px solid var(--border-subtle);
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.uitop-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 20px;
+  max-width: 1920px;
+  margin: 0 auto;
+}
+
+.uitop-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+/* Menu toggle */
+.uitop-menu-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 15px;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.uitop-menu-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.uitop-menu-btn:active {
+  transform: scale(0.94);
+}
+
+.uitop-menu-btn::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  transition: border-color var(--transition-fast);
+}
+
+.uitop-menu-btn:focus-visible::after {
+  border-color: var(--accent);
+}
+
+/* Brand */
+.uitop-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast);
+}
+
+.uitop-brand:hover {
+  background: var(--bg-hover);
+}
+
+.uitop-brand-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  filter: drop-shadow(0 2px 4px rgba(13, 148, 136, 0.2));
+  transition: transform var(--transition-bounce);
+}
+
+.uitop-brand:hover .uitop-brand-logo {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.uitop-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.uitop-brand-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+.uitop-brand-sub {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+/* Search */
+.uitop-topbar-search {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+  margin: 0 20px;
+}
+
+.uitop-topbar-search i {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 13px;
+  pointer-events: none;
+  transition: color var(--transition-fast);
+}
+
+.uitop-topbar-search input {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px 0 40px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all var(--transition-base);
+  outline: none;
+}
+
+.uitop-topbar-search input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.uitop-topbar-search input:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-tertiary);
+}
+
+.uitop-topbar-search input:focus {
+  border-color: var(--accent);
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-md);
+}
+
+.uitop-topbar-search:focus-within i {
+  color: var(--accent);
+}
+
+/* Right actions */
+.uitop-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.uitop-icon-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 15px;
+  transition: all var(--transition-fast);
+}
+
+.uitop-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.uitop-icon-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.uitop-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--red-500);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--bg-primary);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+/* AI button */
+.uitop-btn-ai {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  background: linear-gradient(135deg, var(--teal-600), var(--teal-500));
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  box-shadow:
+    0 2px 8px rgba(13, 148, 136, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.uitop-btn-ai::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.uitop-btn-ai:hover::before {
+  transform: translateX(100%);
+}
+
+.uitop-btn-ai:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 16px rgba(13, 148, 136, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.uitop-btn-ai:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.uitop-btn-ai i {
+  font-size: 12px;
+  animation: sparkle 2.5s ease-in-out infinite;
+}
+
+/* User chip */
+.uitop-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 2px 12px 2px 2px;
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-subtle);
+  transition: all var(--transition-fast);
+}
+
+.uitop-user-chip:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-tertiary);
+  transform: translateY(-1px);
+}
+
+.uitop-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+}
+
+.uitop-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Logout */
+.uitop-logout-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: all var(--transition-fast);
+}
+
+.uitop-logout-btn:hover {
+  color: var(--red-500);
+  background: rgba(239, 68, 68, 0.08);
+}

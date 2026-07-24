@@ -1,0 +1,209 @@
+/* ============================================================
+   UITOP — Charts (Chart.js containers)
+   ============================================================ */
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 280px;
+}
+
+.chart-container--sm {
+  height: 180px;
+}
+
+.chart-container--md {
+  height: 280px;
+}
+
+.chart-container--lg {
+  height: 360px;
+}
+
+.chart-container--xl {
+  height: 440px;
+}
+
+.chart-container--auto {
+  height: auto;
+  min-height: 200px;
+}
+
+/* Aspect ratio variants */
+.chart-container--square {
+  aspect-ratio: 1;
+  height: auto;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.chart-container--wide {
+  aspect-ratio: 21 / 9;
+  height: auto;
+}
+
+/* Canvas sizing */
+.chart-container canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Chart legend custom layout */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.chart-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.chart-legend-swatch--teal {
+  background: var(--teal-500);
+}
+
+.chart-legend-swatch--blue {
+  background: var(--blue-500);
+}
+
+.chart-legend-swatch--amber {
+  background: var(--amber-500);
+}
+
+.chart-legend-swatch--red {
+  background: var(--red-500);
+}
+
+/* Chart toolbar (period selectors) */
+.chart-toolbar {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.chart-toolbar-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.chart-toolbar-btn:hover {
+  color: var(--text-primary);
+}
+
+.chart-toolbar-btn.is-active {
+  background: var(--bg-elevated);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Sparkline inline charts */
+.sparkline {
+  display: inline-block;
+  width: 80px;
+  height: 28px;
+  vertical-align: middle;
+}
+
+.sparkline canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Donut center label */
+.chart-donut-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-donut-center {
+  position: absolute;
+  text-align: center;
+  pointer-events: none;
+}
+
+.chart-donut-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.chart-donut-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Loading skeleton for charts */
+.chart-skeleton {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    var(--bg-tertiary) 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty chart state */
+.chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px;
+}
+
+.chart-empty i {
+  font-size: 36px;
+  margin-bottom: 12px;
+  opacity: 0.35;
+}
+
+.chart-empty-text {
+  font-size: 13px;
+  font-weight: 500;
+}

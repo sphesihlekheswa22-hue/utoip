@@ -1,0 +1,30 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Asset categories{% endblock %}
+{% block page_title %}Categories{% endblock %}
+
+{% block content %}
+<header class="comp-header" style="margin-bottom:20px;">
+  <div>
+    <h1>Asset categories</h1>
+    <p>IT vs non-IT catalog used for ownership records.</p>
+  </div>
+  <a href="{{ url_for('assets.index') }}" class="btn btn-secondary">Back to assets</a>
+</header>
+
+<section class="comp-table-wrap">
+  <table class="comp-table">
+    <thead><tr><th>Code</th><th>Name</th><th>IT?</th><th>Description</th></tr></thead>
+    <tbody>
+      {% for c in categories %}
+      <tr>
+        <td><code>{{ c.code }}</code></td>
+        <td>{{ c.name }}</td>
+        <td>{% if c.is_it %}Yes{% else %}No{% endif %}</td>
+        <td>{{ c.description or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

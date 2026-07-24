@@ -1,0 +1,69 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
+
+{% block title %}Monitoring{% endblock %}
+{% block page_title %}Monitoring{% endblock %}
+
+{% block content %}
+{% call page_header("Monitoring", "Manage monitoring across Umzinyathi IT operations.", "{{ url_for('monitoring.index') }}", "Add Monitor", "fa-plus") %}{% endcall %}
+
+<div class="kpi-grid">
+  {{ kpi_card("Uptime", "99.94%", "30 days", "success", "fa-signal") }}
+  {{ kpi_card("Active alerts", "8", "2 critical", "danger", "fa-bell") }}
+  {{ kpi_card("Agents", "214", "Reporting", "default", "fa-satellite-dish") }}
+  {{ kpi_card("Latency", "18ms", "Core LAN", "success", "fa-gauge-high") }}
+</div>
+
+{% call filter_bar("Search monitoring…") %}
+  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
+  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
+{% endcall %}
+
+<section class="table-panel panel">
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Host</th>
+          <th>Metric</th>
+          <th>Value</th>
+          <th>Threshold</th>
+          <th>Status</th>
+          <th>Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>DC-AD-01</td>
+          <td>CPU</td>
+          <td>22%</td>
+          <td>85%</td>
+          <td>{{ status_badge('Healthy') }}</td>
+          <td>1 min</td>
+          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('monitoring.details', item_id=1) }}">View</a></td>
+        </tr>
+        <tr>
+          <td>APP-ERP-02</td>
+          <td>Memory</td>
+          <td>91%</td>
+          <td>90%</td>
+          <td>{{ status_badge('Critical') }}</td>
+          <td>1 min</td>
+          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('monitoring.details', item_id=1) }}">View</a></td>
+        </tr>
+        <tr>
+          <td>FW-EDGE-01</td>
+          <td>Sessions</td>
+          <td>4.2k</td>
+          <td>8k</td>
+          <td>{{ status_badge('Healthy') }}</td>
+          <td>30 sec</td>
+          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('monitoring.details', item_id=1) }}">View</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(1, 4) }}
+</section>
+{% endblock %}

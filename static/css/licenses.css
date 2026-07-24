@@ -1,0 +1,47 @@
+/* Licenses — extends Software Management shell (link software.css too) */
+
+.lic-score-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--teal-600) 20%, var(--border-subtle));
+  background:
+    radial-gradient(ellipse 80% 120% at 0% 50%, rgba(45, 212, 191, 0.16), transparent 55%),
+    var(--bg-elevated);
+}
+
+.lic-score-card strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: var(--slate-900);
+}
+
+.lic-score-card p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--slate-500);
+  line-height: 1.4;
+}
+
+.lic-util {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 110px;
+}
+
+.lic-util span {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--slate-600);
+  width: 36px;
+}
+
+.lic-money {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}

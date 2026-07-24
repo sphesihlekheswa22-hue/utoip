@@ -1,0 +1,288 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ printer.name }}{% endblock %}
+{% block page_title %}{{ printer.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/printers.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('printers.index') }}">Printers</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ printer.name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="printerConsole('{{ initial_tab }}')" x-cloak>
+  <section class="device-hero">
+    <div class="device-hero-main">
+      <div class="device-hero-icon"><i class="fas fa-print"></i></div>
+      <div>
+        <h1>{{ printer.name }}</h1>
+        <p class="device-hero-sub">{{ printer.model }} · {{ printer.ip }} · {{ printer.department }}</p>
+        <div class="device-hero-badges">
+          <span class="badge {% if printer.status == 'Online' %}badge-success{% elif printer.status in ['Offline','Critical','Paper Jam'] %}badge-danger{% else %}badge-warning{% endif %}">{{ printer.status }}</span>
+          <span class="badge badge-muted">{{ printer.type }}</span>
+          <span class="badge badge-muted">{% if printer.color %}Color{% else %}Mono{% endif %}</span>
+          <span class="badge badge-muted">{{ printer.location }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="device-hero-actions">
+      <button type="button" class="btn btn-secondary btn-sm" @click="setTab('remote')"><i class="fas fa-bolt"></i> Actions</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="toast('Status refreshed')"><i class="fas fa-rotate"></i> Refresh</button>
+      <a href="{{ url_for('printers.index') }}" class="btn btn-ghost btn-sm">Fleet</a>
+    </div>
+  </section>
+
+  <nav class="device-tabs" aria-label="Printer sections">
+    <template x-for="t in tabs" :key="t.id">
+      <button type="button" class="device-tab" :class="tab === t.id && 'is-active'" @click="setTab(t.id)" x-text="t.label"></button>
+    </template>
+  </nav>
+
+  <section class="device-panel" x-show="tab === 'overview'">
+    <h2 class="chart-panel-title">Overview</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Printer Name</dt><dd>{{ printer.name }}</dd></div>
+      <div class="device-field"><dt>Model</dt><dd>{{ printer.model }}</dd></div>
+      <div class="device-field"><dt>Manufacturer</dt><dd>{{ printer.manufacturer }}</dd></div>
+      <div class="device-field"><dt>IP Address</dt><dd>{{ printer.ip }}</dd></div>
+      <div class="device-field"><dt>Location</dt><dd>{{ printer.location }}</dd></div>
+      <div class="device-field"><dt>Department</dt><dd>{{ printer.department }}</dd></div>
+      <div class="device-field"><dt>Status</dt><dd>{{ printer.status }}</dd></div>
+      <div class="device-field"><dt>Type</dt><dd>{{ printer.type }}</dd></div>
+      <div class="device-field"><dt>Toner</dt><dd>{{ printer.toner }}%</dd></div>
+      <div class="device-field"><dt>Paper</dt><dd>{{ printer.paper }}%</dd></div>
+      <div class="device-field"><dt>Queue depth</dt><dd>{{ printer.queue }}</dd></div>
+      <div class="device-field"><dt>Last Seen</dt><dd>{{ printer.last_seen }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'supplies'">
+    <h2 class="chart-panel-title">Supplies</h2>
+    <div class="prt-supply">
+      <div class="prt-supply-card">
+        <h4><span class="prt-swatch black"></span> Black Toner</h4>
+        <div class="comp-usage {% if printer.toner <= 15 %}is-crit{% elif printer.toner <= 30 %}is-warn{% endif %}">
+          <div class="comp-usage-bar"><span style="width:{{ printer.toner }}%"></span></div>
+          <span>{{ printer.toner }}%</span>
+        </div>
+      </div>
+      {% if printer.color %}
+      <div class="prt-supply-card">
+        <h4><span class="prt-swatch cyan"></span> Cyan</h4>
+        <div class="comp-usage"><div class="comp-usage-bar"><span style="width:54%"></span></div><span>54%</span></div>
+      </div>
+      <div class="prt-supply-card">
+        <h4><span class="prt-swatch magenta"></span> Magenta</h4>
+        <div class="comp-usage is-warn"><div class="comp-usage-bar"><span style="width:28%"></span></div><span>28%</span></div>
+      </div>
+      <div class="prt-supply-card">
+        <h4><span class="prt-swatch yellow"></span> Yellow</h4>
+        <div class="comp-usage"><div class="comp-usage-bar"><span style="width:61%"></span></div><span>61%</span></div>
+      </div>
+      {% endif %}
+      <div class="prt-supply-card">
+        <h4><span class="prt-swatch waste"></span> Waste Toner</h4>
+        <div class="comp-usage"><div class="comp-usage-bar"><span style="width:35%"></span></div><span>35% full</span></div>
+      </div>
+      <div class="prt-supply-card">
+        <h4><span class="prt-swatch drum"></span> Drum</h4>
+        <div class="comp-usage"><div class="comp-usage-bar"><span style="width:72%"></span></div><span>72% life</span></div>
+      </div>
+      <div class="prt-supply-card">
+        <h4><span class="prt-swatch fuser"></span> Fuser</h4>
+        <div class="comp-usage is-warn"><div class="comp-usage-bar"><span style="width:22%"></span></div><span>22% life</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'trays'">
+    <h2 class="chart-panel-title">Paper Trays</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Tray</th><th>Capacity</th><th>Remaining Paper</th><th>Paper Size</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Tray 1</td><td>500</td><td>{{ printer.paper }}%</td><td>A4</td><td><span class="badge {% if printer.paper == 0 %}badge-danger{% elif printer.paper < 20 %}badge-warning{% else %}badge-success{% endif %}">{% if printer.paper == 0 %}Empty{% elif printer.paper < 20 %}Low{% else %}OK{% endif %}</span></td></tr>
+          <tr><td>Tray 2</td><td>500</td><td>64%</td><td>A4</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td>Tray 3</td><td>250</td><td>40%</td><td>A3</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td>Bypass</td><td>100</td><td>80%</td><td>Custom</td><td><span class="badge badge-success">OK</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'queue'">
+    <h2 class="chart-panel-title">Print Queue</h2>
+    <div class="prt-usage-grid">
+      <article class="comp-kpi is-warning"><p class="comp-kpi-label">Queued Jobs</p><p class="comp-kpi-value">{{ printer.queue }}</p></article>
+      <article class="comp-kpi is-danger"><p class="comp-kpi-label">Failed Jobs</p><p class="comp-kpi-value">1</p></article>
+      <article class="comp-kpi"><p class="comp-kpi-label">Paused Jobs</p><p class="comp-kpi-value">0</p></article>
+      <article class="comp-kpi is-success"><p class="comp-kpi-label">Completed Jobs</p><p class="comp-kpi-value">128</p></article>
+    </div>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Job</th><th>User</th><th>Document</th><th>Pages</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>#4821</td><td>S. Dlamini</td><td>Budget_Q3.pdf</td><td>12</td><td><span class="badge badge-warning">Queued</span></td></tr>
+          <tr><td>#4820</td><td>L. Mokoena</td><td>Leave_Form.docx</td><td>2</td><td><span class="badge badge-warning">Queued</span></td></tr>
+          <tr><td>#4818</td><td>J. Naidoo</td><td>Site_Plan.pdf</td><td>1</td><td><span class="badge badge-danger">Failed</span></td></tr>
+          <tr><td>#4815</td><td>T. Nkosi</td><td>Policy.pdf</td><td>8</td><td><span class="badge badge-success">Completed</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'usage'">
+    <h2 class="chart-panel-title">Usage Statistics</h2>
+    <div class="prt-usage-grid">
+      <article class="comp-kpi"><p class="comp-kpi-label">Pages Today</p><p class="comp-kpi-value">86</p></article>
+      <article class="comp-kpi is-accent"><p class="comp-kpi-label">Pages This Month</p><p class="comp-kpi-value">1,420</p></article>
+      <article class="comp-kpi"><p class="comp-kpi-label">Color Pages</p><p class="comp-kpi-value">{% if printer.color %}512{% else %}0{% endif %}</p></article>
+      <article class="comp-kpi"><p class="comp-kpi-label">Black &amp; White</p><p class="comp-kpi-value">908</p></article>
+      <article class="comp-kpi is-success"><p class="comp-kpi-label">Lifetime Prints</p><p class="comp-kpi-value">84.2k</p></article>
+    </div>
+    <div class="device-chart-card">
+      <h3>Pages · last 14 days</h3>
+      <div class="chart-box"><canvas id="prtUsageChart"></canvas></div>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'maintenance'">
+    <h2 class="chart-panel-title">Maintenance</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Next service</dt><dd>2026-08-15</dd></div>
+      <div class="device-field"><dt>Last service</dt><dd>2026-02-10</dd></div>
+      <div class="device-field"><dt>Page count at service</dt><dd>79,400</dd></div>
+      <div class="device-field"><dt>Contract</dt><dd>Umzinyathi MPSA · Gold</dd></div>
+      <div class="device-field"><dt>Technician</dt><dd>Vendor field team</dd></div>
+      <div class="device-field"><dt>Status</dt><dd>{{ printer.status }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'network'">
+    <h2 class="chart-panel-title">Network</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>IP Address</dt><dd>{{ printer.ip }}</dd></div>
+      <div class="device-field"><dt>MAC Address</dt><dd>00:17:C8:A{{ printer.id }}:B1:C2</dd></div>
+      <div class="device-field"><dt>Hostname</dt><dd>PRT-{{ printer.name.replace(' ', '-').upper()[:12] }}</dd></div>
+      <div class="device-field"><dt>Firmware</dt><dd>2405A · {{ printer.manufacturer }}</dd></div>
+      <div class="device-field"><dt>Serial Number</dt><dd>SN{{ printer.id }}7842KUMZ</dd></div>
+      <div class="device-field"><dt>SNMP Status</dt><dd><span class="badge badge-success">Responding</span></dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'snmp'">
+    <h2 class="chart-panel-title">SNMP</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>sysName</dt><dd>{{ printer.name }}</dd></div>
+      <div class="device-field"><dt>sysDescr</dt><dd>{{ printer.model }}</dd></div>
+      <div class="device-field"><dt>Profile</dt><dd>HQ Read-Only (v2c)</dd></div>
+      <div class="device-field"><dt>Last poll</dt><dd>{{ printer.last_seen }}</dd></div>
+      <div class="device-field"><dt>Printer MIB</dt><dd>Host Resources + Printer-MIB</dd></div>
+      <div class="device-field"><dt>Alerts via trap</dt><dd>Enabled</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'timeline'">
+    <h2 class="chart-panel-title">Activity Timeline</h2>
+    <ul class="timeline">
+      <li><time>Today 10:05</time><strong>Status Change</strong><p>{{ printer.status }} reported by SNMP poll.</p></li>
+      <li><time>Today 09:40</time><strong>Print Job</strong><p>Budget_Q3.pdf · 12 pages · S. Dlamini</p></li>
+      <li><time>Yesterday</time><strong>Supply Warning</strong><p>Toner level crossed 15% threshold.</p></li>
+      <li><time>Mon</time><strong>Queue Cleared</strong><p>Admin cleared stalled jobs.</p></li>
+      <li><time>Sun</time><strong>Online</strong><p>Device returned after power event.</p></li>
+    </ul>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'alerts'">
+    <h2 class="chart-panel-title">Alerts</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Severity</th><th>Alert</th><th>Since</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-warning">Warning</span></td><td>Low toner / supply</td><td>3 hrs</td><td>Open</td></tr>
+          <tr><td><span class="badge badge-danger">Critical</span></td><td>{{ printer.status }}</td><td>18 min</td><td>Open</td></tr>
+          <tr><td><span class="badge badge-muted">Info</span></td><td>High monthly page volume</td><td>2 days</td><td>Acknowledged</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'remote'">
+    <h2 class="chart-panel-title">Remote Actions</h2>
+    <div class="remote-grid">
+      <button type="button" class="remote-btn" @click="toast('Restart queued')"><i class="fas fa-power-off"></i><strong>Restart Printer</strong><span>Soft reboot</span></button>
+      <button type="button" class="remote-btn" @click="toast('Queue cleared')"><i class="fas fa-broom"></i><strong>Clear Queue</strong><span>Remove pending jobs</span></button>
+      <button type="button" class="remote-btn" @click="toast('Test page sent')"><i class="fas fa-file"></i><strong>Print Test Page</strong><span>Diagnostics sheet</span></button>
+      <button type="button" class="remote-btn" @click="toast('Status refreshed')"><i class="fas fa-rotate"></i><strong>Refresh Status</strong><span>SNMP / queue poll</span></button>
+      <button type="button" class="remote-btn" @click="toast('Diagnostics started')"><i class="fas fa-stethoscope"></i><strong>Run Diagnostics</strong><span>Self-test bundle</span></button>
+      <button type="button" class="remote-btn" @click="toast('Opening web UI')"><i class="fas fa-globe"></i><strong>Open Web Interface</strong><span>http://{{ printer.ip }}</span></button>
+    </div>
+  </section>
+</div>
+
+<script>
+function printerConsole(initial) {
+  return {
+    tab: initial || "overview",
+    chartsReady: false,
+    tabs: [
+      { id: "overview", label: "Overview" },
+      { id: "supplies", label: "Supplies" },
+      { id: "trays", label: "Paper Trays" },
+      { id: "queue", label: "Print Queue" },
+      { id: "usage", label: "Usage Statistics" },
+      { id: "maintenance", label: "Maintenance" },
+      { id: "network", label: "Network" },
+      { id: "snmp", label: "SNMP" },
+      { id: "timeline", label: "Activity Timeline" },
+      { id: "alerts", label: "Alerts" },
+      { id: "remote", label: "Remote Actions" }
+    ],
+    setTab(id) {
+      this.tab = id;
+      var url = new URL(window.location.href);
+      url.searchParams.set("tab", id);
+      history.replaceState({}, "", url);
+      if (id === "usage") {
+        var self = this;
+        this.$nextTick(function () { self.initChart(); });
+      }
+    },
+    toast(msg) {
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, "success");
+    },
+    initChart() {
+      if (!window.UITOP || !UITOP.charts || this.chartsReady) return;
+      var el = document.getElementById("prtUsageChart");
+      if (!el || el._chart) return;
+      el._chart = UITOP.charts.createBar(el, {
+        labels: ["D-13","D-11","D-9","D-7","D-5","D-3","Today"],
+        datasets: [{
+          label: "Pages",
+          data: [90, 110, 70, 130, 95, 120, 86],
+          backgroundColor: UITOP.charts.soft("#0d9488", 0.85),
+          borderRadius: 6
+        }]
+      }, { plugins: { legend: { display: false } } });
+      this.chartsReady = true;
+    }
+  };
+}
+document.addEventListener("DOMContentLoaded", function () {
+  setTimeout(function () {
+    var root = document.querySelector("[x-data]");
+    if (root && root._x_dataStack && root._x_dataStack[0].tab === "usage") {
+      root._x_dataStack[0].initChart();
+    }
+  }, 400);
+});
+</script>
+{% endblock %}

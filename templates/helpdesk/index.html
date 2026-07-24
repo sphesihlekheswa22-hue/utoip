@@ -1,0 +1,109 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Help Desk{% endblock %}
+{% block page_title %}Help Desk{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="helpdeskDash()" x-cloak>
+  <header class="comp-header">
+    <div>
+      <h1>Help Desk</h1>
+      <p>Live ticket queue for Umzinyathi IT support.</p>
+    </div>
+    <a href="{{ url_for('helpdesk.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> New ticket</a>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<p>{{ msg }}</p>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="comp-kpi-grid">
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Open</p><p class="comp-kpi-value">{{ kpis.open }}</p></article>
+    <article class="comp-kpi is-danger"><p class="comp-kpi-label">SLA breached</p><p class="comp-kpi-value">{{ kpis.sla_breached }}</p></article>
+    <article class="comp-kpi is-success"><p class="comp-kpi-label">Resolved today</p><p class="comp-kpi-value">{{ kpis.resolved_today }}</p></article>
+    <article class="comp-kpi is-accent"><p class="comp-kpi-label">Avg response</p><p class="comp-kpi-value">{% if kpis.avg_response_min %}{{ kpis.avg_response_min }}m{% else %}—{% endif %}</p></article>
+  </div>
+
+  <div class="comp-toolbar">
+    <div class="comp-search">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="search" placeholder="Search ID, subject, requester…" x-model="q" />
+    </div>
+    <select x-model="statusFilter" style="max-width:160px;">
+      <option value="">All statuses</option>
+      <option value="open">Open</option>
+      <option value="in_progress">In progress</option>
+      <option value="pending">Pending</option>
+      <option value="resolved">Resolved</option>
+      <option value="closed">Closed</option>
+    </select>
+  </div>
+
+  <section class="comp-table-wrap">
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Subject</th>
+          <th>Requester</th>
+          <th>Priority</th>
+          <th>Assignee</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="t in filtered" :key="t.id">
+          <tr>
+            <td><code x-text="t.ticket_number"></code></td>
+            <td>
+              <strong x-text="t.subject"></strong>
+              <template x-if="t.sla_breached"><span class="badge badge-danger" style="margin-left:6px;">SLA</span></template>
+            </td>
+            <td x-text="t.requester"></td>
+            <td x-text="t.priority_label"></td>
+            <td x-text="t.assignee"></td>
+            <td>
+              <span class="badge"
+                :class="{
+                  'badge-warning': t.status === 'open' || t.status === 'pending',
+                  'badge-accent': t.status === 'in_progress',
+                  'badge-success': t.status === 'resolved' || t.status === 'closed',
+                  'badge-danger': t.sla_breached
+                }"
+                x-text="t.status_label"></span>
+            </td>
+            <td><a class="btn btn-ghost btn-sm" :href="'/helpdesk/' + t.id">View</a></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    <p x-show="filtered.length === 0" style="padding:16px;color:#6b7c8c;">No tickets match.</p>
+  </section>
+</div>
+<script>
+window.__TICKETS__ = {{ tickets | tojson }};
+function helpdeskDash() {
+  return {
+    q: "",
+    statusFilter: "",
+    tickets: window.__TICKETS__ || [],
+    get filtered() {
+      var q = this.q.trim().toLowerCase();
+      var st = this.statusFilter;
+      return this.tickets.filter(function (t) {
+        if (st && t.status !== st) return false;
+        if (!q) return true;
+        return [t.ticket_number, t.subject, t.requester, t.assignee, t.priority_label, t.status_label]
+          .join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    }
+  };
+}
+</script>
+{% endblock %}

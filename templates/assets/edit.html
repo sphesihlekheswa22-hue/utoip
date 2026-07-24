@@ -1,0 +1,90 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Edit asset{% endblock %}
+{% block page_title %}Edit asset{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('assets.index') }}">Assets</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('assets.details', item_id=item_id) }}">{{ asset.asset_tag }}</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Edit</span>
+{% endblock %}
+
+{% block content %}
+<div class="uf-page uf-page--single">
+  <header class="uf-hero">
+    <div class="uf-hero-inner">
+      <div>
+        <p class="uf-eyebrow"><i class="fas fa-box"></i> Asset lifecycle</p>
+        <h1>Edit {{ asset.asset_tag }}</h1>
+        <p>Update ownership fields without inventing a new device in ops inventory.</p>
+      </div>
+      <div class="uf-hero-meta">
+        <span class="uf-chip"><i class="fas fa-circle"></i> {{ (asset.status or '')|replace('_',' ')|title }}</span>
+      </div>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <form method="post" class="uf-card">
+    <section class="uf-section">
+      <div class="uf-section-head">
+        <span class="uf-section-num">1</span>
+        <div>
+          <h2>Asset details</h2>
+          <p>{{ asset.name }}</p>
+        </div>
+      </div>
+      <div class="uf-section-body">
+        <div class="uf-field">
+          <span class="uf-field-label">Name <span class="req">*</span></span>
+          <input name="name" required value="{{ asset.name }}" />
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Category</span>
+            <select name="category_id">
+              <option value="">—</option>
+              {% for c in categories %}
+              <option value="{{ c.id }}" {% if asset.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Status</span>
+            <select name="status">
+              {% for s in ['ordered','in_store','assigned','in_use','in_repair','disposed'] %}
+              <option value="{{ s }}" {% if asset.status == s %}selected{% endif %}>{{ s.replace('_',' ').title() }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Serial</span>
+            <input name="serial_number" value="{{ asset.serial_number or '' }}" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Location</span>
+            <input name="location" value="{{ asset.location or '' }}" />
+          </div>
+        </div>
+        <div class="uf-field">
+          <span class="uf-field-label">Notes</span>
+          <textarea name="notes" rows="3">{{ asset.notes or '' }}</textarea>
+        </div>
+      </div>
+    </section>
+    <div class="uf-actions">
+      <a href="{{ url_for('assets.details', item_id=item_id) }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Save</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

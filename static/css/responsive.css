@@ -1,0 +1,368 @@
+/* ============================================================
+   UITOP — Responsive Breakpoints
+   Sidebar collapse, topbar, grids
+   ============================================================ */
+
+/* ─── Large desktop (1280px+) ─── */
+@media (min-width: 1280px) {
+  .uitop-content {
+    padding: 28px 32px;
+  }
+
+  .kpi-card {
+    grid-column: span 3;
+  }
+}
+
+/* ─── Desktop (1024px+) — sidebar always visible ─── */
+@media (min-width: 1024px) {
+  .uitop-menu-btn {
+    display: none;
+  }
+
+  .uitop-dimmer {
+    display: none !important;
+  }
+
+  .uitop-sidebar {
+    transform: translateX(0);
+    box-shadow: none;
+  }
+
+  .uitop-main {
+    margin-left: var(--sidebar-width);
+  }
+
+  body.sidebar-collapsed .uitop-main {
+    margin-left: var(--sidebar-collapsed);
+  }
+}
+
+/* ─── Tablet landscape (768px – 1023px) ─── */
+@media (max-width: 1023px) {
+  .uitop-sidebar {
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-xl);
+  }
+
+  body.has-sidebar-open .uitop-sidebar {
+    transform: translateX(0);
+  }
+
+  .uitop-main {
+    margin-left: 0;
+  }
+
+  .uitop-topbar-search {
+    max-width: 280px;
+  }
+
+  .uitop-user-name {
+    display: none;
+  }
+
+  .uitop-btn-ai span {
+    display: none;
+  }
+
+  .uitop-btn-ai {
+    padding: 0 12px;
+  }
+
+  /* Dashboard grids */
+  .kpi-card {
+    grid-column: span 6;
+  }
+
+  .chart-panel {
+    grid-column: span 12;
+  }
+
+  .chart-panel--half {
+    grid-column: span 12;
+  }
+
+  .activity-panel {
+    grid-column: span 12;
+    max-height: none;
+  }
+
+  /* Form grid */
+  .form-grid .field,
+  .form-grid .field--third,
+  .form-grid .field--quarter {
+    grid-column: span 6;
+  }
+
+  /* Card grids */
+  .card-grid--2,
+  .card-grid--3 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Grid columns stack */
+  .col-md-6 { grid-column: span 6; }
+  .col-md-12 { grid-column: span 12; }
+}
+
+/* ─── Tablet portrait (640px – 767px) ─── */
+@media (max-width: 767px) {
+  .uitop-topbar-inner {
+    padding: 0 14px;
+  }
+
+  .uitop-content {
+    padding: 20px 16px;
+  }
+
+  .uitop-footer {
+    padding: 14px 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .kpi-card {
+    grid-column: span 12;
+  }
+
+  .kpi-grid {
+    gap: 14px;
+  }
+
+  .dashboard-grid {
+    gap: 16px;
+  }
+
+  .quick-actions {
+    gap: 10px;
+  }
+
+  .quick-action {
+    flex: 1 1 calc(50% - 5px);
+    justify-content: center;
+    padding: 12px 14px;
+    font-size: 12px;
+  }
+
+  .form-grid .field,
+  .form-grid .field--third,
+  .form-grid .field--quarter {
+    grid-column: span 12;
+  }
+
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-toolbar-left,
+  .table-toolbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .table-search {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .modal-dialog {
+    max-width: 100%;
+    margin: 0;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal-overlay {
+    padding: 16px;
+    align-items: flex-end;
+  }
+
+  .modal-overlay .modal-dialog {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  /* Grid utilities — full width on mobile */
+  .col-sm-12 { grid-column: span 12; }
+}
+
+/* ─── Mobile (639px and below) ─── */
+@media (max-width: 639px) {
+  .uitop-topbar-search {
+    display: none;
+  }
+
+  .uitop-brand-sub {
+    display: none;
+  }
+
+  .uitop-content {
+    padding: 16px;
+  }
+
+  .uitop-breadcrumb {
+    margin-bottom: 16px;
+    font-size: 12px;
+  }
+
+  .uitop-topbar-right {
+    gap: 4px;
+  }
+
+  .uitop-btn-ai {
+    display: none;
+  }
+
+  .grid {
+    gap: 16px;
+  }
+
+  .col-1, .col-2, .col-3, .col-4,
+  .col-5, .col-6, .col-7, .col-8,
+  .col-9, .col-10, .col-11 {
+    grid-column: span 12;
+  }
+
+  .alert-strip {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+  }
+
+  .chart-panel-body {
+    padding: 14px 16px 18px;
+    min-height: 220px;
+  }
+
+  .chart-container,
+  .chart-container--md {
+    height: 220px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+  }
+
+  .card-footer {
+    padding: 12px 16px;
+  }
+
+  .btn-group {
+    flex-wrap: wrap;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  .form-actions .ml-auto {
+    margin-left: 0;
+  }
+
+  .table-pagination {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .uitop-toast-container {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: none;
+  }
+}
+
+/* ─── Small mobile (480px and below) ─── */
+@media (max-width: 479px) {
+  .uitop-brand-name {
+    font-size: 15px;
+  }
+
+  .page-title {
+    font-size: 1.25rem;
+  }
+
+  .quick-action {
+    flex: 1 1 100%;
+  }
+
+  .kpi-card-value {
+    font-size: 1.35rem;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
+/* ─── Print ─── */
+@media print {
+  .uitop-topbar,
+  .uitop-sidebar,
+  .uitop-dimmer,
+  .uitop-toast-container,
+  .uitop-footer,
+  .quick-actions,
+  .table-toolbar,
+  .table-pagination,
+  .modal-overlay,
+  .btn,
+  .uitop-btn-ai {
+    display: none !important;
+  }
+
+  .uitop-main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .uitop-content {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .panel,
+  .card,
+  .kpi-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* ─── Safe area (notched devices) ─── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .uitop-topbar-inner {
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+
+  .uitop-toast-container {
+    bottom: max(24px, env(safe-area-inset-bottom));
+    right: max(24px, env(safe-area-inset-right));
+  }
+
+  .uitop-sidebar-foot {
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+}

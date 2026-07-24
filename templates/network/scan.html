@@ -1,0 +1,126 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Scan Network{% endblock %}
+{% block page_title %}Scan Network{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/network.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('network.index') }}">Network</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Scan</span>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="netScan()" x-cloak>
+  <header class="comp-header">
+    <div>
+      <h1>Scan Network</h1>
+      <p>SNMP · ICMP · ARP discovery across Umzinyathi VLANs. Assign SNMP credentials to newly found gear.</p>
+    </div>
+    <div class="comp-toolbar-actions">
+      <button type="button" class="btn btn-primary" @click="start()" :disabled="scanning">
+        <i class="fas" :class="scanning ? 'fa-spinner fa-spin' : 'fa-satellite-dish'"></i>
+        <span x-text="scanning ? 'Scanning…' : 'Start Scan'"></span>
+      </button>
+      <a href="{{ url_for('network.snmp') }}" class="btn btn-secondary"><i class="fas fa-key"></i> SNMP</a>
+      <a href="{{ url_for('network.index') }}" class="btn btn-ghost">Back</a>
+    </div>
+  </header>
+
+  <div class="scan-progress">
+    <div class="comp-table-meta">
+      <strong x-text="scanning ? 'Discovery in progress' : (done ? 'Scan complete' : 'Ready to scan')"></strong>
+      <span x-text="progress + '%'"></span>
+    </div>
+    <div class="scan-progress-track" role="progressbar" :aria-valuenow="progress" aria-valuemin="0" aria-valuemax="100">
+      <div class="scan-progress-fill" :style="'width:' + progress + '%'"></div>
+    </div>
+    <p class="chart-panel-subtitle" x-text="statusText"></p>
+  </div>
+
+  <div class="scan-stats">
+    <article class="comp-kpi is-accent"><p class="comp-kpi-label">Discovered Devices</p><p class="comp-kpi-value" x-text="t.devices"></p></article>
+    <article class="comp-kpi"><p class="comp-kpi-label">Routers</p><p class="comp-kpi-value" x-text="t.routers"></p></article>
+    <article class="comp-kpi"><p class="comp-kpi-label">Switches</p><p class="comp-kpi-value" x-text="t.switches"></p></article>
+    <article class="comp-kpi"><p class="comp-kpi-label">Printers</p><p class="comp-kpi-value" x-text="t.printers"></p></article>
+    <article class="comp-kpi"><p class="comp-kpi-label">Firewalls</p><p class="comp-kpi-value" x-text="t.firewalls"></p></article>
+    <article class="comp-kpi"><p class="comp-kpi-label">Servers</p><p class="comp-kpi-value" x-text="t.servers"></p></article>
+    <article class="comp-kpi"><p class="comp-kpi-label">Computers</p><p class="comp-kpi-value" x-text="t.computers"></p></article>
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Unknown</p><p class="comp-kpi-value" x-text="t.unknown"></p></article>
+  </div>
+
+  <section class="comp-table-wrap" x-show="results.length" x-cloak>
+    <div class="comp-table-meta">
+      <strong>Discovered devices</strong>
+      <span>Assign SNMP credentials where needed</span>
+    </div>
+    <template x-for="r in results" :key="r.ip">
+      <div class="scan-result">
+        <div class="scan-result-main">
+          <strong x-text="r.name"></strong>
+          <span><span x-text="r.type"></span> · <code x-text="r.ip"></code> · <span x-text="r.vendor"></span></span>
+        </div>
+        <div class="comp-toolbar-actions">
+          <span class="badge" :class="r.snmp ? 'badge-success' : 'badge-warning'" x-text="r.snmp ? 'SNMP OK' : 'SNMP Missing'"></span>
+          <span class="badge" :class="r.status === 'Online' ? 'badge-success' : 'badge-muted'" x-text="r.status"></span>
+          <template x-if="!r.snmp">
+            <button type="button" class="btn btn-primary btn-sm" @click="assignSnmp(r)"><i class="fas fa-key"></i> Assign SNMP</button>
+          </template>
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('network.snmp') }}">Credentials</a>
+        </div>
+      </div>
+    </template>
+  </section>
+</div>
+
+<script>
+function netScan() {
+  return {
+    scanning: false, done: false, progress: 0,
+    statusText: "Targets: HQ VLANs 10–40 · methods SNMP v2c/v3, ICMP, ARP.",
+    t: { devices: 0, routers: 0, switches: 0, printers: 0, firewalls: 0, servers: 0, computers: 0, unknown: 0 },
+    results: [],
+    start() {
+      if (this.scanning) return;
+      var self = this;
+      this.scanning = true; this.done = false; this.progress = 0; this.results = [];
+      var steps = [
+        { p: 15, msg: "ARP table sweep…" },
+        { p: 35, msg: "ICMP echo across subnets…" },
+        { p: 55, msg: "SNMP sysDescr / ifTable probes…" },
+        { p: 75, msg: "Classifying device roles…" },
+        { p: 100, msg: "Scan complete." }
+      ];
+      var i = 0;
+      var timer = setInterval(function () {
+        var s = steps[i++];
+        self.progress = s.p; self.statusText = s.msg;
+        if (s.p >= 55) self.t = { devices: 38, routers: 3, switches: 11, printers: 6, firewalls: 2, servers: 8, computers: 5, unknown: 3 };
+        if (s.p === 100) {
+          clearInterval(timer);
+          self.scanning = false; self.done = true;
+          self.results = [
+            { name: "SW-ACCESS-FIN", type: "Switch", ip: "10.12.4.3", vendor: "Aruba", snmp: false, status: "Online" },
+            { name: "AP-FLOOR3-02", type: "Access Point", ip: "10.12.6.52", vendor: "Ubiquiti", snmp: true, status: "Online" },
+            { name: "FW-BRANCH-01", type: "Firewall", ip: "10.20.0.1", vendor: "Fortinet", snmp: false, status: "Online" },
+            { name: "UNK-10.12.9.200", type: "Unknown", ip: "10.12.9.200", vendor: "—", snmp: false, status: "Online" },
+            { name: "NAS-BACKUP-02", type: "NAS", ip: "10.12.0.41", vendor: "Synology", snmp: true, status: "Online" }
+          ];
+        }
+      }, 650);
+    },
+    assignSnmp(r) {
+      r.snmp = true;
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast("SNMP profile assigned to " + r.name, "success");
+    }
+  };
+}
+</script>
+{% endblock %}

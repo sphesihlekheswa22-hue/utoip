@@ -1,0 +1,47 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import form_field %}
+
+{% block title %}New Report{% endblock %}
+{% block page_title %}New Report{% endblock %}
+
+{% block content %}
+<div class="uf-page uf-page--single">
+  <header class="uf-hero">
+    <div class="uf-hero-inner">
+      <div>
+        <p class="uf-eyebrow"><i class="fas fa-chart-pie"></i> Reporting</p>
+        <h1>New Report</h1>
+        <p>Capture clear details so operations stays accurate and searchable.</p>
+      </div>
+      <div class="uf-hero-meta">
+        <span class="uf-chip"><i class="fas fa-pen-to-square"></i> Guided form</span>
+      </div>
+    </div>
+  </header>
+
+  <form class="uf-card" method="post" data-validate>
+    <section class="uf-section">
+      <div class="uf-section-head">
+        <span class="uf-section-num">1</span>
+        <div>
+          <h2>Details</h2>
+          <p>Required fields first — extras when you have them.</p>
+        </div>
+      </div>
+      <div class="uf-section-body">
+        <div class="form-grid uf-form-grid">
+          {{ form_field("name", "Name", required=True, placeholder="Report name") }}
+          {{ form_field("code", "Code / Tag", placeholder="Auto or manual") }}
+          {{ form_field("owner", "Owner / Assignee") }}
+          {{ form_field("location", "Location") }}
+          {{ form_field("notes", "Notes", type="textarea", placeholder="Optional notes") }}
+        </div>
+      </div>
+    </section>
+    <div class="uf-actions">
+      <a href="{{ url_for('reports.index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Save Report</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

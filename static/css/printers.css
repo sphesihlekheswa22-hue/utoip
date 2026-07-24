@@ -1,0 +1,51 @@
+/* Printers module */
+.prt-supply {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.prt-supply-card {
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+.prt-supply-card h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prt-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.prt-swatch.black { background: #111827; }
+.prt-swatch.cyan { background: #06b6d4; }
+.prt-swatch.magenta { background: #d946ef; }
+.prt-swatch.yellow { background: #eab308; }
+.prt-swatch.waste { background: #78716c; }
+.prt-swatch.drum { background: #64748b; }
+.prt-swatch.fuser { background: #f97316; }
+
+.prt-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1023px) {
+  .prt-usage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  .prt-usage-grid { grid-template-columns: 1fr; }
+}

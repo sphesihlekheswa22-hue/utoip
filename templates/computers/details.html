@@ -1,0 +1,413 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ device.hostname }}{% endblock %}
+{% block page_title %}{{ device.hostname }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('computers.index') }}">Computers</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ device.hostname }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="deviceConsole('{{ initial_tab }}')" x-cloak>
+  <section class="device-hero">
+    <div class="device-hero-main">
+      <div class="device-hero-icon"><i class="fas fa-desktop"></i></div>
+      <div>
+        <h1>{{ device.name }}</h1>
+        <p class="device-hero-sub">{{ device.hostname }} · {{ device.ip }} · Agent {{ device.agent_version }}</p>
+        <div class="device-hero-badges">
+          <span class="badge {% if device.status == 'Online' %}badge-success{% elif device.status == 'Warning' %}badge-warning{% else %}badge-danger{% endif %}">{{ device.status }}</span>
+          <span class="badge {% if device.agent == 'Online' %}badge-success{% elif device.agent == 'Missing' %}badge-muted{% else %}badge-danger{% endif %}">Agent {{ device.agent }}</span>
+          <span class="badge badge-muted">{{ device.criticality }} criticality</span>
+          <span class="badge badge-muted">{{ device.department }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="device-hero-actions">
+      <button type="button" class="btn btn-secondary btn-sm" @click="tab = 'remote'"><i class="fas fa-desktop"></i> Remote Actions</button>
+      <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-rotate"></i> Sync Agent</button>
+      <a href="{{ url_for('computers.index') }}" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Fleet</a>
+    </div>
+  </section>
+
+  <nav class="device-tabs" aria-label="Device sections">
+    <template x-for="t in tabs" :key="t.id">
+      <button type="button" class="device-tab" :class="tab === t.id && 'is-active'" @click="setTab(t.id)" x-text="t.label"></button>
+    </template>
+  </nav>
+
+  <!-- Overview -->
+  <section class="device-panel" x-show="tab === 'overview'">
+    <h2 class="chart-panel-title">Overview</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Device Name</dt><dd>{{ device.name }}</dd></div>
+      <div class="device-field"><dt>Hostname</dt><dd>{{ device.hostname }}</dd></div>
+      <div class="device-field"><dt>Device ID</dt><dd>UITOP-PC-{{ device.id }}</dd></div>
+      <div class="device-field"><dt>Serial Number</dt><dd>{{ device.serial_number }}</dd></div>
+      <div class="device-field"><dt>Manufacturer</dt><dd>{{ device.manufacturer }}</dd></div>
+      <div class="device-field"><dt>Model</dt><dd>{{ device.model }}</dd></div>
+      <div class="device-field"><dt>Asset Tag</dt><dd>{{ device.asset_tag }}</dd></div>
+      <div class="device-field"><dt>Department</dt><dd>{{ device.department }}</dd></div>
+      <div class="device-field"><dt>Assigned User</dt><dd>{{ device.user }}</dd></div>
+      <div class="device-field"><dt>Operating System</dt><dd>{{ device.os }}</dd></div>
+      <div class="device-field"><dt>Agent ID</dt><dd>{{ device.agent_id or '—' }}</dd></div>
+      <div class="device-field"><dt>Agent Version</dt><dd>{{ device.agent_version }}</dd></div>
+      <div class="device-field"><dt>Last Seen</dt><dd>{{ device.last_seen }}</dd></div>
+      <div class="device-field"><dt>Inventory Updated</dt><dd>{{ device.inventory_updated_at }}</dd></div>
+      <div class="device-field"><dt>Online Status</dt><dd>{{ device.status }}</dd></div>
+      <div class="device-field"><dt>Domain</dt><dd>{{ device.domain }}</dd></div>
+    </dl>
+  </section>
+
+  <!-- Hardware -->
+  <section class="device-panel" x-show="tab === 'hardware'">
+    <h2 class="chart-panel-title">Hardware</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>CPU</dt><dd>{{ device.cpu_model }}{% if device.cpu_cores %} · {{ device.cpu_cores }} cores{% endif %}</dd></div>
+      <div class="device-field"><dt>Motherboard</dt><dd>{{ device.manufacturer }} system board</dd></div>
+      <div class="device-field"><dt>RAM</dt><dd>{% if device.ram_gb %}{{ device.ram_gb }} GB{% else %}—{% endif %}{% if device.ram %} · {{ device.ram }}% in use{% endif %}</dd></div>
+      <div class="device-field"><dt>Disk</dt><dd>{% if device.disk_gb %}{{ device.disk_gb }} GB{% else %}—{% endif %}{% if device.disk %} · {{ device.disk }}% used{% endif %}</dd></div>
+      <div class="device-field"><dt>Form factor</dt><dd>{{ device.type }}</dd></div>
+      <div class="device-field"><dt>Serial</dt><dd>{{ device.serial_number }}</dd></div>
+    </dl>
+  </section>
+
+  <!-- OS -->
+  <section class="device-panel" x-show="tab === 'os'">
+    <h2 class="chart-panel-title">Operating System</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Edition</dt><dd>{{ device.os }}</dd></div>
+      <div class="device-field"><dt>Family</dt><dd>{{ device.os_family }}</dd></div>
+      <div class="device-field"><dt>Domain / Workgroup</dt><dd>{{ device.domain }}</dd></div>
+      <div class="device-field"><dt>Last Seen</dt><dd>{{ device.last_seen }}</dd></div>
+    </dl>
+  </section>
+
+  <!-- Performance -->
+  <section class="device-panel" x-show="tab === 'performance'" x-effect="if (tab === 'performance') $nextTick(() => initPerfCharts())">
+    <h2 class="chart-panel-title">Performance</h2>
+    <p class="chart-panel-subtitle">
+      {% if perf_series %}Agent telemetry samples ({{ perf_series|length }}){% else %}No performance samples yet — waiting for agent reports{% endif %}
+    </p>
+    <div class="comp-kpi-grid" style="margin-bottom: 16px;">
+      <article class="comp-kpi"><p class="comp-kpi-label">CPU</p><p class="comp-kpi-value">{{ device.cpu }}%</p></article>
+      <article class="comp-kpi"><p class="comp-kpi-label">Memory</p><p class="comp-kpi-value">{{ device.ram }}%</p></article>
+      <article class="comp-kpi"><p class="comp-kpi-label">Disk</p><p class="comp-kpi-value">{{ device.disk }}%</p></article>
+    </div>
+    <div class="device-chart-grid">
+      <div class="device-chart-card"><h3>CPU</h3><div class="chart-box"><canvas id="devCpuChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Memory</h3><div class="chart-box"><canvas id="devMemChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Disk</h3><div class="chart-box"><canvas id="devDiskChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Network</h3><div class="chart-box"><canvas id="devNetChart"></canvas></div></div>
+    </div>
+  </section>
+
+  <!-- Network -->
+  <section class="device-panel" x-show="tab === 'network'">
+    <h2 class="chart-panel-title">Network</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>IP Address</dt><dd>{{ device.ip }}</dd></div>
+      <div class="device-field"><dt>MAC Address</dt><dd>{{ device.mac }}</dd></div>
+      <div class="device-field"><dt>Gateway</dt><dd>10.12.0.1</dd></div>
+      <div class="device-field"><dt>DNS</dt><dd>10.12.0.11, 10.12.0.12</dd></div>
+      <div class="device-field"><dt>Wi‑Fi</dt><dd>{% if device.type == 'Laptop' %}UMZ-Corp · 802.11ax · -58 dBm{% else %}Not connected{% endif %}</dd></div>
+      <div class="device-field"><dt>Ethernet</dt><dd>Intel I219-LM · 1 Gbps · Connected</dd></div>
+      <div class="device-field"><dt>Public IP</dt><dd>41.13.xx.xx (NAT)</dd></div>
+      <div class="device-field"><dt>Network Speed</dt><dd>↑ 42 Mbps · ↓ 180 Mbps</dd></div>
+      <div class="device-field"><dt>Connected Switch</dt><dd>SW-HQ-A12 · Gi1/0/{{ 10 + device.id }}</dd></div>
+    </dl>
+  </section>
+
+  <!-- Software -->
+  <section class="device-panel" x-show="tab === 'software'">
+    <h2 class="chart-panel-title">Installed Software</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead>
+          <tr><th>Name</th><th>Version</th><th>Publisher</th><th>Installed</th><th>Size</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Microsoft 365 Apps</td><td>2406</td><td>Microsoft</td><td>2025-11-02</td><td>3.2 GB</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td>Google Chrome</td><td>126.0</td><td>Google LLC</td><td>2026-06-18</td><td>412 MB</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td>Adobe Acrobat</td><td>24.002</td><td>Adobe</td><td>2026-01-09</td><td>890 MB</td><td><span class="badge badge-warning">Update</span></td></tr>
+          <tr><td>UITOP Agent</td><td>2.4.1</td><td>Umzinyathi IT</td><td>2026-05-01</td><td>48 MB</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td>CrowdStrike Falcon</td><td>7.12</td><td>CrowdStrike</td><td>2025-09-14</td><td>210 MB</td><td><span class="badge badge-success">OK</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Processes -->
+  <section class="device-panel" x-show="tab === 'processes'">
+    <h2 class="chart-panel-title">Processes</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Process</th><th>PID</th><th>User</th><th>CPU</th><th>Memory</th></tr></thead>
+        <tbody>
+          <tr><td>chrome.exe</td><td>4820</td><td>{{ device.user }}</td><td>12%</td><td>1.4 GB</td></tr>
+          <tr><td>OUTLOOK.EXE</td><td>2199</td><td>{{ device.user }}</td><td>4%</td><td>620 MB</td></tr>
+          <tr><td>UITOPAgent.exe</td><td>1104</td><td>SYSTEM</td><td>1%</td><td>84 MB</td></tr>
+          <tr><td>MsMpEng.exe</td><td>980</td><td>SYSTEM</td><td>2%</td><td>210 MB</td></tr>
+          <tr><td>Teams.exe</td><td>5501</td><td>{{ device.user }}</td><td>6%</td><td>780 MB</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="device-panel" x-show="tab === 'services'">
+    <h2 class="chart-panel-title">Services</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Service</th><th>Display Name</th><th>Status</th><th>Startup</th></tr></thead>
+        <tbody>
+          <tr><td>UITOPAgent</td><td>UITOP Desktop Agent</td><td><span class="badge badge-success">Running</span></td><td>Automatic</td></tr>
+          <tr><td>WinDefend</td><td>Windows Defender Antivirus</td><td><span class="badge badge-success">Running</span></td><td>Automatic</td></tr>
+          <tr><td>mpssvc</td><td>Windows Defender Firewall</td><td><span class="badge badge-success">Running</span></td><td>Automatic</td></tr>
+          <tr><td>Spooler</td><td>Print Spooler</td><td><span class="badge badge-success">Running</span></td><td>Automatic</td></tr>
+          <tr><td>wuauserv</td><td>Windows Update</td><td><span class="badge badge-muted">Stopped</span></td><td>Manual</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Updates -->
+  <section class="device-panel" x-show="tab === 'updates'">
+    <h2 class="chart-panel-title">Windows Updates</h2>
+    <div class="comp-kpi-grid">
+      <article class="comp-kpi is-success"><p class="comp-kpi-label">Installed</p><p class="comp-kpi-value">142</p></article>
+      <article class="comp-kpi is-warning"><p class="comp-kpi-label">Pending</p><p class="comp-kpi-value">4</p></article>
+      <article class="comp-kpi is-danger"><p class="comp-kpi-label">Failed</p><p class="comp-kpi-value">1</p></article>
+      <article class="comp-kpi is-danger"><p class="comp-kpi-label">Missing Security</p><p class="comp-kpi-value">2</p></article>
+    </div>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>KB</th><th>Title</th><th>Classification</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          <tr><td>KB5039212</td><td>2026-06 Cumulative Update</td><td>Security</td><td><span class="badge badge-success">Installed</span></td><td>2026-06-12</td></tr>
+          <tr><td>KB5034441</td><td>Secure Boot DBX</td><td>Security</td><td><span class="badge badge-warning">Pending</span></td><td>—</td></tr>
+          <tr><td>KB5036893</td><td>.NET Framework Update</td><td>Critical</td><td><span class="badge badge-danger">Failed</span></td><td>2026-05-28</td></tr>
+          <tr><td>KB5035853</td><td>Microsoft Edge Stable</td><td>Updates</td><td><span class="badge badge-warning">Pending</span></td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Security -->
+  <section class="device-panel" x-show="tab === 'security'">
+    <h2 class="chart-panel-title">Security</h2>
+    <div class="sec-score">
+      <div class="sec-score-ring"><span>78</span></div>
+      <div>
+        <strong>Risk score · Medium</strong>
+        <p class="chart-panel-subtitle">Based on patch debt, AV posture, encryption, and open alerts.</p>
+      </div>
+    </div>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Firewall</dt><dd><span class="badge badge-success">Enabled</span> · Domain profile</dd></div>
+      <div class="device-field"><dt>Windows Defender</dt><dd><span class="badge badge-success">Active</span> · Signatures current</dd></div>
+      <div class="device-field"><dt>BitLocker</dt><dd><span class="badge badge-success">On</span> · XTS-AES 256</dd></div>
+      <div class="device-field"><dt>Antivirus</dt><dd>Microsoft Defender + CrowdStrike</dd></div>
+      <div class="device-field"><dt>Threat Status</dt><dd><span class="badge badge-success">No active threats</span></dd></div>
+      <div class="device-field"><dt>Risk Score</dt><dd>78 / 100</dd></div>
+    </dl>
+  </section>
+
+  <!-- Events -->
+  <section class="device-panel" x-show="tab === 'events'">
+    <h2 class="chart-panel-title">Agent Events</h2>
+    {% if agent_events %}
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Time</th><th>Severity</th><th>Type</th><th>Source</th><th>Message</th></tr></thead>
+        <tbody>
+          {% for e in agent_events %}
+          <tr>
+            <td>{{ e.occurred_at or '—' }}</td>
+            <td><span class="badge {% if e.severity == 'error' or e.severity == 'critical' %}badge-danger{% elif e.severity == 'warning' %}badge-warning{% else %}badge-muted{% endif %}">{{ e.severity }}</span></td>
+            <td><code>{{ e.event_type }}</code></td>
+            <td>{{ e.source or '—' }}</td>
+            <td>{{ e.message }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="chart-panel-subtitle">No agent events reported for this device yet.</p>
+    {% endif %}
+
+    <h2 class="chart-panel-title" style="margin-top: 24px;">Agent Alerts</h2>
+    {% if agent_alerts %}
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Time</th><th>Code</th><th>Severity</th><th>Status</th><th>Title</th></tr></thead>
+        <tbody>
+          {% for a in agent_alerts %}
+          <tr>
+            <td>{{ a.occurred_at or '—' }}</td>
+            <td><code>{{ a.alert_code }}</code></td>
+            <td><span class="badge {% if a.severity in ['error','critical'] %}badge-danger{% elif a.severity == 'warning' %}badge-warning{% else %}badge-muted{% endif %}">{{ a.severity }}</span></td>
+            <td>{{ a.status }}</td>
+            <td>{{ a.title }}{% if a.message %} — {{ a.message }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="chart-panel-subtitle">No alerts for this device.</p>
+    {% endif %}
+  </section>
+
+  <!-- Files (IT repository attachments) -->
+  <section class="device-panel" x-show="tab === 'files'">
+    <h2 class="chart-panel-title">Files</h2>
+    {% from "files/_entity_files.html" import entity_files_panel %}
+    {{ entity_files_panel(linked_files or [], 'computer', item_id, url_for('computers.details', item_id=item_id, tab='files')) }}
+  </section>
+
+  <!-- Timeline -->
+  <section class="device-panel" x-show="tab === 'timeline'">
+    <h2 class="chart-panel-title">Activity Timeline</h2>
+    <ul class="timeline">
+      <li><time>Today 10:12</time><strong>Alert Generated</strong><p>High memory pressure detected ({{ device.ram }}%).</p></li>
+      <li><time>Today 09:40</time><strong>Agent Connected</strong><p>Heartbeat resumed after brief network blip.</p></li>
+      <li><time>Yesterday 18:02</time><strong>Windows Update Installed</strong><p>KB5039212 cumulative update applied.</p></li>
+      <li><time>Yesterday 08:11</time><strong>Restart</strong><p>User-initiated reboot after update.</p></li>
+      <li><time>Mon 14:22</time><strong>Software Installed</strong><p>Google Chrome 126.0 deployed.</p></li>
+      <li><time>Mon 09:05</time><strong>Hardware Changed</strong><p>USB storage device attached.</p></li>
+      <li><time>Sun 22:10</time><strong>Agent Offline</strong><p>Host powered down overnight.</p></li>
+    </ul>
+  </section>
+
+  <!-- Remote -->
+  <section class="device-panel" x-show="tab === 'remote'">
+    <h2 class="chart-panel-title">Remote Actions</h2>
+    <p class="chart-panel-subtitle">Actions are queued to the UITOP agent (demo UI only).</p>
+    <div class="remote-grid">
+      <button type="button" class="remote-btn" @click="toast('Restart queued')"><i class="fas fa-power-off"></i><strong>Restart Computer</strong><span>Graceful reboot</span></button>
+      <button type="button" class="remote-btn is-danger" @click="toast('Shutdown queued')"><i class="fas fa-plug"></i><strong>Shutdown</strong><span>Power off host</span></button>
+      <button type="button" class="remote-btn" @click="toast('Lock sent')"><i class="fas fa-lock"></i><strong>Lock</strong><span>Workstation lock</span></button>
+      <button type="button" class="remote-btn" @click="toast('Log off sent')"><i class="fas fa-right-from-bracket"></i><strong>Log Off</strong><span>End user session</span></button>
+      <button type="button" class="remote-btn" @click="toast('Script runner opened')"><i class="fas fa-terminal"></i><strong>Run Script</strong><span>PowerShell / Bash</span></button>
+      <button type="button" class="remote-btn" @click="toast('RDP launch requested')"><i class="fas fa-desktop"></i><strong>Open Remote Desktop</strong><span>RDP / shadow</span></button>
+      <button type="button" class="remote-btn" @click="toast('Agent sync started')"><i class="fas fa-rotate"></i><strong>Sync Agent</strong><span>Force inventory</span></button>
+      <button type="button" class="remote-btn" @click="toast('WoL packet sent')"><i class="fas fa-bolt"></i><strong>Wake On LAN</strong><span>Magic packet</span></button>
+      <button type="button" class="remote-btn" @click="toast('Software deploy wizard')"><i class="fas fa-box-open"></i><strong>Deploy Software</strong><span>Push package</span></button>
+      <button type="button" class="remote-btn" @click="toast('Diagnostics collection started')"><i class="fas fa-stethoscope"></i><strong>Collect Diagnostics</strong><span>Bundle logs</span></button>
+    </div>
+  </section>
+</div>
+
+<script>
+window.__PERF_SERIES__ = {{ perf_series | tojson }};
+function deviceConsole(initial) {
+  return {
+    tab: initial || "overview",
+    chartsReady: false,
+    tabs: [
+      { id: "overview", label: "Overview" },
+      { id: "hardware", label: "Hardware" },
+      { id: "os", label: "Operating System" },
+      { id: "performance", label: "Performance" },
+      { id: "network", label: "Network" },
+      { id: "software", label: "Installed Software" },
+      { id: "processes", label: "Processes" },
+      { id: "services", label: "Services" },
+      { id: "updates", label: "Windows Updates" },
+      { id: "security", label: "Security" },
+      { id: "events", label: "Event Logs" },
+      { id: "files", label: "Files" },
+      { id: "timeline", label: "Activity Timeline" },
+      { id: "remote", label: "Remote Actions" }
+    ],
+    setTab(id) {
+      this.tab = id;
+      var url = new URL(window.location.href);
+      url.searchParams.set("tab", id);
+      history.replaceState({}, "", url);
+      if (id === "performance") {
+        var self = this;
+        this.$nextTick(function () { self.initPerfCharts(); });
+      }
+    },
+    toast(msg) {
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, "success");
+      else alert(msg);
+    },
+    initPerfCharts() {
+      if (!window.UITOP || !UITOP.charts || typeof Chart === "undefined") return;
+      if (this.chartsReady) return;
+      var series = window.__PERF_SERIES__ || [];
+      var labels, cpu, mem, disk, net;
+      if (series.length) {
+        labels = series.map(function (s, i) {
+          if (!s.t) return "#" + (i + 1);
+          try { return new Date(s.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+          catch (e) { return "#" + (i + 1); }
+        });
+        cpu = series.map(function (s) { return s.cpu != null ? s.cpu : 0; });
+        mem = series.map(function (s) { return s.mem != null ? s.mem : 0; });
+        disk = series.map(function (s) { return s.disk != null ? s.disk : 0; });
+        net = series.map(function (s) {
+          var a = s.net_sent || 0, b = s.net_recv || 0;
+          return Math.round((a + b) / 1024);
+        });
+      } else {
+        labels = ["now"];
+        cpu = [{{ device.cpu }}];
+        mem = [{{ device.ram }}];
+        disk = [{{ device.disk }}];
+        net = [0];
+      }
+      var spark = function (id, data, color) {
+        var el = document.getElementById(id);
+        if (!el || el._chart) return;
+        el._chart = UITOP.charts.createLine(el, {
+          labels: labels,
+          datasets: [{
+            data: data,
+            borderColor: color,
+            backgroundColor: UITOP.charts.soft(color, 0.15),
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: data.length > 1 ? 0 : 3
+          }]
+        }, { plugins: { legend: { display: false } } });
+      };
+      spark("devCpuChart", cpu, "#0d9488");
+      spark("devMemChart", mem, "#3b82f6");
+      spark("devDiskChart", disk, "#f59e0b");
+      spark("devNetChart", net, "#3b82f6");
+      this.chartsReady = true;
+    }
+  };
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // Ensure performance charts if landing on that tab
+  setTimeout(function () {
+    var root = document.querySelector("[x-data]");
+    if (root && root._x_dataStack && root._x_dataStack[0].tab === "performance") {
+      root._x_dataStack[0].initPerfCharts();
+    }
+  }, 400);
+});
+</script>
+{% endblock %}

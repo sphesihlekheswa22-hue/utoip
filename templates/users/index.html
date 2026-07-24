@@ -1,0 +1,84 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Users{% endblock %}
+{% block page_title %}Users{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="usersDash()" x-cloak>
+  <header class="comp-header">
+    <div>
+      <h1>Users</h1>
+      <p>Platform accounts, roles, and departments — backed by UITOP auth.</p>
+    </div>
+    <a href="{{ url_for('users.create') }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add user</a>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<p>{{ msg }}</p>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="comp-kpi-grid">
+    <article class="comp-kpi is-accent"><p class="comp-kpi-label">Total</p><p class="comp-kpi-value">{{ kpis.total }}</p></article>
+    <article class="comp-kpi is-success"><p class="comp-kpi-label">Active</p><p class="comp-kpi-value">{{ kpis.active }}</p></article>
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Admins</p><p class="comp-kpi-value">{{ kpis.admins }}</p></article>
+    <article class="comp-kpi is-danger"><p class="comp-kpi-label">Disabled</p><p class="comp-kpi-value">{{ kpis.disabled }}</p></article>
+  </div>
+
+  <div class="comp-toolbar">
+    <div class="comp-search">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="search" placeholder="Search name, email, role…" x-model="q" />
+    </div>
+  </div>
+
+  <section class="comp-table-wrap">
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Department</th>
+          <th>Status</th>
+          <th>Last login</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="u in filtered" :key="u.id">
+          <tr>
+            <td><strong x-text="u.full_name"></strong></td>
+            <td x-text="u.email"></td>
+            <td x-text="u.role_label"></td>
+            <td x-text="u.department"></td>
+            <td><span class="badge" :class="u.is_active ? 'badge-success' : 'badge-danger'" x-text="u.status"></span></td>
+            <td x-text="u.last_login"></td>
+            <td><a class="btn btn-ghost btn-sm" :href="'/users/' + u.id">View</a></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </section>
+</div>
+<script>
+window.__USERS__ = {{ users | tojson }};
+function usersDash() {
+  return {
+    q: "",
+    users: window.__USERS__ || [],
+    get filtered() {
+      var q = this.q.trim().toLowerCase();
+      if (!q) return this.users;
+      return this.users.filter(function (u) {
+        return [u.full_name, u.email, u.role_label, u.department].join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    }
+  };
+}
+</script>
+{% endblock %}

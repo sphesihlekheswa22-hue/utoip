@@ -1,0 +1,116 @@
+{% set nav_active = active|default('') %}
+<aside class="uitop-sidebar" id="uitop-sidebar" aria-label="Main navigation">
+  <div class="uitop-sidebar-user">
+    <div class="uitop-avatar">{{ demo_user.initials }}</div>
+    <div>
+      <p class="uitop-sidebar-user-name">{{ demo_user.name }}</p>
+      <p class="uitop-sidebar-user-role">{{ demo_user.role }}</p>
+    </div>
+  </div>
+
+  <nav class="uitop-nav" aria-label="Primary">
+    <p class="uitop-nav-label">Overview</p>
+    <a href="{{ url_for('dashboard.index') }}" class="sidebar-link {% if nav_active == 'dashboard' %}is-active{% endif %}">
+      <i class="fas fa-grid-2" aria-hidden="true"></i> Dashboard
+    </a>
+
+    <p class="uitop-nav-label">Infrastructure</p>
+    <a href="{{ url_for('computers.index') }}" class="sidebar-link {% if nav_active == 'computers' %}is-active{% endif %}">
+      <i class="fas fa-desktop" aria-hidden="true"></i> Computers
+    </a>
+    <a href="{{ url_for('servers.index') }}" class="sidebar-link {% if nav_active == 'servers' %}is-active{% endif %}">
+      <i class="fas fa-server" aria-hidden="true"></i> Servers
+    </a>
+    <a href="{{ url_for('network.index') }}" class="sidebar-link {% if nav_active == 'network' %}is-active{% endif %}">
+      <i class="fas fa-network-wired" aria-hidden="true"></i> Network
+    </a>
+    <a href="{{ url_for('printers.index') }}" class="sidebar-link {% if nav_active == 'printers' %}is-active{% endif %}">
+      <i class="fas fa-print" aria-hidden="true"></i> Printers
+    </a>
+
+    <p class="uitop-nav-label">Assets</p>
+    <a href="{{ url_for('assets.index') }}" class="sidebar-link {% if nav_active == 'assets' %}is-active{% endif %}">
+      <i class="fas fa-box" aria-hidden="true"></i> Assets
+    </a>
+    <a href="/software/" class="sidebar-link {% if nav_active == 'software' %}is-active{% endif %}">
+      <i class="fas fa-cubes" aria-hidden="true"></i> Software
+    </a>
+    <a href="/licenses/" class="sidebar-link {% if nav_active == 'licenses' %}is-active{% endif %}">
+      <i class="fas fa-key" aria-hidden="true"></i> Licenses
+    </a>
+    <a href="/vendors/" class="sidebar-link {% if nav_active == 'vendors' %}is-active{% endif %}">
+      <i class="fas fa-handshake" aria-hidden="true"></i> Vendors
+    </a>
+
+    <p class="uitop-nav-label">Backup &amp; Recovery</p>
+    <a href="{{ url_for('backup.index') }}" class="sidebar-link {% if nav_active == 'backup' or nav_active == 'restore' %}is-active{% endif %}">
+      <i class="fas fa-hard-drive" aria-hidden="true"></i> Backup &amp; Restore
+    </a>
+    <a href="{{ url_for('files.index') }}" class="sidebar-link {% if nav_active == 'files' %}is-active{% endif %}">
+      <i class="fas fa-folder" aria-hidden="true"></i> Files
+    </a>
+
+    <p class="uitop-nav-label">Support</p>
+    <a href="{{ url_for('helpdesk.index') }}" class="sidebar-link {% if nav_active == 'helpdesk' %}is-active{% endif %}">
+      <i class="fas fa-life-ring" aria-hidden="true"></i> Help Desk
+    </a>
+    <a href="/knowledge/" class="sidebar-link {% if nav_active == 'knowledge' %}is-active{% endif %}">
+      <i class="fas fa-book-open" aria-hidden="true"></i> Knowledge
+    </a>
+
+    <p class="uitop-nav-label">Monitoring</p>
+    <a href="{{ url_for('monitoring.index') }}" class="sidebar-link {% if nav_active == 'monitoring' %}is-active{% endif %}">
+      <i class="fas fa-chart-line" aria-hidden="true"></i> Monitoring
+    </a>
+    <a href="/alerts/" class="sidebar-link {% if nav_active == 'alerts' %}is-active{% endif %}">
+      <i class="fas fa-bell" aria-hidden="true"></i> Alerts
+    </a>
+
+    <p class="uitop-nav-label">Operations</p>
+    <a href="/maintenance/" class="sidebar-link {% if nav_active == 'maintenance' %}is-active{% endif %}">
+      <i class="fas fa-wrench" aria-hidden="true"></i> Maintenance
+    </a>
+    <a href="/documents/" class="sidebar-link {% if nav_active == 'documents' %}is-active{% endif %}">
+      <i class="fas fa-folder-open" aria-hidden="true"></i> Documents
+    </a>
+    <a href="/calendar/" class="sidebar-link {% if nav_active == 'calendar' %}is-active{% endif %}">
+      <i class="fas fa-calendar-days" aria-hidden="true"></i> Calendar
+    </a>
+    <a href="/security/" class="sidebar-link {% if nav_active == 'security' %}is-active{% endif %}">
+      <i class="fas fa-vault" aria-hidden="true"></i> Security
+    </a>
+
+    <p class="uitop-nav-label">Insights</p>
+    <a href="{{ url_for('analytics.index') }}" class="sidebar-link {% if nav_active == 'analytics' %}is-active{% endif %}">
+      <i class="fas fa-chart-column" aria-hidden="true"></i> Analytics
+    </a>
+    <a href="{{ url_for('reports.index') }}" class="sidebar-link {% if nav_active == 'reports' %}is-active{% endif %}">
+      <i class="fas fa-file-lines" aria-hidden="true"></i> Reports
+    </a>
+    <a href="{{ url_for('ai.index') }}" class="sidebar-link {% if nav_active == 'ai' %}is-active{% endif %}">
+      <i class="fas fa-sparkles" aria-hidden="true"></i> AI Assistant
+    </a>
+
+    <p class="uitop-nav-label">Administration</p>
+    <a href="{{ url_for('users.index') }}" class="sidebar-link {% if nav_active == 'users' %}is-active{% endif %}">
+      <i class="fas fa-users" aria-hidden="true"></i> Users
+    </a>
+    <a href="/roles/" class="sidebar-link {% if nav_active == 'roles' %}is-active{% endif %}">
+      <i class="fas fa-shield-halved" aria-hidden="true"></i> Roles
+    </a>
+    <a href="/departments/" class="sidebar-link {% if nav_active == 'departments' %}is-active{% endif %}">
+      <i class="fas fa-building" aria-hidden="true"></i> Departments
+    </a>
+    <a href="/audit/" class="sidebar-link {% if nav_active == 'audit' %}is-active{% endif %}">
+      <i class="fas fa-clipboard-list" aria-hidden="true"></i> Audit
+    </a>
+    <a href="{{ url_for('settings.index') }}" class="sidebar-link {% if nav_active == 'settings' %}is-active{% endif %}">
+      <i class="fas fa-gear" aria-hidden="true"></i> Settings
+    </a>
+  </nav>
+
+  <div class="uitop-sidebar-foot">
+    <span>v1.0.0</span>
+    <span class="uitop-status"><span class="uitop-status-dot" aria-hidden="true"></span> Online</span>
+  </div>
+</aside>

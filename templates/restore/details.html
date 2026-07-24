@@ -1,0 +1,33 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import page_header, status_badge, detail_row %}
+
+{% block title %}Restore Center details{% endblock %}
+{% block page_title %}Restore Center details{% endblock %}
+
+{% block content %}
+{% call page_header("Restore Center details", "Operational profile and related activity.", "{{ url_for('modules.page', module='restore', page='index') }}", "Edit", "fa-pen") %}{% endcall %}
+
+<div class="detail-layout">
+  <section class="panel detail-card">
+    <header class="card-header">
+      <h2>Overview</h2>
+      {{ status_badge("Online") }}
+    </header>
+    <dl class="detail-list">
+      {{ detail_row("Name", "Demo Restore Center 01") }}
+      {{ detail_row("Identifier", "UITOP-DEMO-001") }}
+      {{ detail_row("Owner", "IT Operations") }}
+      {{ detail_row("Department", "Corporate Services") }}
+      {{ detail_row("Last updated", "Today 09:42") }}
+    </dl>
+  </section>
+  <section class="panel detail-card">
+    <header class="card-header"><h2>Related</h2></header>
+    <ul class="related-list">
+      <li><a href="{{ url_for('modules.page', module='restore', page='index') }}">Back to Restore Center</a></li>
+      <li><a href="{{ url_for('monitoring.index') }}">Open monitoring</a></li>
+      <li><a href="{{ url_for('ai.index') }}">Ask AI about this record</a></li>
+    </ul>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "layouts/error.html" %}
+{% block title %}500{% endblock %}
+{% block content %}
+<div class="error-card">
+  <p class="error-code">500</p>
+  <h1>Something went wrong</h1>
+  <p>An unexpected error occurred. Try again or contact IT.</p>
+  <a class="btn btn-primary" href="{{ url_for('dashboard.index') }}">Back to dashboard</a>
+</div>
+{% endblock %}

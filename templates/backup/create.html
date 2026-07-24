@@ -1,0 +1,65 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}New backup job{% endblock %}
+{% block page_title %}New backup job{% endblock %}
+
+{% block content %}
+<div class="uf-page uf-page--single">
+  <header class="uf-hero">
+    <div class="uf-hero-inner">
+      <div>
+        <p class="uf-eyebrow"><i class="fas fa-hard-drive"></i> Backup &amp; Restore</p>
+        <h1>Create backup job</h1>
+        <p>Define target, schedule, and policy. Agent execution comes later.</p>
+      </div>
+    </div>
+  </header>
+  <form method="post" class="uf-card">
+    <section class="uf-section">
+      <div class="uf-section-head">
+        <span class="uf-section-num">1</span>
+        <div><h2>Job</h2><p>Name and protection scope.</p></div>
+      </div>
+      <div class="uf-section-body">
+        <div class="uf-field">
+          <span class="uf-field-label">Name <span class="req">*</span></span>
+          <input name="name" required placeholder="Daily Server Backup" />
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Target</span>
+            <input name="target" placeholder="SRV-001 or Finance Department" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Type</span>
+            <select name="type"><option>Full</option><option>Incremental</option><option>Snapshot</option></select>
+          </div>
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Schedule</span>
+            <input name="schedule" placeholder="Daily 02:00" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Storage</span>
+            <select name="storage"><option>NAS-01</option><option>Local Storage</option><option>Azure Blob</option><option>AWS S3</option></select>
+          </div>
+        </div>
+        <div class="uf-field">
+          <span class="uf-field-label">Policy</span>
+          <select name="policy">
+            <option>Servers · 90-day retain</option>
+            <option>Workstations · 30-day retain</option>
+            <option>Databases · Encrypt</option>
+            <option>VMs · 14-day retain</option>
+          </select>
+        </div>
+      </div>
+    </section>
+    <div class="uf-actions">
+      <a href="{{ url_for('backup.index', tab='jobs') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Create job</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

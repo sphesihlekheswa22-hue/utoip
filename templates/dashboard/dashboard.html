@@ -1,0 +1,186 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<section class="dash-hero">
+  <div class="dash-hero-copy">
+    <p class="dash-eyebrow"><span class="live-dot" aria-hidden="true"></span> Live operations · Umzinyathi</p>
+    <h1 class="dash-hero-title">Command center</h1>
+    <p class="dash-hero-lede">Live inventory, assets, alerts, and agent telemetry from UITOP.</p>
+  </div>
+  <div class="dash-hero-meta">
+    <div class="dash-clock">
+      <span class="dash-clock-label">Local time</span>
+      <strong id="dashClock">--:--:--</strong>
+    </div>
+    <div class="dash-hero-actions">
+      <a href="{{ url_for('monitoring.index') }}" class="btn btn-secondary btn-sm"><i class="fas fa-chart-line"></i> Monitoring</a>
+      <a href="{{ url_for('ai.index') }}" class="btn btn-primary btn-sm"><i class="fas fa-sparkles"></i> Ask AI</a>
+    </div>
+  </div>
+</section>
+
+{% include "dashboard/widgets.html" %}
+
+<div class="dash-charts-row">
+  <section class="panel chart-panel chart-panel--wide">
+    <header class="chart-panel-header">
+      <div>
+        <h2 class="chart-panel-title">Infrastructure load</h2>
+        <p class="chart-panel-subtitle">CPU · Memory · Network · last 24 hours</p>
+      </div>
+      <div class="chart-range" role="group" aria-label="Range">
+        <button type="button" class="chip is-active" data-range="24h">24h</button>
+        <button type="button" class="chip" data-range="7d">7d</button>
+        <button type="button" class="chip" data-range="30d">30d</button>
+      </div>
+    </header>
+    <div class="chart-panel-body"><canvas id="infraChart"></canvas></div>
+  </section>
+
+  <section class="panel chart-panel chart-panel--side">
+    <header class="chart-panel-header">
+      <div>
+        <h2 class="chart-panel-title">Ticket mix</h2>
+        <p class="chart-panel-subtitle">Live helpdesk status</p>
+      </div>
+    </header>
+    <div class="chart-panel-body chart-panel-body--donut">
+      <canvas id="ticketChart"></canvas>
+      <div class="donut-center">
+        <strong id="ticketTotal">{{ dash.kpis.tickets_open }}</strong>
+        <span>open</span>
+      </div>
+    </div>
+    <ul class="chart-legend" id="ticketLegend"></ul>
+  </section>
+</div>
+
+<div class="dash-charts-row dash-charts-row--3">
+  <section class="panel chart-panel">
+    <header class="chart-panel-header">
+      <div>
+        <h2 class="chart-panel-title">Agent CPU / memory</h2>
+        <p class="chart-panel-subtitle">From performance samples</p>
+      </div>
+    </header>
+    <div class="chart-panel-body"><canvas id="networkChart"></canvas></div>
+  </section>
+
+  <section class="panel chart-panel">
+    <header class="chart-panel-header">
+      <div>
+        <h2 class="chart-panel-title">Asset requests</h2>
+        <p class="chart-panel-subtitle">Pending vs estate</p>
+      </div>
+    </header>
+    <div class="chart-panel-body"><canvas id="backupChart"></canvas></div>
+  </section>
+
+  <section class="panel chart-panel">
+    <header class="chart-panel-header">
+      <div>
+        <h2 class="chart-panel-title">Dept. asset share</h2>
+        <p class="chart-panel-subtitle">Assigned ownership</p>
+      </div>
+    </header>
+    <div class="chart-panel-body"><canvas id="deptChart"></canvas></div>
+  </section>
+</div>
+
+<div class="dash-mid-row">
+  <section class="panel health-panel">
+    <header class="chart-panel-header">
+      <div>
+        <h2 class="chart-panel-title">Platform health</h2>
+        <p class="chart-panel-subtitle">Derived from inventory + alerts</p>
+      </div>
+      <span class="badge {% if dash.kpis.health_score >= 90 %}badge-success{% elif dash.kpis.health_score >= 75 %}badge-warning{% else %}badge-danger{% endif %}">{{ dash.kpis.health_score }}%</span>
+    </header>
+    <div class="gauge-grid">
+      <div class="gauge-card">
+        <canvas id="gaugeAd" width="120" height="120"></canvas>
+        <strong>Computers</strong>
+        <span class="gauge-val" data-gauge-label="ad">{{ dash.kpis.devices_online }}/{{ dash.kpis.devices_total }}</span>
+      </div>
+      <div class="gauge-card">
+        <canvas id="gaugeErp" width="120" height="120"></canvas>
+        <strong>Servers</strong>
+        <span class="gauge-val" data-gauge-label="erp">{{ dash.kpis.servers_online }}/{{ dash.kpis.servers_total }}</span>
+      </div>
+      <div class="gauge-card">
+        <canvas id="gaugeSql" width="120" height="120"></canvas>
+        <strong>Assets</strong>
+        <span class="gauge-val" data-gauge-label="sql">{{ dash.kpis.assets_total }}</span>
+      </div>
+      <div class="gauge-card">
+        <canvas id="gaugeMail" width="120" height="120"></canvas>
+        <strong>Requests</strong>
+        <span class="gauge-val" data-gauge-label="mail">{{ dash.kpis.pending_requests }}</span>
+      </div>
+      <div class="gauge-card">
+        <canvas id="gaugeNet" width="120" height="120"></canvas>
+        <strong>Alerts</strong>
+        <span class="gauge-val" data-gauge-label="net">{{ dash.kpis.open_alerts }}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel spark-panel">
+    <header class="chart-panel-header">
+      <div>
+        <h2 class="chart-panel-title">Alert velocity</h2>
+        <p class="chart-panel-subtitle">Raised vs resolved · 7 days</p>
+      </div>
+    </header>
+    <div class="chart-panel-body"><canvas id="alertChart"></canvas></div>
+  </section>
+</div>
+
+<div class="dash-bottom-row">
+  <section class="panel devices-panel">
+    <header class="chart-panel-header">
+      <div>
+        <h2 class="chart-panel-title">Hot devices</h2>
+        <p class="chart-panel-subtitle">Highest resource pressure from agent samples</p>
+      </div>
+      <a href="{{ url_for('computers.index') }}" class="btn btn-ghost btn-sm">View all</a>
+    </header>
+    <div class="table-scroll">
+      <table class="data-table dash-table">
+        <thead>
+          <tr>
+            <th>Host</th>
+            <th>CPU</th>
+            <th>Memory</th>
+            <th>Disk</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in dash.hot_devices %}
+          <tr>
+            <td><strong><a href="{{ url_for('computers.details', item_id=d.id) }}">{{ d.hostname }}</a></strong><span class="muted">{{ d.ip }}</span></td>
+            <td><div class="mini-bar"><span style="width:{{ d.cpu }}%"></span></div> {{ d.cpu }}%</td>
+            <td><div class="mini-bar {% if d.ram >= 80 %}warn{% endif %}"><span style="width:{{ d.ram }}%"></span></div> {{ d.ram }}%</td>
+            <td><div class="mini-bar {% if d.disk >= 80 %}warn{% endif %}"><span style="width:{{ d.disk }}%"></span></div> {{ d.disk }}%</td>
+            <td><span class="badge {% if d.status == 'Online' %}badge-success{% elif d.status == 'Warning' %}badge-warning{% else %}badge-danger{% endif %}">{{ d.status }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">No computer telemetry yet — run the local agent to populate.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% include "dashboard/activity.html" %}
+  {% include "dashboard/quick-actions.html" %}
+</div>
+
+<script>
+window.__DASHBOARD__ = {{ dash | tojson }};
+</script>
+{% endblock %}

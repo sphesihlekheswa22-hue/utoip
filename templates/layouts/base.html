@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Umzinyathi IT Operations Platform — manage infrastructure, assets, support, and monitoring from one dashboard." />
+  <meta name="theme-color" content="#0D9488" />
+  <title>{% block title %}UITOP{% endblock %} — Umzinyathi IT Operations Platform</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/topbar.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cards.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/charts.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/darkmode.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <a href="#main-content" class="sr-only">Skip to main content</a>
+  {% include "components/topbar.html" %}
+  {% include "components/sidebar.html" %}
+
+  <div class="uitop-main" id="main-content" role="main">
+    <main class="uitop-content">
+      <nav class="uitop-breadcrumb" aria-label="Breadcrumb">
+        {% block breadcrumb %}
+        <a href="{{ url_for('dashboard.index') }}">Home</a>
+        <span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+        <span>{% block page_title %}Dashboard{% endblock %}</span>
+        {% endblock %}
+      </nav>
+      {% block content %}{% endblock %}
+    </main>
+    {% include "components/footer.html" %}
+  </div>
+
+  {% include "components/toast.html" %}
+  {% include "components/modal.html" %}
+  {% include "components/ai-widget.html" %}
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/modals.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/tables.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/forms.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/validation.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/ai.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

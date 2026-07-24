@@ -1,0 +1,31 @@
+<section class="panel activity-panel">
+  <header class="chart-panel-header">
+    <div>
+      <h2 class="chart-panel-title">Live activity</h2>
+      <p class="chart-panel-subtitle">Recent audit events from UITOP</p>
+    </div>
+  </header>
+  <ul class="activity-feed" id="activityFeed">
+    {% for item in dash.activity %}
+    <li class="activity-item">
+      <span class="activity-icon {% if item.tone == 'danger' %}activity-icon--danger{% elif item.tone == 'warning' %}activity-icon--warning{% endif %}">
+        <i class="fas {{ item.icon }}"></i>
+      </span>
+      <div class="activity-content">
+        <div class="activity-title">{{ item.title }}</div>
+        <div class="activity-meta">{{ item.meta }}</div>
+      </div>
+      <span class="activity-time">{{ item.time }}</span>
+    </li>
+    {% else %}
+    <li class="activity-item">
+      <span class="activity-icon"><i class="fas fa-info"></i></span>
+      <div class="activity-content">
+        <div class="activity-title">No audit activity yet</div>
+        <div class="activity-meta">Sign-ins, agent reports, and asset changes will appear here</div>
+      </div>
+      <span class="activity-time">—</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>

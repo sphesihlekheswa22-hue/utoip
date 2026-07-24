@@ -1,0 +1,261 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Printers{% endblock %}
+{% block page_title %}Printers{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/printers.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="printersDashboard()" x-cloak>
+  <header class="comp-header">
+    <div>
+      <h1>Printers</h1>
+      <p>Discovered via network scan, SNMP, and Windows Print Server — never typed in manually.</p>
+    </div>
+    <div class="comp-toolbar-actions">
+      <a href="{{ url_for('printers.discover') }}" class="btn btn-primary"><i class="fas fa-satellite-dish"></i> Discover Printers</a>
+      <button type="button" class="btn btn-secondary" @click="refresh()"><i class="fas fa-rotate" :class="refreshing && 'fa-spin'"></i> Refresh</button>
+    </div>
+  </header>
+
+  {% if empty or not printers %}
+  <div class="comp-empty">
+    <div class="comp-empty-art" aria-hidden="true"><i class="fas fa-print"></i></div>
+    <h2>No printers discovered.</h2>
+    <p>Scan the network or sync from Windows Print Server to enroll printers automatically.</p>
+    <div class="comp-empty-actions">
+      <a href="{{ url_for('printers.discover') }}" class="btn btn-primary"><i class="fas fa-satellite-dish"></i> Discover Printers</a>
+      <button type="button" class="btn btn-secondary" @click="refresh()"><i class="fas fa-rotate"></i> Refresh</button>
+    </div>
+  </div>
+  {% else %}
+
+  <div class="comp-kpi-grid">
+    <article class="comp-kpi is-accent"><p class="comp-kpi-label">Total Printers</p><p class="comp-kpi-value">{{ kpis.total }}</p><p class="comp-kpi-meta">Managed fleet</p></article>
+    <article class="comp-kpi is-success"><p class="comp-kpi-label">Online</p><p class="comp-kpi-value">{{ kpis.online }}</p><p class="comp-kpi-meta">Ready</p></article>
+    <article class="comp-kpi is-danger"><p class="comp-kpi-label">Offline</p><p class="comp-kpi-value">{{ kpis.offline }}</p><p class="comp-kpi-meta">Unreachable</p></article>
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Out of Paper</p><p class="comp-kpi-value">{{ kpis.out_of_paper }}</p><p class="comp-kpi-meta">Needs refill</p></article>
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Low Toner</p><p class="comp-kpi-value">{{ kpis.low_toner }}</p><p class="comp-kpi-meta">&le; 15%</p></article>
+    <article class="comp-kpi is-danger"><p class="comp-kpi-label">Paper Jam</p><p class="comp-kpi-value">{{ kpis.paper_jam }}</p><p class="comp-kpi-meta">Clear path</p></article>
+    <article class="comp-kpi is-danger"><p class="comp-kpi-label">Critical</p><p class="comp-kpi-value">{{ kpis.critical }}</p><p class="comp-kpi-meta">Service now</p></article>
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Needs Maintenance</p><p class="comp-kpi-value">{{ kpis.maintenance }}</p><p class="comp-kpi-meta">Scheduled service</p></article>
+  </div>
+
+  <div class="comp-toolbar">
+    <div class="comp-search">
+      <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+      <input type="search" placeholder="Search printer, model, IP, location…" x-model="q" aria-label="Search printers" />
+    </div>
+    <div class="comp-toolbar-actions">
+      <a href="{{ url_for('printers.discover') }}" class="btn btn-primary btn-sm"><i class="fas fa-satellite-dish"></i> Discover Printers</a>
+      <button type="button" class="btn btn-ghost btn-sm" @click="refresh()"><i class="fas fa-rotate" :class="refreshing && 'fa-spin'"></i> Refresh</button>
+      <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-file-export"></i> Export</button>
+      <div class="comp-bulk" x-data="{ open: false }">
+        <button type="button" class="btn btn-secondary btn-sm" @click="open = !open"><i class="fas fa-layer-group"></i> Bulk Actions</button>
+        <div class="comp-bulk-menu" x-show="open" @click.outside="open = false" x-cloak>
+          <button type="button" class="btn btn-ghost btn-sm">Clear queues</button>
+          <button type="button" class="btn btn-ghost btn-sm">Print test page</button>
+          <button type="button" class="btn btn-ghost btn-sm">Refresh status</button>
+          <button type="button" class="btn btn-ghost btn-sm">Export selected</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" @click="showFilters = !showFilters"><i class="fas fa-filter"></i> Filters</button>
+    </div>
+  </div>
+
+  <div class="comp-filters" x-show="showFilters" x-cloak>
+    <label>Manufacturer
+      <select x-model="filters.manufacturer">
+        <option value="">All</option>
+        <option>HP</option>
+        <option>Canon</option>
+        <option>Brother</option>
+        <option>Xerox</option>
+        <option>Epson</option>
+        <option>Ricoh</option>
+      </select>
+    </label>
+    <label>Location
+      <input type="text" placeholder="Site…" x-model="filters.location" />
+    </label>
+    <label>Department
+      <select x-model="filters.department">
+        <option value="">All</option>
+        <option>Finance</option>
+        <option>HR</option>
+        <option>Public Works</option>
+        <option>Health</option>
+        <option>IT</option>
+        <option>Corporate</option>
+        <option>Community Services</option>
+        <option>Engineering</option>
+      </select>
+    </label>
+    <label>Status
+      <select x-model="filters.status">
+        <option value="">All</option>
+        <option>Online</option>
+        <option>Offline</option>
+        <option>Out of Paper</option>
+        <option>Low Toner</option>
+        <option>Paper Jam</option>
+        <option>Critical</option>
+        <option>Needs Maintenance</option>
+      </select>
+    </label>
+    <label>Printer Type
+      <select x-model="filters.type">
+        <option value="">All</option>
+        <option>MFP</option>
+        <option>Mono Laser</option>
+        <option>Inkjet</option>
+        <option>Plotter</option>
+      </select>
+    </label>
+    <label>Color
+      <select x-model="filters.color">
+        <option value="">All</option>
+        <option value="yes">Color</option>
+        <option value="no">Mono</option>
+      </select>
+    </label>
+    <label>Network
+      <select x-model="filters.network">
+        <option value="">All</option>
+        <option value="yes">Network</option>
+        <option value="no">Local</option>
+      </select>
+    </label>
+  </div>
+
+  <section class="comp-table-wrap">
+    <div class="comp-table-meta">
+      <span><strong x-text="filtered.length"></strong> printers match filters</span>
+    </div>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" @change="toggleAll($event)" :checked="allSelected" aria-label="Select all" /></th>
+            <th>Printer Name</th>
+            <th>Model</th>
+            <th>IP Address</th>
+            <th>Location</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Toner</th>
+            <th>Paper</th>
+            <th>Queue</th>
+            <th>Last Seen</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="p in filtered" :key="p.id">
+            <tr @click="openPrinter(p.id)">
+              <td @click.stop><input type="checkbox" :value="p.id" x-model="selected" /></td>
+              <td>
+                <div class="comp-device">
+                  <div class="comp-device-icon"><i class="fas fa-print"></i></div>
+                  <div>
+                    <strong x-text="p.name"></strong>
+                    <span x-text="p.manufacturer + (p.color ? ' · Color' : ' · Mono')"></span>
+                  </div>
+                </div>
+              </td>
+              <td x-text="p.model"></td>
+              <td><code x-text="p.ip"></code></td>
+              <td x-text="p.location"></td>
+              <td x-text="p.department"></td>
+              <td><span class="badge" :class="statusBadge(p.status)" x-text="p.status"></span></td>
+              <td>
+                <div class="comp-usage" :class="usageClass(100 - p.toner)">
+                  <div class="comp-usage-bar"><span :style="'width:' + p.toner + '%'"></span></div>
+                  <span x-text="p.toner + '%'"></span>
+                </div>
+              </td>
+              <td>
+                <div class="comp-usage" :class="usageClass(100 - p.paper)">
+                  <div class="comp-usage-bar"><span :style="'width:' + p.paper + '%'"></span></div>
+                  <span x-text="p.paper + '%'"></span>
+                </div>
+              </td>
+              <td x-text="p.queue"></td>
+              <td x-text="p.last_seen"></td>
+              <td class="comp-actions" @click.stop>
+                <a class="btn btn-ghost btn-sm" :href="'/printers/' + p.id" title="Open"><i class="fas fa-eye"></i></a>
+                <button type="button" class="btn btn-ghost btn-sm" title="Clear queue"><i class="fas fa-broom"></i></button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+<script>
+  window.__PRINTERS__ = {{ printers | tojson }};
+  function printersDashboard() {
+    return {
+      q: "",
+      showFilters: true,
+      refreshing: false,
+      selected: [],
+      printers: window.__PRINTERS__ || [],
+      filters: {
+        manufacturer: "", location: "", department: "", status: "",
+        type: "", color: "", network: ""
+      },
+      get filtered() {
+        var q = this.q.trim().toLowerCase();
+        var f = this.filters;
+        return this.printers.filter(function (p) {
+          if (q) {
+            var blob = [p.name, p.model, p.ip, p.location, p.department, p.manufacturer].join(" ").toLowerCase();
+            if (blob.indexOf(q) === -1) return false;
+          }
+          if (f.manufacturer && p.manufacturer !== f.manufacturer) return false;
+          if (f.location && p.location.toLowerCase().indexOf(f.location.toLowerCase()) === -1) return false;
+          if (f.department && p.department !== f.department) return false;
+          if (f.status && p.status !== f.status) return false;
+          if (f.type && p.type !== f.type) return false;
+          if (f.color === "yes" && !p.color) return false;
+          if (f.color === "no" && p.color) return false;
+          if (f.network === "yes" && !p.network) return false;
+          if (f.network === "no" && p.network) return false;
+          return true;
+        });
+      },
+      get allSelected() {
+        return this.filtered.length && this.filtered.every((p) => this.selected.includes(p.id));
+      },
+      toggleAll(ev) {
+        this.selected = ev.target.checked ? this.filtered.map((p) => p.id) : [];
+      },
+      usageClass(inverseLow) {
+        /* inverseLow = how "empty" — high means low supply */
+        if (inverseLow >= 85) return "is-crit";
+        if (inverseLow >= 70) return "is-warn";
+        return "";
+      },
+      statusBadge(s) {
+        if (s === "Online") return "badge-success";
+        if (s === "Offline" || s === "Critical" || s === "Paper Jam") return "badge-danger";
+        if (s === "Low Toner" || s === "Out of Paper" || s === "Needs Maintenance") return "badge-warning";
+        return "badge-muted";
+      },
+      openPrinter(id) { window.location.href = "/printers/" + id; },
+      refresh() {
+        this.refreshing = true;
+        setTimeout(() => { this.refreshing = false; location.reload(); }, 600);
+      }
+    };
+  }
+</script>
+{% endblock %}

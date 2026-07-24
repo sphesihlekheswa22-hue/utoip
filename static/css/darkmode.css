@@ -1,0 +1,166 @@
+/* ============================================================
+   UITOP — Dark Mode Overrides
+   Component-level tweaks beyond token swaps
+   ============================================================ */
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Elevated surfaces gain subtle inner glow in dark */
+[data-theme="dark"] .panel,
+[data-theme="dark"] .card,
+[data-theme="dark"] .kpi-card,
+[data-theme="dark"] .chart-panel,
+[data-theme="dark"] .activity-panel,
+[data-theme="dark"] .table-wrap {
+  box-shadow:
+    var(--shadow-xs),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Topbar glass effect */
+[data-theme="dark"] .uitop-topbar {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] .uitop-topbar {
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+
+/* Search input dark refinement */
+[data-theme="dark"] .uitop-topbar-search input {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .uitop-topbar-search input:focus {
+  background: var(--bg-primary);
+}
+
+/* Sidebar user gradient */
+[data-theme="dark"] .uitop-sidebar-user {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent);
+}
+
+/* Active nav link glow */
+[data-theme="dark"] .sidebar-link.is-active {
+  box-shadow:
+    inset 0 0 0 1px var(--accent-soft),
+    0 0 12px rgba(45, 212, 191, 0.06);
+}
+
+/* Table sticky header */
+[data-theme="dark"] .data-table th {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .table-toolbar,
+[data-theme="dark"] .table-pagination {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Form inputs */
+[data-theme="dark"] .field input,
+[data-theme="dark"] .field select,
+[data-theme="dark"] .field textarea,
+[data-theme="dark"] .input {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .field input:focus,
+[data-theme="dark"] .field select:focus,
+[data-theme="dark"] .field textarea:focus {
+  background: var(--bg-primary);
+}
+
+/* Modal overlay */
+[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* Auth visual panel stays dark in both themes */
+[data-theme="light"] .auth-visual,
+[data-theme="light"] .login-visual {
+  color: var(--slate-100);
+}
+
+/* Chart.js tooltip compatibility hint */
+[data-theme="dark"] .chart-container {
+  filter: none;
+}
+
+/* Badge ring on dark bg */
+[data-theme="dark"] .uitop-badge {
+  box-shadow: 0 0 0 2px var(--bg-primary);
+}
+
+/* Quick action hover */
+[data-theme="dark"] .quick-action:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Scrollbar dark */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Selection */
+[data-theme="dark"] ::selection {
+  background: rgba(45, 212, 191, 0.25);
+  color: var(--teal-200);
+}
+
+/* Image/logo adjustments */
+[data-theme="dark"] .uitop-brand-logo {
+  filter: drop-shadow(0 2px 6px rgba(45, 212, 191, 0.25));
+}
+
+/* Toast dark elevation */
+[data-theme="dark"] .uitop-toast {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* Button primary glow in dark */
+[data-theme="dark"] .btn-primary {
+  box-shadow:
+    0 2px 12px rgba(45, 212, 191, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 4px 20px rgba(45, 212, 191, 0.3);
+}
+
+/* AI button dark */
+[data-theme="dark"] .uitop-btn-ai {
+  box-shadow:
+    0 2px 12px rgba(45, 212, 191, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Metric card accent border */
+[data-theme="dark"] .card--accent {
+  background: linear-gradient(
+    135deg,
+    var(--bg-elevated),
+    rgba(45, 212, 191, 0.06)
+  );
+}
+
+/* Login form on dark auth panel */
+[data-theme="dark"] .auth-form-wrap,
+[data-theme="dark"] .login-form-wrap {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-lg);
+}

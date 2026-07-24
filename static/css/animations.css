@@ -1,0 +1,194 @@
+/* ============================================================
+   UITOP — Animations
+   ============================================================ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes kpiStagger {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px var(--bg-primary),
+      0 0 0 4px rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--bg-primary),
+      0 0 0 6px rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 2px var(--emerald-400),
+      0 0 8px var(--emerald-400);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow:
+      0 0 0 2px var(--emerald-400),
+      0 0 4px var(--emerald-400);
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.2) rotate(10deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(0.9) rotate(-5deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.15) rotate(5deg);
+    opacity: 0.9;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animation utility classes */
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s ease-out both;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out both;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.4s ease-out both;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 0.7s linear infinite;
+}
+
+/* Stagger delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* Page content entrance */
+.uitop-content > * {
+  animation: fadeInUp 0.5s ease-out both;
+}
+
+.uitop-content > *:nth-child(1) { animation-delay: 0.05s; }
+.uitop-content > *:nth-child(2) { animation-delay: 0.1s; }
+.uitop-content > *:nth-child(3) { animation-delay: 0.15s; }
+.uitop-content > *:nth-child(4) { animation-delay: 0.2s; }
+.uitop-content > *:nth-child(5) { animation-delay: 0.25s; }
+.uitop-content > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* KPI grid stagger (reinforces dashboard.css) */
+.kpi-grid .kpi-card {
+  animation: kpiStagger 0.5s ease-out both;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .uitop-content > *,
+  .kpi-grid .kpi-card,
+  .modal-overlay.is-open .modal-dialog {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

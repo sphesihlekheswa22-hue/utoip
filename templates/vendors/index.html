@@ -1,0 +1,154 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Vendors{% endblock %}
+{% block page_title %}Vendors{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page" x-data="vendorsHub()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>Vendors</h1>
+      <p>Who we buy from, who supports us, and which assets, software, contracts, and POs hang off each supplier.</p>
+    </div>
+    <div class="sw-header-actions">
+      <button type="button" class="btn btn-secondary" @click="exportHint()"><i class="fas fa-download"></i> Export</button>
+      <a href="{{ url_for('vendors.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add vendor</a>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="sw-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Total vendors</p><p class="sw-kpi-value">{{ kpis.total }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Active</p><p class="sw-kpi-value">{{ kpis.active }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Preferred</p><p class="sw-kpi-value">{{ kpis.preferred }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Contracts expiring</p><p class="sw-kpi-value">{{ kpis.contracts_expiring }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Assets supplied</p><p class="sw-kpi-value">{{ kpis.assets_supplied }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Open POs</p><p class="sw-kpi-value">{{ kpis.open_pos }}</p></article>
+  </div>
+
+  <section class="sw-panel">
+    <p class="sw-note"><strong>Archive, don’t delete.</strong> Historical POs and warranties stay linked for audit. Preferred vendors appear first in procurement flows later.</p>
+    <div class="sw-toolbar">
+      <div class="sw-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="search" placeholder="Search vendor, contact, email…" x-model="q" />
+      </div>
+      <select x-model="catFilter">
+        <option value="">All categories</option>
+        <template x-for="c in data.categories" :key="c"><option :value="c" x-text="c"></option></template>
+      </select>
+      <select x-model="statusFilter">
+        <option value="">All statuses</option>
+        <option value="Active">Active</option>
+        <option value="Archived">Archived</option>
+      </select>
+      <select x-model="sortBy">
+        <option value="name">Sort: Name</option>
+        <option value="assets">Sort: Assets</option>
+        <option value="contracts">Sort: Contracts</option>
+        <option value="rating">Sort: Rating</option>
+      </select>
+    </div>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Vendor</th>
+            <th>Category</th>
+            <th>Contact</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Assets</th>
+            <th>Contracts</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="v in filtered" :key="v.id">
+            <tr>
+              <td>
+                <div class="sw-name">
+                  <span class="sw-name-icon"><i class="fas fa-building"></i></span>
+                  <div>
+                    <strong><a :href="'/vendors/' + v.id" x-text="v.name"></a></strong>
+                    <span>
+                      <template x-if="v.preferred"><span class="sw-badge sw-badge--accent">Preferred</span></template>
+                      <span x-text="'★ ' + v.rating"></span>
+                    </span>
+                  </div>
+                </div>
+              </td>
+              <td x-text="v.category"></td>
+              <td x-text="v.contact_name"></td>
+              <td x-text="v.email"></td>
+              <td x-text="v.phone"></td>
+              <td>
+                <span class="sw-badge"
+                  :class="v.status === 'Active' ? 'sw-badge--success' : 'sw-badge--muted'"
+                  x-text="v.status"></span>
+              </td>
+              <td x-text="v.assets_count"></td>
+              <td x-text="v.contracts_count"></td>
+              <td>
+                <div class="sw-actions-inline">
+                  <a class="btn btn-ghost btn-sm" :href="'/vendors/' + v.id">View</a>
+                  <a class="btn btn-ghost btn-sm" :href="'/vendors/' + v.id + '/edit'">Edit</a>
+                  <form :action="'/vendors/' + v.id + '/archive'" method="post" style="display:inline;" x-show="v.status === 'Active'" @submit="return confirm('Archive this vendor?')">
+                    <button type="submit" class="btn btn-ghost btn-sm">Archive</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <p class="sw-empty" x-show="filtered.length === 0">No vendors match.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+window.__VENDORS__ = {{ payload | tojson }};
+function vendorsHub() {
+  return {
+    data: window.__VENDORS__ || {},
+    q: "",
+    catFilter: "",
+    statusFilter: "Active",
+    sortBy: "name",
+    get filtered() {
+      var q = this.q.trim().toLowerCase();
+      var cat = this.catFilter;
+      var st = this.statusFilter;
+      var sort = this.sortBy;
+      var rows = (this.data.vendors || []).filter(function (v) {
+        if (cat && v.category !== cat) return false;
+        if (st && v.status !== st) return false;
+        if (!q) return true;
+        return [v.name, v.contact_name, v.email, v.phone, v.category, v.account_number]
+          .join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+      rows.sort(function (a, b) {
+        if (sort === "assets") return b.assets_count - a.assets_count;
+        if (sort === "contracts") return b.contracts_count - a.contracts_count;
+        if (sort === "rating") return b.rating - a.rating;
+        return a.name.localeCompare(b.name);
+      });
+      return rows;
+    },
+    exportHint: function () {
+      alert("Export CSV/PDF will download from the live API once vendors are persisted.");
+    },
+  };
+}
+</script>
+{% endblock %}

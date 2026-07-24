@@ -1,0 +1,99 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Install Server Agent{% endblock %}
+{% block page_title %}Install Agent{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('servers.index') }}">Servers</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Install Agent</span>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="serverAgent()" x-cloak>
+  <header class="comp-header">
+    <div>
+      <h1>Install Server Agent</h1>
+      <p>Deploy the UITOP server agent on Windows or Linux hosts. Registration is automatic — no inventory form.</p>
+    </div>
+    <a href="{{ url_for('servers.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Servers</a>
+  </header>
+
+  <div class="agent-token">
+    <div>
+      <div class="comp-kpi-label">Server registration token</div>
+      <code x-text="token"></code>
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm" @click="copy(token)"><i class="fas fa-copy"></i> Copy token</button>
+    <button type="button" class="btn btn-ghost btn-sm" @click="rotate()"><i class="fas fa-key"></i> Generate New Token</button>
+  </div>
+
+  <div class="agent-grid">
+    <article class="agent-card">
+      <h3><i class="fab fa-windows"></i> Windows Server</h3>
+      <p>MSI for Server 2016–2022. Supports silent GPO / SCCM / Intune deploy.</p>
+      <button type="button" class="btn btn-primary"><i class="fas fa-download"></i> Download Windows Agent</button>
+    </article>
+    <article class="agent-card">
+      <h3><i class="fab fa-linux"></i> Linux Server</h3>
+      <p>DEB / RPM packages with systemd service for Ubuntu, RHEL, Rocky.</p>
+      <button type="button" class="btn btn-secondary"><i class="fas fa-download"></i> Download Linux Agent</button>
+    </article>
+    <article class="agent-card">
+      <h3><i class="fas fa-cloud"></i> Hypervisor helpers</h3>
+      <p>Optional collectors for VMware Tools / Hyper-V Integration Services metadata.</p>
+      <button type="button" class="btn btn-ghost"><i class="fas fa-book"></i> View docs</button>
+    </article>
+  </div>
+
+  <section class="device-panel">
+    <h2 class="chart-panel-title">PowerShell (Windows Server)</h2>
+    <div class="agent-cmd">
+      <pre x-text="psCmd"></pre>
+      <button type="button" class="btn btn-secondary btn-sm" @click="copy(psCmd)"><i class="fas fa-copy"></i> Copy</button>
+    </div>
+    <h2 class="chart-panel-title">Bash (Linux)</h2>
+    <div class="agent-cmd">
+      <pre x-text="bashCmd"></pre>
+      <button type="button" class="btn btn-secondary btn-sm" @click="copy(bashCmd)"><i class="fas fa-copy"></i> Copy</button>
+    </div>
+    <h2 class="chart-panel-title">MSI silent</h2>
+    <div class="agent-cmd">
+      <pre x-text="msiCmd"></pre>
+      <button type="button" class="btn btn-secondary btn-sm" @click="copy(msiCmd)"><i class="fas fa-copy"></i> Copy</button>
+    </div>
+  </section>
+</div>
+
+<script>
+function serverAgent() {
+  return {
+    token: "uitop_srv_A91C-UMZ-2026",
+    get psCmd() {
+      return "irm https://uitop.umzinyathi.gov.za/agent/server/install.ps1 | iex; Install-UitopServerAgent -Token '" + this.token + "' -Silent";
+    },
+    get bashCmd() {
+      return "curl -fsSL https://uitop.umzinyathi.gov.za/agent/server/install.sh | sudo bash -s -- --token " + this.token;
+    },
+    get msiCmd() {
+      return "msiexec /i UITOPServerAgent.msi /qn REGISTRATION_TOKEN=" + this.token + " ROLE=server";
+    },
+    copy(t) {
+      navigator.clipboard.writeText(t);
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast("Copied", "success");
+    },
+    rotate() {
+      this.token = "uitop_srv_" + Math.random().toString(36).slice(2, 6).toUpperCase() + "-UMZ-2026";
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast("New token generated", "success");
+    }
+  };
+}
+</script>
+{% endblock %}

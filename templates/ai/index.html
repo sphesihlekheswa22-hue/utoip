@@ -1,0 +1,60 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
+
+{% block title %}AI Assistant{% endblock %}
+{% block page_title %}AI Assistant{% endblock %}
+
+{% block content %}
+{% call page_header("AI Assistant", "Manage ai assistant across Umzinyathi IT operations.", "{{ url_for('ai.index') }}", "Add Session", "fa-plus") %}{% endcall %}
+
+<div class="kpi-grid">
+  {{ kpi_card("Sessions today", "64", "+12%", "default", "fa-comments") }}
+  {{ kpi_card("Suggestions accepted", "71%", "Ops", "success", "fa-thumbs-up") }}
+  {{ kpi_card("Incidents assisted", "9", "Open tickets", "warning", "fa-life-ring") }}
+  {{ kpi_card("Avg resolve assist", "6m", "Faster triage", "success", "fa-stopwatch") }}
+</div>
+
+{% call filter_bar("Search ai assistant…") %}
+  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
+  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
+{% endcall %}
+
+<section class="table-panel panel">
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>User</th>
+          <th>Topic</th>
+          <th>Messages</th>
+          <th>Outcome</th>
+          <th>When</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>AI-8841</td>
+          <td>S. Dlamini</td>
+          <td>VPN troubleshooting</td>
+          <td>12</td>
+          <td>Resolved</td>
+          <td>10:14</td>
+          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('ai.index') }}">View</a></td>
+        </tr>
+        <tr>
+          <td>AI-8830</td>
+          <td>T. Nkosi</td>
+          <td>License expiry report</td>
+          <td>5</td>
+          <td>Report ready</td>
+          <td>09:40</td>
+          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('ai.index') }}">View</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(1, 4) }}
+</section>
+{% endblock %}

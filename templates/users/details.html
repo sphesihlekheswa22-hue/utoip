@@ -1,0 +1,103 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ user.full_name }}{% endblock %}
+{% block page_title %}{{ user.full_name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('users.index') }}">Users</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ user.full_name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page">
+  <section class="device-hero">
+    <div class="device-hero-main">
+      <div class="device-hero-icon"><i class="fas fa-user"></i></div>
+      <div>
+        <h1>{{ user.full_name }}</h1>
+        <p class="device-hero-sub">{{ user.email }} · {{ user.role_label }}</p>
+        <div class="device-hero-badges">
+          <span class="badge {% if user.is_active %}badge-success{% else %}badge-danger{% endif %}">{{ user.status }}</span>
+          <span class="badge badge-muted">{{ user.department }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="device-hero-actions">
+      <a href="{{ url_for('users.edit', item_id=item_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+      <a href="{{ url_for('users.index') }}" class="btn btn-ghost btn-sm">All users</a>
+    </div>
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<p>{{ msg }}</p>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <section class="device-panel">
+    <h2 class="chart-panel-title">Profile</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Name</dt><dd>{{ user.full_name }}</dd></div>
+      <div class="device-field"><dt>Email</dt><dd>{{ user.email }}</dd></div>
+      <div class="device-field"><dt>Role</dt><dd>{{ user.role_label }}</dd></div>
+      <div class="device-field"><dt>Roles</dt><dd>{{ user.roles|join(', ') if user.roles else '—' }}</dd></div>
+      <div class="device-field"><dt>Department</dt><dd>{{ user.department }}</dd></div>
+      <div class="device-field"><dt>Last login</dt><dd>{{ user.last_login }}</dd></div>
+      <div class="device-field"><dt>MFA</dt><dd>{{ 'Enabled' if user.mfa_enabled else 'Off' }}</dd></div>
+      <div class="device-field"><dt>Super admin</dt><dd>{{ 'Yes' if user.is_super_admin else 'No' }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" id="permissions">
+    <h2 class="chart-panel-title">Permissions</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      {% for p in user.permissions %}
+      <span class="badge badge-muted"><code>{{ p }}</code></span>
+      {% else %}
+      <span>—</span>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="device-panel">
+    <h2 class="chart-panel-title">Assign roles</h2>
+    <form method="post" action="{{ url_for('users.assign_roles', item_id=item_id) }}">
+      <div class="uf-check-grid" style="margin-bottom:14px;">
+        {% for r in roles %}
+        <label class="uf-check">
+          <input type="checkbox" name="roles" value="{{ r.name }}" {% if r.name in user.roles %}checked{% endif %} />
+          <strong>{{ r.name.replace('_',' ').title() }}</strong>
+          <span>{{ r.description or 'Platform role' }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Save roles</button>
+    </form>
+  </section>
+
+  <section class="device-panel" id="activity">
+    <h2 class="chart-panel-title">Recent activity</h2>
+    {% if activity %}
+    <table class="comp-table">
+      <thead><tr><th>Action</th><th>Resource</th><th>When</th></tr></thead>
+      <tbody>
+        {% for a in activity %}
+        <tr>
+          <td>{{ a.action }}</td>
+          <td>{{ a.resource_type or '—' }} {% if a.resource_id %}#{{ a.resource_id }}{% endif %}</td>
+          <td>{{ a.created_at or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="chart-panel-subtitle">No audit events for this user yet.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

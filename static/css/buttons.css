@@ -1,0 +1,244 @@
+/* ============================================================
+   UITOP — Buttons
+   ============================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-fast);
+  text-decoration: none;
+}
+
+.btn:disabled,
+.btn.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn i {
+  font-size: 13px;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Primary */
+.btn-primary {
+  background: linear-gradient(135deg, var(--teal-600), var(--teal-500));
+  color: white;
+  box-shadow:
+    0 2px 8px rgba(13, 148, 136, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--teal-700), var(--teal-600));
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Secondary */
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--border-hover);
+}
+
+/* Danger */
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--red-600);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Success */
+.btn-success {
+  background: var(--emerald-500);
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: var(--emerald-400);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Ghost */
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Outline variants */
+.btn-outline {
+  background: transparent;
+  color: var(--accent-text);
+  border-color: var(--accent-soft);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.btn-outline-danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger-soft);
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+/* Sizes */
+.btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-sm i {
+  font-size: 11px;
+}
+
+.btn-lg {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 15px;
+  border-radius: var(--radius-lg);
+}
+
+.btn-xl {
+  height: 52px;
+  padding: 0 28px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: var(--radius-lg);
+}
+
+/* Icon-only */
+.btn-icon {
+  width: 40px;
+  padding: 0;
+}
+
+.btn-icon.btn-sm {
+  width: 32px;
+}
+
+.btn-icon.btn-lg {
+  width: 48px;
+}
+
+/* Full width */
+.btn-block {
+  width: 100%;
+}
+
+/* Button group */
+.btn-group {
+  display: inline-flex;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+}
+
+.btn-group .btn {
+  border-radius: 0;
+  border: none;
+  border-right: 1px solid var(--border-default);
+}
+
+.btn-group .btn:last-child {
+  border-right: none;
+}
+
+.btn-group .btn.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* Loading state */
+.btn.is-loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn.is-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: white;
+  border-radius: var(--radius-full);
+  animation: spin 0.7s linear infinite;
+}
+
+.btn-secondary.is-loading::after,
+.btn-ghost.is-loading::after {
+  border-color: rgba(15, 23, 42, 0.15);
+  border-top-color: var(--accent);
+}
+
+/* Link button */
+.btn-link {
+  height: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.btn-link:hover:not(:disabled) {
+  color: var(--accent-hover);
+  transform: none;
+}

@@ -1,0 +1,389 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ server.hostname }}{% endblock %}
+{% block page_title %}{{ server.hostname }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/servers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('servers.index') }}">Servers</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ server.hostname }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="serverConsole('{{ initial_tab }}')" x-cloak>
+  <section class="device-hero">
+    <div class="device-hero-main">
+      <div class="device-hero-icon"><i class="fas fa-server"></i></div>
+      <div>
+        <h1>{{ server.name }}</h1>
+        <p class="device-hero-sub">{{ server.hostname }} · {{ server.ip }} · {{ server.virt }} · Agent v2.4.1</p>
+        <div class="device-hero-badges">
+          <span class="badge {% if server.status == 'Online' %}badge-success{% elif server.status == 'Warning' %}badge-warning{% else %}badge-danger{% endif %}">{{ server.status }}</span>
+          <span class="badge {% if server.agent == 'Online' %}badge-success{% else %}badge-danger{% endif %}">Agent {{ server.agent }}</span>
+          <span class="badge badge-muted">{{ server.criticality }}</span>
+          <span class="badge badge-muted">{{ server.os_family }}</span>
+          <span class="badge badge-muted">{{ server.location }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="device-hero-actions">
+      <button type="button" class="btn btn-secondary btn-sm" @click="setTab('remote')"><i class="fas fa-terminal"></i> Remote Actions</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="toast('Agent sync started')"><i class="fas fa-rotate"></i> Sync Agent</button>
+      <a href="{{ url_for('servers.index') }}" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Fleet</a>
+    </div>
+  </section>
+
+  <nav class="device-tabs" aria-label="Server sections">
+    <template x-for="t in tabs" :key="t.id">
+      <button type="button" class="device-tab" :class="tab === t.id && 'is-active'" @click="setTab(t.id)" x-text="t.label"></button>
+    </template>
+  </nav>
+
+  <section class="device-panel" x-show="tab === 'overview'">
+    <h2 class="chart-panel-title">Overview</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Server Name</dt><dd>{{ server.name }}</dd></div>
+      <div class="device-field"><dt>Hostname</dt><dd>{{ server.hostname }}</dd></div>
+      <div class="device-field"><dt>IP Address</dt><dd>{{ server.ip }}</dd></div>
+      <div class="device-field"><dt>Operating System</dt><dd>{{ server.os }}</dd></div>
+      <div class="device-field"><dt>Type</dt><dd>{{ server.virt }}</dd></div>
+      <div class="device-field"><dt>Department</dt><dd>{{ server.department }}</dd></div>
+      <div class="device-field"><dt>Location</dt><dd>{{ server.location }}</dd></div>
+      <div class="device-field"><dt>Criticality</dt><dd>{{ server.criticality }}</dd></div>
+      <div class="device-field"><dt>Uptime</dt><dd>{{ server.uptime }}</dd></div>
+      <div class="device-field"><dt>Last Seen</dt><dd>{{ server.last_seen }}</dd></div>
+      <div class="device-field"><dt>Agent Version</dt><dd>2.4.1 (server build)</dd></div>
+      <div class="device-field"><dt>Status</dt><dd>{{ server.status }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'hardware'">
+    <h2 class="chart-panel-title">Hardware</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>CPU</dt><dd>{% if server.virt == 'Virtual' %}vCPU × 8 (Intel Xeon Gold host){% else %}2× Intel Xeon Silver 4314 · 32 cores{% endif %}</dd></div>
+      <div class="device-field"><dt>RAM</dt><dd>{% if server.ram >= 80 %}128 GB{% else %}64 GB{% endif %} ECC · {{ server.ram }}% used</dd></div>
+      <div class="device-field"><dt>Motherboard / Host</dt><dd>{% if server.virt == 'Virtual' %}VMware Virtual Platform{% else %}Dell PowerEdge R750{% endif %}</dd></div>
+      <div class="device-field"><dt>Firmware / BIOS</dt><dd>2.14.1 · Secure Boot On</dd></div>
+      <div class="device-field"><dt>GPU</dt><dd>None / shared graphics</dd></div>
+      <div class="device-field"><dt>Temperature</dt><dd>Inlet 22°C · CPU 46°C</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'os'">
+    <h2 class="chart-panel-title">Operating System</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Edition</dt><dd>{{ server.os }}</dd></div>
+      <div class="device-field"><dt>Kernel / Build</dt><dd>{% if server.os_family == 'Linux' %}5.15.0-105{% else %}20348.2402{% endif %}</dd></div>
+      <div class="device-field"><dt>Architecture</dt><dd>x64</dd></div>
+      <div class="device-field"><dt>Domain</dt><dd>UMZINYATHI.LOCAL</dd></div>
+      <div class="device-field"><dt>Last Boot</dt><dd>{{ server.uptime }} ago (approx.)</dd></div>
+      <div class="device-field"><dt>Timezone</dt><dd>Africa/Johannesburg</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'storage'">
+    <h2 class="chart-panel-title">Storage</h2>
+    <div class="srv-storage-grid">
+      <div class="srv-disk-card">
+        <h4>System (C: /)</h4>
+        <div class="comp-usage {% if server.disk >= 80 %}is-crit{% elif server.disk >= 70 %}is-warn{% endif %}">
+          <div class="comp-usage-bar"><span style="width: {{ server.disk }}%"></span></div>
+          <span>{{ server.disk }}%</span>
+        </div>
+        <p class="chart-panel-subtitle">NVMe / SSD · 500 GB · SMART OK</p>
+      </div>
+      <div class="srv-disk-card">
+        <h4>Data (D: /data)</h4>
+        <div class="comp-usage is-warn">
+          <div class="comp-usage-bar"><span style="width: 72%"></span></div>
+          <span>72%</span>
+        </div>
+        <p class="chart-panel-subtitle">RAID-10 · 4 TB usable</p>
+      </div>
+      <div class="srv-disk-card">
+        <h4>Backup staging</h4>
+        <div class="comp-usage">
+          <div class="comp-usage-bar"><span style="width: 38%"></span></div>
+          <span>38%</span>
+        </div>
+        <p class="chart-panel-subtitle">Local cache · 2 TB</p>
+      </div>
+      <div class="srv-disk-card">
+        <h4>Snapshots</h4>
+        <p class="chart-panel-subtitle">3 retention points · oldest 14d · hypervisor consistent</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'performance'">
+    <h2 class="chart-panel-title">Performance</h2>
+    <p class="chart-panel-subtitle">Agent telemetry · last 60 minutes</p>
+    <div class="device-chart-grid">
+      <div class="device-chart-card"><h3>CPU</h3><div class="chart-box"><canvas id="srvCpuChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Memory</h3><div class="chart-box"><canvas id="srvMemChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Disk I/O</h3><div class="chart-box"><canvas id="srvDiskChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Network</h3><div class="chart-box"><canvas id="srvNetChart"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'network'">
+    <h2 class="chart-panel-title">Network</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Primary IP</dt><dd>{{ server.ip }}</dd></div>
+      <div class="device-field"><dt>MAC</dt><dd>00:50:56:A{{ server.id }}:B{{ server.id }}:C1</dd></div>
+      <div class="device-field"><dt>Gateway</dt><dd>10.12.0.1</dd></div>
+      <div class="device-field"><dt>DNS</dt><dd>10.12.0.11, 10.12.0.12</dd></div>
+      <div class="device-field"><dt>NIC</dt><dd>vmxnet3 / 10 GbE · Connected</dd></div>
+      <div class="device-field"><dt>VLAN</dt><dd>Servers · VLAN 20</dd></div>
+      <div class="device-field"><dt>Firewall zone</dt><dd>Internal trusted</dd></div>
+      <div class="device-field"><dt>Throughput</dt><dd>↑ 180 Mbps · ↓ 420 Mbps</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'services'">
+    <h2 class="chart-panel-title">Services</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Service</th><th>Display Name</th><th>Status</th><th>Startup</th></tr></thead>
+        <tbody>
+          <tr><td>UITOPAgent</td><td>UITOP Server Agent</td><td><span class="badge badge-success">Running</span></td><td>Automatic</td></tr>
+          <tr><td>{% if server.os_family == 'Linux' %}sshd{% else %}TermService{% endif %}</td><td>{% if server.os_family == 'Linux' %}OpenSSH{% else %}Remote Desktop{% endif %}</td><td><span class="badge badge-success">Running</span></td><td>Automatic</td></tr>
+          <tr><td>{% if 'SQL' in server.hostname %}MSSQLSERVER{% else %}W3SVC / nginx{% endif %}</td><td>Primary workload</td><td><span class="badge badge-success">Running</span></td><td>Automatic</td></tr>
+          <tr><td>EventLog</td><td>Windows Event Log / journald</td><td><span class="badge badge-success">Running</span></td><td>Automatic</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'processes'">
+    <h2 class="chart-panel-title">Running Processes</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Process</th><th>PID</th><th>User</th><th>CPU</th><th>Memory</th></tr></thead>
+        <tbody>
+          <tr><td>{% if 'SQL' in server.hostname %}sqlservr.exe{% elif server.os_family == 'Linux' %}nginx{% else %}w3wp.exe{% endif %}</td><td>2144</td><td>SYSTEM</td><td>{{ server.cpu }}%</td><td>4.2 GB</td></tr>
+          <tr><td>UITOPAgent</td><td>1102</td><td>SYSTEM</td><td>1%</td><td>96 MB</td></tr>
+          <tr><td>{% if server.os_family == 'Linux' %}systemd{% else %}svchost.exe{% endif %}</td><td>880</td><td>SYSTEM</td><td>2%</td><td>180 MB</td></tr>
+          <tr><td>{% if server.os_family == 'Linux' %}dockerd{% else %}MsMpEng.exe{% endif %}</td><td>1501</td><td>SYSTEM</td><td>3%</td><td>320 MB</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'software'">
+    <h2 class="chart-panel-title">Installed Software</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Name</th><th>Version</th><th>Publisher</th><th>Installed</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>UITOP Server Agent</td><td>2.4.1</td><td>Umzinyathi IT</td><td>2026-04-12</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td>{% if server.os_family == 'Linux' %}containerd{% else %}IIS / .NET Hosting{% endif %}</td><td>1.7 / 8.0</td><td>Vendor</td><td>2025-11-01</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td>Backup Agent</td><td>12.3</td><td>Veeam / native</td><td>2026-01-20</td><td><span class="badge badge-warning">Update</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'updates'">
+    <h2 class="chart-panel-title">{% if server.os_family == 'Linux' %}Linux Updates{% else %}Windows Updates{% endif %}</h2>
+    <div class="comp-kpi-grid">
+      <article class="comp-kpi is-success"><p class="comp-kpi-label">Installed</p><p class="comp-kpi-value">96</p></article>
+      <article class="comp-kpi is-warning"><p class="comp-kpi-label">Pending</p><p class="comp-kpi-value">5</p></article>
+      <article class="comp-kpi is-danger"><p class="comp-kpi-label">Failed</p><p class="comp-kpi-value">0</p></article>
+      <article class="comp-kpi is-danger"><p class="comp-kpi-label">Security Missing</p><p class="comp-kpi-value">2</p></article>
+    </div>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>ID</th><th>Title</th><th>Class</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>KB5039212</td><td>Cumulative / security rollup</td><td>Security</td><td><span class="badge badge-warning">Pending</span></td></tr>
+          <tr><td>KB5034441</td><td>Servicing stack</td><td>Critical</td><td><span class="badge badge-warning">Pending</span></td></tr>
+          <tr><td>{% if server.os_family == 'Linux' %}CVE-2024-1086{% else %}KB5036893{% endif %}</td><td>Kernel / .NET hardening</td><td>Security</td><td><span class="badge badge-danger">Missing</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'security'">
+    <h2 class="chart-panel-title">Security</h2>
+    <div class="sec-score">
+      <div class="sec-score-ring"><span>72</span></div>
+      <div>
+        <strong>Risk score · Elevated</strong>
+        <p class="chart-panel-subtitle">Patch debt and high resource pressure on critical hosts increase score.</p>
+      </div>
+    </div>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Firewall</dt><dd><span class="badge badge-success">Enabled</span></dd></div>
+      <div class="device-field"><dt>Antivirus / EDR</dt><dd>CrowdStrike · Healthy</dd></div>
+      <div class="device-field"><dt>Disk encryption</dt><dd>{% if server.virt == 'Physical' %}BitLocker / LUKS On{% else %}Datastore encryption{% endif %}</dd></div>
+      <div class="device-field"><dt>Admin hardening</dt><dd>LAPS / sudoers audited</dd></div>
+      <div class="device-field"><dt>Threat status</dt><dd><span class="badge badge-success">Clear</span></dd></div>
+      <div class="device-field"><dt>Risk score</dt><dd>72 / 100</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'logs'">
+    <h2 class="chart-panel-title">Logs</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Time</th><th>Level</th><th>Source</th><th>Message</th></tr></thead>
+        <tbody>
+          <tr><td>10:18</td><td><span class="badge badge-warning">Warning</span></td><td>PerfMon</td><td>Memory pressure sustained above threshold</td></tr>
+          <tr><td>09:40</td><td><span class="badge badge-muted">Info</span></td><td>UITOPAgent</td><td>Inventory and service map synced</td></tr>
+          <tr><td>02:12</td><td><span class="badge badge-muted">Info</span></td><td>Backup</td><td>Incremental job completed</td></tr>
+          <tr><td>Yesterday</td><td><span class="badge badge-danger">Error</span></td><td>Disk</td><td>Latency spike on data volume (recovered)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'backups'">
+    <h2 class="chart-panel-title">Backups</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Job</th><th>Type</th><th>Last run</th><th>Size</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>{{ server.hostname }} Full</td><td>Full</td><td>Tonight 01:10</td><td>420 GB</td><td><span class="badge badge-success">Success</span></td></tr>
+          <tr><td>{{ server.hostname }} Incremental</td><td>Incremental</td><td>Tonight 02:40</td><td>18 GB</td><td><span class="badge badge-success">Success</span></td></tr>
+          <tr><td>Config-only</td><td>System state</td><td>Sun 03:00</td><td>6 GB</td><td><span class="badge badge-warning">Queued</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'files'">
+    <h2 class="chart-panel-title">Files</h2>
+    {% from "files/_entity_files.html" import entity_files_panel %}
+    {{ entity_files_panel(linked_files or [], 'server', item_id, url_for('servers.details', item_id=item_id, tab='files')) }}
+  </section>
+
+  <section class="device-panel" x-show="tab === 'vms'">
+    <h2 class="chart-panel-title">Virtual Machines</h2>
+    {% if server.virt == 'Physical' and 'HV' in server.hostname or server.hostname.startswith('HV') or 'Cluster' in server.location %}
+    <div class="srv-vm-grid">
+      <div class="srv-vm-card"><strong>APP-ERP-02</strong><span>Running · 8 vCPU · 32 GB</span></div>
+      <div class="srv-vm-card"><strong>SQL-PROD-01</strong><span>Running · 16 vCPU · 64 GB</span></div>
+      <div class="srv-vm-card"><strong>LX-WEB-01</strong><span>Running · 4 vCPU · 16 GB</span></div>
+    </div>
+    {% else %}
+    <p class="chart-panel-subtitle">This host is a guest / standalone server — no child VMs reported.</p>
+    <div class="srv-vm-grid">
+      <div class="srv-vm-card"><strong>Hypervisor</strong><span>{{ server.location }}</span></div>
+      <div class="srv-vm-card"><strong>Role</strong><span>{{ server.virt }} workload</span></div>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="device-panel" x-show="tab === 'timeline'">
+    <h2 class="chart-panel-title">Activity Timeline</h2>
+    <ul class="timeline">
+      <li><time>Today 10:18</time><strong>Alert Generated</strong><p>High memory on {{ server.hostname }} ({{ server.ram }}%).</p></li>
+      <li><time>Today 09:40</time><strong>Agent Connected</strong><p>Telemetry stream healthy.</p></li>
+      <li><time>Tonight 02:40</time><strong>Backup Completed</strong><p>Incremental job success.</p></li>
+      <li><time>Yesterday</time><strong>Update Pending</strong><p>Security rollup awaiting maintenance window.</p></li>
+      <li><time>Mon</time><strong>Service Restart</strong><p>Workload service recycled after deploy.</p></li>
+    </ul>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'remote'">
+    <h2 class="chart-panel-title">Remote Actions</h2>
+    <p class="chart-panel-subtitle">Queued to UITOP agent / hypervisor connector (demo UI).</p>
+    <div class="remote-grid">
+      <button type="button" class="remote-btn" @click="toast('Restart queued')"><i class="fas fa-power-off"></i><strong>Restart</strong><span>Graceful reboot</span></button>
+      <button type="button" class="remote-btn is-danger" @click="toast('Shutdown queued')"><i class="fas fa-plug"></i><strong>Shutdown</strong><span>Power off</span></button>
+      <button type="button" class="remote-btn" @click="toast('Script runner opened')"><i class="fas fa-terminal"></i><strong>Run Script</strong><span>PowerShell / Bash</span></button>
+      <button type="button" class="remote-btn" @click="toast('Terminal session requested')"><i class="fas fa-code"></i><strong>Open Terminal</strong><span>SSH / WinRM</span></button>
+      <button type="button" class="remote-btn" @click="toast('RDP launch requested')"><i class="fas fa-desktop"></i><strong>Open Remote Desktop</strong><span>RDP / console</span></button>
+      <button type="button" class="remote-btn" @click="toast('Agent sync started')"><i class="fas fa-rotate"></i><strong>Sync Agent</strong><span>Force inventory</span></button>
+      <button type="button" class="remote-btn" @click="toast('Backup job created')"><i class="fas fa-hard-drive"></i><strong>Create Backup</strong><span>Full / incremental</span></button>
+      <button type="button" class="remote-btn" @click="toast('Restore wizard opened')"><i class="fas fa-rotate-left"></i><strong>Restore Backup</strong><span>Point-in-time</span></button>
+      <button type="button" class="remote-btn" @click="toast('Update deploy queued')"><i class="fas fa-cloud-arrow-down"></i><strong>Deploy Updates</strong><span>Patch window</span></button>
+    </div>
+  </section>
+</div>
+
+<script>
+function serverConsole(initial) {
+  return {
+    tab: initial || "overview",
+    chartsReady: false,
+    tabs: [
+      { id: "overview", label: "Overview" },
+      { id: "hardware", label: "Hardware" },
+      { id: "os", label: "Operating System" },
+      { id: "storage", label: "Storage" },
+      { id: "performance", label: "Performance" },
+      { id: "network", label: "Network" },
+      { id: "services", label: "Services" },
+      { id: "processes", label: "Running Processes" },
+      { id: "software", label: "Installed Software" },
+      { id: "updates", label: "Updates" },
+      { id: "security", label: "Security" },
+      { id: "logs", label: "Logs" },
+      { id: "backups", label: "Backups" },
+      { id: "files", label: "Files" },
+      { id: "vms", label: "Virtual Machines" },
+      { id: "timeline", label: "Activity Timeline" },
+      { id: "remote", label: "Remote Actions" }
+    ],
+    setTab(id) {
+      this.tab = id;
+      var url = new URL(window.location.href);
+      url.searchParams.set("tab", id);
+      history.replaceState({}, "", url);
+      if (id === "performance") {
+        var self = this;
+        this.$nextTick(function () { self.initCharts(); });
+      }
+    },
+    toast(msg) {
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, "success");
+      else alert(msg);
+    },
+    initCharts() {
+      if (!window.UITOP || !UITOP.charts || this.chartsReady) return;
+      var labels = ["-55m", "-45m", "-35m", "-25m", "-15m", "-5m", "now"];
+      var spark = function (id, data, color) {
+        var el = document.getElementById(id);
+        if (!el || el._chart) return;
+        el._chart = UITOP.charts.createLine(el, {
+          labels: labels,
+          datasets: [{
+            data: data,
+            borderColor: color,
+            backgroundColor: UITOP.charts.soft(color, 0.15),
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 0
+          }]
+        }, { plugins: { legend: { display: false } } });
+      };
+      spark("srvCpuChart", [30, 40, 55, 48, 62, 70, {{ server.cpu }}], "#0d9488");
+      spark("srvMemChart", [50, 55, 60, 68, 75, 82, {{ server.ram }}], "#3b82f6");
+      spark("srvDiskChart", [20, 35, 28, 44, 39, 50, 42], "#f59e0b");
+      spark("srvNetChart", [80, 120, 90, 160, 140, 200, 170], "#0d9488");
+      this.chartsReady = true;
+    }
+  };
+}
+document.addEventListener("DOMContentLoaded", function () {
+  setTimeout(function () {
+    var root = document.querySelector("[x-data]");
+    if (root && root._x_dataStack && root._x_dataStack[0].tab === "performance") {
+      root._x_dataStack[0].initCharts();
+    }
+  }, 400);
+});
+</script>
+{% endblock %}

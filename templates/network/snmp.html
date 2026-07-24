@@ -1,0 +1,103 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}SNMP Credentials{% endblock %}
+{% block page_title %}SNMP Credentials{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/network.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('network.index') }}">Network</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>SNMP</span>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="snmpCreds()" x-cloak>
+  <header class="comp-header">
+    <div>
+      <h1>SNMP Credentials</h1>
+      <p>Profiles used during network discovery and polling. No devices are typed in by hand.</p>
+    </div>
+    <div class="comp-toolbar-actions">
+      <button type="button" class="btn btn-primary" @click="showForm = true"><i class="fas fa-plus"></i> Add SNMP Credentials</button>
+      <a href="{{ url_for('network.scan') }}" class="btn btn-secondary">Scan Network</a>
+    </div>
+  </header>
+
+  <section class="device-panel" x-show="showForm" x-cloak>
+    <h2 class="chart-panel-title">New credential profile</h2>
+    <div class="form-grid">
+      <div class="field"><label>Profile name</label><input type="text" x-model="form.name" placeholder="HQ Read-Only" /></div>
+      <div class="field"><label>Version</label>
+        <select x-model="form.version"><option>v2c</option><option>v3</option></select>
+      </div>
+      <div class="field"><label>Community / Username</label><input type="text" x-model="form.community" placeholder="umz-ro" /></div>
+      <div class="field"><label>Auth (v3)</label><input type="password" x-model="form.auth" placeholder="Optional" /></div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" @click="showForm = false">Cancel</button>
+      <button type="button" class="btn btn-primary" @click="save()"><i class="fas fa-check"></i> Save profile</button>
+    </div>
+  </section>
+
+  <section class="device-panel">
+    <h2 class="chart-panel-title">Saved profiles</h2>
+    <div class="net-cred-list">
+      <template x-for="c in creds" :key="c.id">
+        <div class="net-cred">
+          <div>
+            <strong x-text="c.name"></strong>
+            <div class="chart-panel-subtitle"><span x-text="c.version"></span> · <span x-text="c.community"></span> · <span x-text="c.scope"></span></div>
+          </div>
+          <div class="comp-toolbar-actions">
+            <span class="badge badge-success" x-text="c.devices + ' devices'"></span>
+            <button type="button" class="btn btn-ghost btn-sm" @click="toast('Test poll queued')">Test</button>
+            <button type="button" class="btn btn-ghost btn-sm" @click="remove(c.id)">Remove</button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </section>
+</div>
+
+<script>
+function snmpCreds() {
+  return {
+    showForm: false,
+    form: { name: "", version: "v2c", community: "", auth: "" },
+    creds: [
+      { id: 1, name: "HQ Read-Only", version: "v2c", community: "umz-ro", scope: "10.12.0.0/16", devices: 24 },
+      { id: 2, name: "Edge v3", version: "v3", community: "uitop-poller", scope: "Firewall zone", devices: 2 },
+      { id: 3, name: "Branch RO", version: "v2c", community: "branch-ro", scope: "10.20.0.0/24", devices: 6 }
+    ],
+    save() {
+      if (!this.form.name) return;
+      this.creds.unshift({
+        id: Date.now(),
+        name: this.form.name,
+        version: this.form.version,
+        community: this.form.community || "••••",
+        scope: "Custom",
+        devices: 0
+      });
+      this.form = { name: "", version: "v2c", community: "", auth: "" };
+      this.showForm = false;
+      this.toast("SNMP profile saved");
+    },
+    remove(id) {
+      this.creds = this.creds.filter((c) => c.id !== id);
+      this.toast("Profile removed");
+    },
+    toast(msg) {
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, "success");
+    }
+  };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Edit {{ software.name }}{% endblock %}
+{% block page_title %}Edit software{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('software.index') }}">Software</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('software.details', item_id=item_id) }}">{{ software.name }}</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Edit</span>
+{% endblock %}
+
+{% block content %}
+<div class="uf-page uf-page--single">
+  <header class="uf-hero">
+    <div class="uf-hero-inner">
+      <div>
+        <p class="uf-eyebrow"><i class="fas fa-cubes"></i> Software catalog</p>
+        <h1>Edit {{ software.name }}</h1>
+        <p>Update catalog metadata and approval policy.</p>
+      </div>
+    </div>
+  </header>
+
+  <form method="post" class="uf-card">
+    <section class="uf-section">
+      <div class="uf-section-head">
+        <span class="uf-section-num">1</span>
+        <div>
+          <h2>Details</h2>
+          <p>{{ software.vendor }}</p>
+        </div>
+      </div>
+      <div class="uf-section-body">
+        <div class="uf-field">
+          <span class="uf-field-label">Name <span class="req">*</span></span>
+          <input name="name" required value="{{ software.name }}" />
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Vendor</span>
+            <input name="vendor" value="{{ software.vendor }}" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Category</span>
+            <input name="category" value="{{ software.category }}" />
+          </div>
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Version</span>
+            <input name="version" value="{{ software.version }}" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Latest version</span>
+            <input name="latest_version" value="{{ software.latest_version }}" />
+          </div>
+        </div>
+        <div class="uf-check-grid">
+          <label class="uf-check">
+            <input type="checkbox" name="approved" value="1" {% if software.approved %}checked{% endif %} />
+            <strong>Approved</strong>
+            <span>Allowed on municipal endpoints</span>
+          </label>
+          <label class="uf-check">
+            <input type="checkbox" name="deployable" value="1" {% if software.deployable %}checked{% endif %} />
+            <strong>Deployable</strong>
+            <span>May be packaged for push</span>
+          </label>
+        </div>
+      </div>
+    </section>
+    <div class="uf-actions">
+      <a href="{{ url_for('software.details', item_id=item_id) }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

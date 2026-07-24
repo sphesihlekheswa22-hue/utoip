@@ -1,0 +1,136 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Edit user{% endblock %}
+{% block page_title %}Edit user{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('users.index') }}">Users</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('users.details', item_id=item_id) }}">{{ user.full_name }}</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Edit</span>
+{% endblock %}
+
+{% block content %}
+<div class="uf-page uf-page--wide">
+  <header class="uf-hero">
+    <div class="uf-hero-inner">
+      <div>
+        <p class="uf-eyebrow"><i class="fas fa-user-pen"></i> UITOP Access</p>
+        <h1>Edit {{ user.full_name }}</h1>
+        <p>Update profile, status, department, and role assignments for this account.</p>
+      </div>
+      <div class="uf-hero-meta">
+        <span class="uf-chip"><i class="fas fa-envelope"></i> {{ user.email }}</span>
+      </div>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}<div class="uf-flash" role="alert">{{ msg }}</div>{% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" class="uf-layout">
+    <div class="uf-main">
+      <div class="uf-card">
+        <section class="uf-section">
+          <div class="uf-section-head">
+            <span class="uf-section-num">1</span>
+            <div>
+              <h2>Profile</h2>
+              <p>Email cannot be changed here — contact an admin if needed.</p>
+            </div>
+          </div>
+          <div class="uf-section-body">
+            <div class="uf-field">
+              <span class="uf-field-label">Full name <span class="req">*</span></span>
+              <input name="full_name" required value="{{ user.full_name }}" />
+            </div>
+            <div class="uf-field-row">
+              <div class="uf-field">
+                <span class="uf-field-label">Email</span>
+                <input value="{{ user.email }}" disabled />
+              </div>
+              <div class="uf-field">
+                <span class="uf-field-label">New password</span>
+                <input name="password" type="password" placeholder="Leave blank to keep current" autocomplete="new-password" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="uf-section">
+          <div class="uf-section-head">
+            <span class="uf-section-num">2</span>
+            <div>
+              <h2>Status &amp; department</h2>
+              <p>Disable accounts instead of deleting them when staff leave.</p>
+            </div>
+          </div>
+          <div class="uf-section-body">
+            <div class="uf-field-row">
+              <div class="uf-field">
+                <span class="uf-field-label">Department</span>
+                <select name="department_id">
+                  <option value="">—</option>
+                  {% for d in departments %}
+                  <option value="{{ d.id }}" {% if user.department_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="uf-field">
+                <span class="uf-field-label">Active</span>
+                <select name="is_active">
+                  <option value="1" {% if user.is_active %}selected{% endif %}>Yes — can sign in</option>
+                  <option value="0" {% if not user.is_active %}selected{% endif %}>No — disabled</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="uf-section">
+          <div class="uf-section-head">
+            <span class="uf-section-num">3</span>
+            <div>
+              <h2>Roles</h2>
+              <p>Changes apply on next request after save.</p>
+            </div>
+          </div>
+          <div class="uf-section-body">
+            <div class="uf-check-grid">
+              {% for r in roles %}
+              <label class="uf-check">
+                <input type="checkbox" name="roles" value="{{ r.name }}" {% if r.name in user.roles %}checked{% endif %} />
+                <strong>{{ r.name.replace('_',' ').title() }}</strong>
+                <span>{{ r.description or 'Platform role' }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+
+        <div class="uf-actions">
+          <a href="{{ url_for('users.details', item_id=item_id) }}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Save changes</button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="uf-aside">
+      <div class="uf-side-card">
+        <h3>Account</h3>
+        <ul>
+          <li><i class="fas fa-circle-user"></i> {{ user.role_label }}</li>
+          <li><i class="fas fa-building"></i> {{ user.department }}</li>
+          <li><i class="fas fa-clock"></i> Last login: {{ user.last_login }}</li>
+        </ul>
+      </div>
+    </aside>
+  </form>
+</div>
+{% endblock %}

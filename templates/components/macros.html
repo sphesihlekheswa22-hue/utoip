@@ -1,0 +1,92 @@
+{# UITOP reusable macros #}
+{% macro status_badge(status) -%}
+{%- set s = (status or '')|lower -%}
+{%- set map = {
+  'online':'success','active':'success','healthy':'success','resolved':'success','completed':'success','success':'success',
+  'warning':'warning','degraded':'warning','pending':'warning','open':'warning','in progress':'warning',
+  'critical':'danger','offline':'danger','failed':'danger','overdue':'danger','error':'danger',
+  'draft':'muted','idle':'muted','unknown':'muted'
+} -%}
+<span class="badge badge-{{ map.get(s, 'muted') }}">{{ status }}</span>
+{%- endmacro %}
+
+{% macro page_header(title, subtitle='', primary_href='', primary_label='', primary_icon='fa-plus') -%}
+<header class="page-header">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    {% if subtitle %}<p class="page-subtitle">{{ subtitle }}</p>{% endif %}
+  </div>
+  <div class="page-header-actions">
+    {% if primary_href %}
+    <a href="{{ primary_href }}" class="btn btn-primary">
+      <i class="fas {{ primary_icon }}" aria-hidden="true"></i> {{ primary_label or 'Create' }}
+    </a>
+    {% endif %}
+    {{ caller() if caller else '' }}
+  </div>
+</header>
+{%- endmacro %}
+
+{% macro kpi_card(label, value, delta='', tone='default', icon='fa-chart-simple') -%}
+<article class="kpi-card kpi-{{ tone }}">
+  <div class="kpi-icon"><i class="fas {{ icon }}" aria-hidden="true"></i></div>
+  <div class="kpi-body">
+    <p class="kpi-label">{{ label }}</p>
+    <p class="kpi-value">{{ value }}</p>
+    {% if delta %}<p class="kpi-delta">{{ delta }}</p>{% endif %}
+  </div>
+</article>
+{%- endmacro %}
+
+{% macro filter_bar(placeholder='Search…') -%}
+<div class="filter-bar">
+  <div class="filter-search">
+    <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+    <input type="search" data-table-search placeholder="{{ placeholder }}" aria-label="Filter table" />
+  </div>
+  <div class="filter-actions">
+    {{ caller() if caller else '' }}
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro pagination(page=1, pages=5) -%}
+<nav class="pagination" aria-label="Pagination">
+  <button type="button" class="btn btn-ghost btn-sm" disabled>&larr; Prev</button>
+  {% for i in range(1, pages + 1) %}
+  <button type="button" class="btn btn-sm {{ 'btn-primary' if i == page else 'btn-ghost' }}">{{ i }}</button>
+  {% endfor %}
+  <button type="button" class="btn btn-ghost btn-sm">Next &rarr;</button>
+</nav>
+{%- endmacro %}
+
+{% macro empty_state(title='Nothing here yet', message='Records will appear once data is available.', icon='fa-inbox') -%}
+<div class="empty-state">
+  <div class="empty-icon"><i class="fas {{ icon }}" aria-hidden="true"></i></div>
+  <h3>{{ title }}</h3>
+  <p>{{ message }}</p>
+  {{ caller() if caller else '' }}
+</div>
+{%- endmacro %}
+
+{% macro form_field(name, label, type='text', value='', placeholder='', required=False) -%}
+<div class="field">
+  <label for="{{ name }}">{{ label }}{% if required %} <span class="req">*</span>{% endif %}</label>
+  {% if type == 'textarea' %}
+  <textarea id="{{ name }}" name="{{ name }}" rows="4" placeholder="{{ placeholder }}" {% if required %}required{% endif %}>{{ value }}</textarea>
+  {% elif type == 'select' %}
+  <select id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %}>
+    {{ caller() if caller else '' }}
+  </select>
+  {% else %}
+  <input id="{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ value }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %} />
+  {% endif %}
+</div>
+{%- endmacro %}
+
+{% macro detail_row(label, value) -%}
+<div class="detail-row">
+  <dt>{{ label }}</dt>
+  <dd>{{ value }}</dd>
+</div>
+{%- endmacro %}

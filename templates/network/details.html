@@ -1,0 +1,316 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ device.name }}{% endblock %}
+{% block page_title %}{{ device.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/network.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('network.index') }}">Network</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ device.name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page" x-data="netDevice('{{ initial_tab }}')" x-cloak>
+  <section class="device-hero">
+    <div class="device-hero-main">
+      <div class="device-hero-icon"><i class="fas fa-network-wired"></i></div>
+      <div>
+        <h1>{{ device.name }}</h1>
+        <p class="device-hero-sub">{{ device.ip }} · {{ device.type }} · {{ device.manufacturer }} {{ device.model }}</p>
+        <div class="device-hero-badges">
+          <span class="badge {% if device.status == 'Online' %}badge-success{% elif device.status == 'Warning' %}badge-warning{% else %}badge-danger{% endif %}">{{ device.status }}</span>
+          <span class="badge badge-muted">{{ device.criticality }}</span>
+          <span class="badge badge-muted">{{ device.location }}</span>
+          <span class="badge badge-muted">FW {{ device.firmware }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="device-hero-actions">
+      <button type="button" class="btn btn-secondary btn-sm" @click="setTab('remote')"><i class="fas fa-bolt"></i> Actions</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="toast('Refresh polled')"><i class="fas fa-rotate"></i> Refresh</button>
+      <a href="{{ url_for('network.index') }}" class="btn btn-ghost btn-sm">Fleet</a>
+    </div>
+  </section>
+
+  <nav class="device-tabs" aria-label="Device sections">
+    <template x-for="t in tabs" :key="t.id">
+      <button type="button" class="device-tab" :class="tab === t.id && 'is-active'" @click="setTab(t.id)" x-text="t.label"></button>
+    </template>
+  </nav>
+
+  <section class="device-panel" x-show="tab === 'overview'">
+    <h2 class="chart-panel-title">Overview</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Device Name</dt><dd>{{ device.name }}</dd></div>
+      <div class="device-field"><dt>IP Address</dt><dd>{{ device.ip }}</dd></div>
+      <div class="device-field"><dt>MAC Address</dt><dd>{{ device.mac }}</dd></div>
+      <div class="device-field"><dt>Type</dt><dd>{{ device.type }}</dd></div>
+      <div class="device-field"><dt>Manufacturer</dt><dd>{{ device.manufacturer }}</dd></div>
+      <div class="device-field"><dt>Model</dt><dd>{{ device.model }}</dd></div>
+      <div class="device-field"><dt>Firmware</dt><dd>{{ device.firmware }}</dd></div>
+      <div class="device-field"><dt>Location</dt><dd>{{ device.location }}</dd></div>
+      <div class="device-field"><dt>Uptime</dt><dd>{{ device.uptime }}</dd></div>
+      <div class="device-field"><dt>Last Seen</dt><dd>{{ device.last_seen }}</dd></div>
+      <div class="device-field"><dt>Bandwidth util.</dt><dd>{{ device.bandwidth }}%</dd></div>
+      <div class="device-field"><dt>Criticality</dt><dd>{{ device.criticality }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'interfaces'">
+    <h2 class="chart-panel-title">Interfaces</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Interface</th><th>Admin</th><th>Oper</th><th>Speed</th><th>In</th><th>Out</th><th>Errors</th></tr></thead>
+        <tbody>
+          <tr><td>Gi1/0/1</td><td>Up</td><td><span class="badge badge-success">Up</span></td><td>1 Gbps</td><td>120 Mbps</td><td>80 Mbps</td><td>0</td></tr>
+          <tr><td>Gi1/0/2</td><td>Up</td><td><span class="badge badge-success">Up</span></td><td>1 Gbps</td><td>45 Mbps</td><td>22 Mbps</td><td>2</td></tr>
+          <tr><td>Te1/1/1</td><td>Up</td><td><span class="badge badge-success">Up</span></td><td>10 Gbps</td><td>1.2 Gbps</td><td>900 Mbps</td><td>0</td></tr>
+          <tr><td>Vl20</td><td>Up</td><td><span class="badge badge-success">Up</span></td><td>—</td><td>30 Mbps</td><td>18 Mbps</td><td>0</td></tr>
+          <tr><td>Gi1/0/24</td><td>Up</td><td><span class="badge badge-muted">Down</span></td><td>1 Gbps</td><td>0</td><td>0</td><td>0</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'ports'">
+    <h2 class="chart-panel-title">Ports</h2>
+    <p class="chart-panel-subtitle">Visual port map · green = up, grey = down, red = errors</p>
+    <div class="net-port-grid">
+      <template x-for="p in ports" :key="p.n">
+        <div class="net-port" :class="p.cls" :title="p.tip" x-text="p.n"></div>
+      </template>
+    </div>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Port</th><th>Speed</th><th>Status</th><th>Connected Device</th><th>Traffic</th><th>Errors</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>1 Gbps</td><td><span class="badge badge-success">Up</span></td><td>PC-FIN-014</td><td>82 Mbps</td><td>0</td></tr>
+          <tr><td>2</td><td>1 Gbps</td><td><span class="badge badge-success">Up</span></td><td>AP-FLOOR2-01</td><td>140 Mbps</td><td>0</td></tr>
+          <tr><td>3</td><td>1 Gbps</td><td><span class="badge badge-danger">Err-Disable</span></td><td>—</td><td>0</td><td>128</td></tr>
+          <tr><td>4</td><td>1 Gbps</td><td><span class="badge badge-muted">Down</span></td><td>—</td><td>0</td><td>0</td></tr>
+          <tr><td>48</td><td>10 Gbps</td><td><span class="badge badge-success">Up</span></td><td>Core uplink</td><td>1.1 Gbps</td><td>0</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'bandwidth'">
+    <h2 class="chart-panel-title">Bandwidth</h2>
+    <div class="device-chart-grid">
+      <div class="device-chart-card"><h3>Upload</h3><div class="chart-box"><canvas id="netUpChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Download</h3><div class="chart-box"><canvas id="netDownChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Packet Loss</h3><div class="chart-box"><canvas id="netLossChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Latency</h3><div class="chart-box"><canvas id="netLatChart"></canvas></div></div>
+      <div class="device-chart-card"><h3>Jitter</h3><div class="chart-box"><canvas id="netJitChart"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'performance'">
+    <h2 class="chart-panel-title">Performance</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>CPU</dt><dd>18%</dd></div>
+      <div class="device-field"><dt>Memory</dt><dd>44%</dd></div>
+      <div class="device-field"><dt>Temperature</dt><dd>41°C</dd></div>
+      <div class="device-field"><dt>Session / flow count</dt><dd>4,280</dd></div>
+      <div class="device-field"><dt>Buffer drops</dt><dd>12 / hr</dd></div>
+      <div class="device-field"><dt>Bandwidth util.</dt><dd>{{ device.bandwidth }}%</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'config'">
+    <h2 class="chart-panel-title">Configuration</h2>
+    <div class="agent-cmd">
+      <pre>! Running-config snapshot (demo)
+hostname {{ device.name.replace(' ', '-') }}
+ip address {{ device.ip }} 255.255.255.0
+snmp-server community umz-ro RO
+ntp server 10.12.0.11
+!</pre>
+      <button type="button" class="btn btn-secondary btn-sm" @click="toast('Config copied')"><i class="fas fa-copy"></i> Copy</button>
+    </div>
+    <div class="comp-toolbar-actions">
+      <button type="button" class="btn btn-secondary btn-sm" @click="toast('Config backup saved')"><i class="fas fa-hard-drive"></i> Backup Configuration</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="toast('Restore wizard')"><i class="fas fa-rotate-left"></i> Restore Configuration</button>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'connected'">
+    <h2 class="chart-panel-title">Connected Devices</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Port</th><th>MAC</th><th>IP</th><th>Hostname</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>Gi1/0/1</td><td>A4:4C:C8:1F:9B:22</td><td>10.12.4.88</td><td>PC-FIN-014</td><td>Computer</td></tr>
+          <tr><td>Gi1/0/2</td><td>B8:27:EB:11:22:33</td><td>10.12.5.50</td><td>AP-FLOOR2-01</td><td>Access Point</td></tr>
+          <tr><td>Gi1/0/8</td><td>00:1A:2B:99:88:77</td><td>10.12.4.20</td><td>PRT-FIN-01</td><td>Printer</td></tr>
+          <tr><td>Te1/1/1</td><td>00:1A:2B:3C:4D:01</td><td>10.12.0.2</td><td>Core uplink</td><td>Switch</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'snmp'">
+    <h2 class="chart-panel-title">SNMP Information</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>sysName</dt><dd>{{ device.name }}</dd></div>
+      <div class="device-field"><dt>sysDescr</dt><dd>{{ device.manufacturer }} {{ device.model }} · {{ device.firmware }}</dd></div>
+      <div class="device-field"><dt>sysObjectID</dt><dd>1.3.6.1.4.1.{{ 9 if device.manufacturer == 'Cisco' else 12356 }}.1</dd></div>
+      <div class="device-field"><dt>sysUpTime</dt><dd>{{ device.uptime }}</dd></div>
+      <div class="device-field"><dt>sysContact</dt><dd>itops@umzinyathi.gov.za</dd></div>
+      <div class="device-field"><dt>sysLocation</dt><dd>{{ device.location }}</dd></div>
+      <div class="device-field"><dt>Profile</dt><dd>HQ Read-Only (v2c)</dd></div>
+      <div class="device-field"><dt>Last successful poll</dt><dd>{{ device.last_seen }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'firmware'">
+    <h2 class="chart-panel-title">Firmware</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Running</dt><dd>{{ device.firmware }}</dd></div>
+      <div class="device-field"><dt>Recommended</dt><dd>{{ device.firmware }} (current)</dd></div>
+      <div class="device-field"><dt>Release train</dt><dd>Stable / recommended</dd></div>
+      <div class="device-field"><dt>Last upgrade</dt><dd>2025-11-18</dd></div>
+    </dl>
+    <button type="button" class="btn btn-secondary btn-sm" @click="toast('Firmware upgrade staged')"><i class="fas fa-cloud-arrow-up"></i> Firmware Upgrade</button>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'logs'">
+    <h2 class="chart-panel-title">Logs</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Time</th><th>Severity</th><th>Message</th></tr></thead>
+        <tbody>
+          <tr><td>10:22</td><td><span class="badge badge-warning">Warn</span></td><td>Interface Gi1/0/3 flap detected</td></tr>
+          <tr><td>09:10</td><td><span class="badge badge-muted">Info</span></td><td>SNMP poll completed (124 OIDs)</td></tr>
+          <tr><td>02:00</td><td><span class="badge badge-muted">Info</span></td><td>Configuration backup uploaded to UITOP</td></tr>
+          <tr><td>Yesterday</td><td><span class="badge badge-danger">Crit</span></td><td>High utilization on uplink Te1/1/1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'alerts'">
+    <h2 class="chart-panel-title">Alerts</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Severity</th><th>Alert</th><th>Since</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-warning">Warning</span></td><td>Bandwidth &gt; 70% on uplink</td><td>18 min</td><td>Open</td></tr>
+          <tr><td><span class="badge badge-danger">Critical</span></td><td>Port 3 err-disabled</td><td>2 hrs</td><td>Open</td></tr>
+          <tr><td><span class="badge badge-muted">Info</span></td><td>Config drift vs baseline</td><td>1 day</td><td>Acknowledged</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'timeline'">
+    <h2 class="chart-panel-title">Activity Timeline</h2>
+    <ul class="timeline">
+      <li><time>Today 10:22</time><strong>Alert Generated</strong><p>Interface flap on Gi1/0/3.</p></li>
+      <li><time>Today 09:10</time><strong>SNMP Poll</strong><p>Successful inventory refresh.</p></li>
+      <li><time>Tonight 02:00</time><strong>Config Backup</strong><p>Running-config archived.</p></li>
+      <li><time>Mon</time><strong>Firmware Check</strong><p>No newer recommended image.</p></li>
+      <li><time>Sun</time><strong>Link Up</strong><p>Uplink Te1/1/1 restored after maintenance.</p></li>
+    </ul>
+  </section>
+
+  <section class="device-panel" x-show="tab === 'remote'">
+    <h2 class="chart-panel-title">Remote Actions</h2>
+    <div class="remote-grid">
+      <button type="button" class="remote-btn" @click="toast('Refresh polled')"><i class="fas fa-rotate"></i><strong>Refresh</strong><span>Force SNMP/ICMP poll</span></button>
+      <button type="button" class="remote-btn" @click="toast('Ping started')"><i class="fas fa-satellite"></i><strong>Ping Device</strong><span>ICMP echo</span></button>
+      <button type="button" class="remote-btn" @click="toast('Traceroute started')"><i class="fas fa-route"></i><strong>Traceroute</strong><span>Path discovery</span></button>
+      <button type="button" class="remote-btn is-danger" @click="toast('Restart queued')"><i class="fas fa-power-off"></i><strong>Restart</strong><span>Reload device</span></button>
+      <button type="button" class="remote-btn" @click="toast('Config backup saved')"><i class="fas fa-hard-drive"></i><strong>Backup Configuration</strong><span>Archive running-config</span></button>
+      <button type="button" class="remote-btn" @click="toast('Restore wizard')"><i class="fas fa-rotate-left"></i><strong>Restore Configuration</strong><span>Push archived config</span></button>
+      <button type="button" class="remote-btn" @click="toast('Firmware upgrade staged')"><i class="fas fa-cloud-arrow-up"></i><strong>Firmware Upgrade</strong><span>Staged image</span></button>
+      <button type="button" class="remote-btn" @click="toast('Diagnostics collection started')"><i class="fas fa-stethoscope"></i><strong>Run Diagnostics</strong><span>Bundle tech-support</span></button>
+    </div>
+  </section>
+</div>
+
+<script>
+function netDevice(initial) {
+  var ports = [];
+  for (var i = 1; i <= 48; i++) {
+    var cls = "is-down";
+    var tip = "Down";
+    if (i === 3) { cls = "is-err"; tip = "Errors"; }
+    else if (i <= 12 || i === 48 || i % 5 === 0) { cls = "is-up"; tip = "Up"; }
+    ports.push({ n: i, cls: cls, tip: tip });
+  }
+  return {
+    tab: initial || "overview",
+    chartsReady: false,
+    ports: ports,
+    tabs: [
+      { id: "overview", label: "Overview" },
+      { id: "interfaces", label: "Interfaces" },
+      { id: "ports", label: "Ports" },
+      { id: "bandwidth", label: "Bandwidth" },
+      { id: "performance", label: "Performance" },
+      { id: "config", label: "Configuration" },
+      { id: "connected", label: "Connected Devices" },
+      { id: "snmp", label: "SNMP Information" },
+      { id: "firmware", label: "Firmware" },
+      { id: "logs", label: "Logs" },
+      { id: "alerts", label: "Alerts" },
+      { id: "timeline", label: "Activity Timeline" },
+      { id: "remote", label: "Remote Actions" }
+    ],
+    setTab(id) {
+      this.tab = id;
+      var url = new URL(window.location.href);
+      url.searchParams.set("tab", id);
+      history.replaceState({}, "", url);
+      if (id === "bandwidth") {
+        var self = this;
+        this.$nextTick(function () { self.initCharts(); });
+      }
+    },
+    toast(msg) {
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, "success");
+    },
+    initCharts() {
+      if (!window.UITOP || !UITOP.charts || this.chartsReady) return;
+      var labels = ["-50m", "-40m", "-30m", "-20m", "-10m", "now"];
+      var mk = function (id, data, color) {
+        var el = document.getElementById(id);
+        if (!el || el._chart) return;
+        el._chart = UITOP.charts.createLine(el, {
+          labels: labels,
+          datasets: [{
+            data: data,
+            borderColor: color,
+            backgroundColor: UITOP.charts.soft(color, 0.15),
+            fill: true, tension: 0.35, borderWidth: 2, pointRadius: 0
+          }]
+        }, { plugins: { legend: { display: false } } });
+      };
+      mk("netUpChart", [40, 55, 48, 70, 62, {{ device.bandwidth }}], "#0d9488");
+      mk("netDownChart", [80, 95, 110, 100, 130, 120], "#3b82f6");
+      mk("netLossChart", [0.1, 0.0, 0.2, 0.4, 0.1, 0.0], "#f59e0b");
+      mk("netLatChart", [4, 5, 6, 5, 8, 5], "#0d9488");
+      mk("netJitChart", [0.4, 0.5, 0.6, 0.8, 0.5, 0.4], "#3b82f6");
+      this.chartsReady = true;
+    }
+  };
+}
+document.addEventListener("DOMContentLoaded", function () {
+  setTimeout(function () {
+    var root = document.querySelector("[x-data]");
+    if (root && root._x_dataStack && root._x_dataStack[0].tab === "bandwidth") {
+      root._x_dataStack[0].initCharts();
+    }
+  }, 400);
+});
+</script>
+{% endblock %}

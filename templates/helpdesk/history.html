@@ -1,0 +1,34 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import page_header, status_badge %}
+
+{% block title %}Ticket · History{% endblock %}
+{% block page_title %}Ticket · History{% endblock %}
+
+{% block content %}
+{% call page_header("Ticket · History", "History insights for this ticket.", "{{ url_for('helpdesk.index') }}", "Back to list", "fa-arrow-left") %}{% endcall %}
+
+<section class="panel detail-card">
+  <header class="card-header">
+    <h2>Ticket · History</h2>
+    {{ status_badge("Active") }}
+  </header>
+  <div class="subpage-body">
+    <p class="page-subtitle">Live and historical history data for operations teams.</p>
+    <div class="kpi-grid compact">
+      <article class="kpi-card"><div class="kpi-body"><p class="kpi-label">Samples</p><p class="kpi-value">12</p></div></article>
+      <article class="kpi-card"><div class="kpi-body"><p class="kpi-label">Healthy</p><p class="kpi-value">9</p></div></article>
+      <article class="kpi-card"><div class="kpi-body"><p class="kpi-label">Attention</p><p class="kpi-value">3</p></div></article>
+    </div>
+    <div class="table-scroll" style="margin-top:1rem;">
+      <table class="data-table">
+        <thead><tr><th>Item</th><th>Detail</th><th>Status</th><th>Updated</th></tr></thead>
+        <tbody>
+          <tr><td>Sample metric A</td><td>Within range</td><td>{{ status_badge("Healthy") }}</td><td>2 min ago</td></tr>
+          <tr><td>Sample metric B</td><td>Needs review</td><td>{{ status_badge("Warning") }}</td><td>8 min ago</td></tr>
+          <tr><td>Sample metric C</td><td>Nominal</td><td>{{ status_badge("Online") }}</td><td>Just now</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

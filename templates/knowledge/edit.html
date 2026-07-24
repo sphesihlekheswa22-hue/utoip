@@ -1,0 +1,43 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import form_field %}
+
+{% block title %}Edit Article{% endblock %}
+{% block page_title %}Edit Article{% endblock %}
+
+{% block content %}
+<div class="uf-page uf-page--single">
+  <header class="uf-hero">
+    <div class="uf-hero-inner">
+      <div>
+        <p class="uf-eyebrow"><i class="fas fa-book"></i> Knowledge base</p>
+        <h1>Edit Article</h1>
+        <p>Update inventory and ownership details.</p>
+      </div>
+    </div>
+  </header>
+
+  <form class="uf-card" method="post" data-validate>
+    <section class="uf-section">
+      <div class="uf-section-head">
+        <span class="uf-section-num">1</span>
+        <div>
+          <h2>Details</h2>
+          <p>Keep records current for audits and support.</p>
+        </div>
+      </div>
+      <div class="uf-section-body">
+        <div class="form-grid uf-form-grid">
+          {{ form_field("name", "Name", value=item.name if item is defined else "Demo Article", required=True) }}
+          {{ form_field("status", "Status", value="Active") }}
+          {{ form_field("owner", "Owner", value="IT Operations") }}
+          {{ form_field("notes", "Notes", type="textarea", value="Updated via UITOP.") }}
+        </div>
+      </div>
+    </section>
+    <div class="uf-actions">
+      <a href="{{ url_for('modules.knowledge_index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save changes</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

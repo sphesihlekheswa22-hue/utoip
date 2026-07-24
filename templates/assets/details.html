@@ -1,0 +1,139 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ asset.asset_tag }}{% endblock %}
+{% block page_title %}{{ asset.asset_tag }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('assets.index') }}">Assets</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ asset.asset_tag }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="comp-page">
+  <section class="device-hero">
+    <div class="device-hero-main">
+      <div class="device-hero-icon"><i class="fas fa-box"></i></div>
+      <div>
+        <h1>{{ asset.name }}</h1>
+        <p class="device-hero-sub">{{ asset.asset_tag }} · {{ asset.category or 'Uncategorised' }}</p>
+        <div class="device-hero-badges">
+          <span class="badge badge-muted">{{ asset.status_label }}</span>
+          {% if asset.linked %}
+          <span class="badge badge-success">Linked · {{ asset.linked.type }}</span>
+          {% else %}
+          <span class="badge badge-muted">Not linked to inventory</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="device-hero-actions">
+      <a href="{{ url_for('assets.edit', item_id=item_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+      <a href="{{ url_for('assets.link_page') }}" class="btn btn-ghost btn-sm">Link device</a>
+      <a href="{{ url_for('assets.index') }}" class="btn btn-ghost btn-sm">Fleet</a>
+    </div>
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <div style="margin-bottom:12px;padding:10px 12px;border-radius:10px;">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <section class="device-panel">
+    <h2 class="chart-panel-title">Overview</h2>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Asset tag</dt><dd>{{ asset.asset_tag }}</dd></div>
+      <div class="device-field"><dt>Name</dt><dd>{{ asset.name }}</dd></div>
+      <div class="device-field"><dt>Category</dt><dd>{{ asset.category or '—' }}</dd></div>
+      <div class="device-field"><dt>Status</dt><dd>{{ asset.status_label }}</dd></div>
+      <div class="device-field"><dt>Serial</dt><dd>{{ asset.serial_number or '—' }}</dd></div>
+      <div class="device-field"><dt>Assignee</dt><dd>{{ asset.assignee }}</dd></div>
+      <div class="device-field"><dt>Department</dt><dd>{{ asset.department or '—' }}</dd></div>
+      <div class="device-field"><dt>Location</dt><dd>{{ asset.location or '—' }}</dd></div>
+      <div class="device-field"><dt>Vendor</dt><dd>{{ asset.vendor or '—' }}</dd></div>
+      <div class="device-field"><dt>PO number</dt><dd>{{ asset.po_number or '—' }}</dd></div>
+      <div class="device-field"><dt>Updated</dt><dd>{{ asset.updated }}</dd></div>
+      <div class="device-field"><dt>Notes</dt><dd>{{ asset.notes or '—' }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="device-panel">
+    <h2 class="chart-panel-title">Linked operational device</h2>
+    {% if asset.linked %}
+    <p>This asset is the ownership record for a live inventory item.</p>
+    <p><a class="btn btn-primary btn-sm" href="{{ asset.linked.url }}"><i class="fas fa-arrow-up-right-from-square"></i> Open {{ asset.linked.label }}</a></p>
+    <dl class="device-grid">
+      <div class="device-field"><dt>Type</dt><dd>{{ asset.linked.type }}</dd></div>
+      <div class="device-field"><dt>Status</dt><dd>{{ asset.linked.status }}</dd></div>
+      <div class="device-field"><dt>IP</dt><dd>{{ asset.linked.ip or '—' }}</dd></div>
+    </dl>
+    {% else %}
+    <p class="chart-panel-subtitle">No computer/server/network/printer link. Use Link discovered device for IT gear, or keep as store/non-IT stock.</p>
+    <a href="{{ url_for('assets.link_page') }}" class="btn btn-secondary btn-sm">Link now</a>
+    {% endif %}
+  </section>
+
+  <section class="device-panel" id="assignments">
+    <h2 class="chart-panel-title">Assign asset</h2>
+    <form method="post" action="{{ url_for('assets.assign', item_id=item_id) }}" style="max-width:480px;display:flex;flex-direction:column;gap:12px;">
+      <div class="uf-field">
+        <span class="uf-field-label">Staff user</span>
+        <select name="user_id">
+          <option value="">— Optional —</option>
+          {% for u in users %}
+          <option value="{{ u.id }}">{{ u.full_name }} ({{ u.email }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="uf-field">
+        <span class="uf-field-label">Or assignee name</span>
+        <input type="text" name="assignee_name" placeholder="e.g. Sipho Dlamini" />
+      </div>
+      <div class="uf-field">
+        <span class="uf-field-label">Notes</span>
+        <input type="text" name="notes" placeholder="Checkout notes" />
+      </div>
+      <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Assign</button>
+    </form>
+  </section>
+
+  <section class="device-panel" id="history">
+    <h2 class="chart-panel-title">Assignment history</h2>
+    {% if history %}
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>Assignee</th><th>Assigned</th><th>Returned</th><th>Notes</th></tr></thead>
+        <tbody>
+          {% for h in history %}
+          <tr>
+            <td>{{ h.assignee_name or '—' }}</td>
+            <td>{{ h.assigned_at or '—' }}</td>
+            <td>{{ h.returned_at or 'Open' }}</td>
+            <td>{{ h.notes or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="chart-panel-subtitle">No assignments yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="device-panel" id="files">
+    <h2 class="chart-panel-title">Files</h2>
+    {% from "files/_entity_files.html" import entity_files_panel %}
+    {{ entity_files_panel(linked_files or [], 'asset', item_id, url_for('assets.details', item_id=item_id) + '#files') }}
+  </section>
+</div>
+{% endblock %}

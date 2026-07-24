@@ -1,0 +1,84 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Edit {{ license.product }}{% endblock %}
+{% block page_title %}Edit license{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('licenses.index') }}">Licenses</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('licenses.details', item_id=item_id) }}">{{ license.product }}</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Edit</span>
+{% endblock %}
+
+{% block content %}
+<div class="uf-page uf-page--single">
+  <header class="uf-hero">
+    <div class="uf-hero-inner">
+      <div>
+        <p class="uf-eyebrow"><i class="fas fa-key"></i> License register</p>
+        <h1>Edit {{ license.product }}</h1>
+        <p>Update seats, term, and commercial references.</p>
+      </div>
+    </div>
+  </header>
+
+  <form method="post" class="uf-card">
+    <section class="uf-section">
+      <div class="uf-section-head">
+        <span class="uf-section-num">1</span>
+        <div>
+          <h2>Details</h2>
+          <p>{{ license.vendor }} · {{ license.sku }}</p>
+        </div>
+      </div>
+      <div class="uf-section-body">
+        <div class="uf-field">
+          <span class="uf-field-label">Product <span class="req">*</span></span>
+          <input name="product" required value="{{ license.product }}" />
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Vendor</span>
+            <input name="vendor" value="{{ license.vendor }}" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Type</span>
+            <input name="type" value="{{ license.type }}" />
+          </div>
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Purchased</span>
+            <input name="purchased" type="number" value="{{ license.purchased }}" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Assigned</span>
+            <input name="assigned" type="number" value="{{ license.assigned }}" />
+          </div>
+        </div>
+        <div class="uf-field-row">
+          <div class="uf-field">
+            <span class="uf-field-label">Expiry</span>
+            <input name="expiry" type="date" value="{{ license.expiry }}" />
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">PO number</span>
+            <input name="po_number" value="{{ license.po_number or '' }}" />
+          </div>
+        </div>
+        <div class="uf-field">
+          <span class="uf-field-label">Notes</span>
+          <textarea name="notes" rows="3">{{ license.notes or '' }}</textarea>
+        </div>
+      </div>
+    </section>
+    <div class="uf-actions">
+      <a href="{{ url_for('licenses.details', item_id=item_id) }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

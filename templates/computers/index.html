@@ -1,0 +1,296 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Computers{% endblock %}
+{% block page_title %}Computers{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div
+  class="comp-page"
+  x-data="computersDashboard()"
+  x-cloak
+>
+  <header class="comp-header">
+    <div>
+      <h1>Computers</h1>
+      <p>Agent-managed endpoints across Umzinyathi — discovered automatically, never typed in by hand.</p>
+    </div>
+    <div class="comp-toolbar-actions">
+      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-primary"><i class="fas fa-download"></i> Install Agent</a>
+      <a href="{{ url_for('computers.scan_network') }}" class="btn btn-secondary"><i class="fas fa-satellite-dish"></i> Scan Network</a>
+    </div>
+  </header>
+
+  {% if empty or not computers %}
+  <div class="comp-empty">
+    <div class="comp-empty-art" aria-hidden="true"><i class="fas fa-desktop"></i></div>
+    <h2>No managed computers found.</h2>
+    <p>Install the UITOP desktop agent or scan the network to discover and enroll devices automatically.</p>
+    <div class="comp-empty-actions">
+      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-primary"><i class="fas fa-download"></i> Install Agent</a>
+      <a href="{{ url_for('computers.scan_network') }}" class="btn btn-secondary"><i class="fas fa-satellite-dish"></i> Scan Network</a>
+    </div>
+  </div>
+  {% else %}
+
+  <div class="comp-kpi-grid">
+    <article class="comp-kpi is-accent"><p class="comp-kpi-label">Total Computers</p><p class="comp-kpi-value">{{ kpis.total }}</p><p class="comp-kpi-meta">Enrolled inventory</p></article>
+    <article class="comp-kpi is-success"><p class="comp-kpi-label">Online</p><p class="comp-kpi-value">{{ kpis.online }}</p><p class="comp-kpi-meta">Reporting now</p></article>
+    <article class="comp-kpi is-danger"><p class="comp-kpi-label">Offline</p><p class="comp-kpi-value">{{ kpis.offline }}</p><p class="comp-kpi-meta">No recent heartbeat</p></article>
+    <article class="comp-kpi is-danger"><p class="comp-kpi-label">Critical Devices</p><p class="comp-kpi-value">{{ kpis.critical }}</p><p class="comp-kpi-meta">Immediate attention</p></article>
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Warning Devices</p><p class="comp-kpi-value">{{ kpis.warning }}</p><p class="comp-kpi-meta">Degraded health</p></article>
+    <article class="comp-kpi is-success"><p class="comp-kpi-label">Agent Installed</p><p class="comp-kpi-value">{{ kpis.agent_installed }}</p><p class="comp-kpi-meta">Managed by UITOP</p></article>
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Agent Offline</p><p class="comp-kpi-value">{{ kpis.agent_offline }}</p><p class="comp-kpi-meta">Last check-in stale</p></article>
+    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Pending Updates</p><p class="comp-kpi-value">{{ kpis.pending_updates }}</p><p class="comp-kpi-meta">Across fleet</p></article>
+  </div>
+
+  <div class="comp-toolbar">
+    <div class="comp-search">
+      <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+      <input type="search" placeholder="Search device, hostname, user, IP, MAC…" x-model="q" aria-label="Search computers" />
+    </div>
+    <div class="comp-toolbar-actions">
+      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-primary btn-sm"><i class="fas fa-download"></i> Install Agent</a>
+      <a href="{{ url_for('computers.scan_network') }}" class="btn btn-secondary btn-sm"><i class="fas fa-satellite-dish"></i> Scan Network</a>
+      <button type="button" class="btn btn-ghost btn-sm" @click="refresh()"><i class="fas fa-rotate" :class="refreshing && 'fa-spin'"></i> Refresh</button>
+      <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-file-import"></i> Import Devices</button>
+      <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-file-export"></i> Export</button>
+      <div class="comp-bulk" x-data="{ open: false }">
+        <button type="button" class="btn btn-secondary btn-sm" @click="open = !open"><i class="fas fa-layer-group"></i> Bulk Actions</button>
+        <div class="comp-bulk-menu" x-show="open" @click.outside="open = false" x-cloak>
+          <button type="button" class="btn btn-ghost btn-sm">Deploy Agent</button>
+          <button type="button" class="btn btn-ghost btn-sm">Force Sync</button>
+          <button type="button" class="btn btn-ghost btn-sm">Restart selected</button>
+          <button type="button" class="btn btn-ghost btn-sm">Export selected</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" @click="showFilters = !showFilters"><i class="fas fa-filter"></i> Filters</button>
+    </div>
+  </div>
+
+  <div class="comp-filters" x-show="showFilters" x-cloak>
+    <label>Status
+      <select x-model="filters.status">
+        <option value="">All</option>
+        <option>Online</option>
+        <option>Offline</option>
+        <option>Warning</option>
+        <option>Critical</option>
+      </select>
+    </label>
+    <label>Department
+      <select x-model="filters.department">
+        <option value="">All</option>
+        {% for d in departments %}
+        <option>{{ d }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Assigned User
+      <input type="text" placeholder="Name…" x-model="filters.user" />
+    </label>
+    <label>Operating System
+      <select x-model="filters.os">
+        <option value="">All</option>
+        <option>Windows 11</option>
+        <option>Windows 10</option>
+      </select>
+    </label>
+    <label>Device Type
+      <select x-model="filters.type">
+        <option value="">All</option>
+        <option>Desktop</option>
+        <option>Laptop</option>
+        <option>Workstation</option>
+        <option>Kiosk</option>
+      </select>
+    </label>
+    <label>Agent Status
+      <select x-model="filters.agent">
+        <option value="">All</option>
+        <option>Online</option>
+        <option>Offline</option>
+      </select>
+    </label>
+    <label>Last Seen
+      <select x-model="filters.seen">
+        <option value="">Any time</option>
+        <option value="15m">Last 15 min</option>
+        <option value="1h">Last hour</option>
+        <option value="1d">Last day</option>
+        <option value="stale">Stale / offline</option>
+      </select>
+    </label>
+    <label>Manufacturer
+      <select x-model="filters.manufacturer">
+        <option value="">All</option>
+        <option>Dell</option>
+        <option>HP</option>
+        <option>Lenovo</option>
+        <option>Acer</option>
+        <option>Apple</option>
+      </select>
+    </label>
+    <label>Model
+      <input type="text" placeholder="Model…" x-model="filters.model" />
+    </label>
+    <label>Criticality
+      <select x-model="filters.criticality">
+        <option value="">All</option>
+        <option>Critical</option>
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+      </select>
+    </label>
+  </div>
+
+  <section class="comp-table-wrap">
+    <div class="comp-table-meta">
+      <span><strong x-text="filtered.length"></strong> devices match filters</span>
+      <span x-show="selected.length" x-cloak><span x-text="selected.length"></span> selected</span>
+    </div>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" @change="toggleAll($event)" :checked="allSelected" aria-label="Select all" /></th>
+            <th>Device Name</th>
+            <th>Hostname</th>
+            <th>Assigned User</th>
+            <th>Department</th>
+            <th>Operating System</th>
+            <th>IP Address</th>
+            <th>MAC Address</th>
+            <th>CPU</th>
+            <th>RAM</th>
+            <th>Disk</th>
+            <th>Last Seen</th>
+            <th>Status</th>
+            <th>Agent</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="c in filtered" :key="c.id">
+            <tr @click="openDevice(c.id)">
+              <td @click.stop>
+                <input type="checkbox" :value="c.id" x-model="selected" :aria-label="'Select ' + c.hostname" />
+              </td>
+              <td>
+                <div class="comp-device">
+                  <div class="comp-device-icon"><i class="fas" :class="c.type === 'Laptop' ? 'fa-laptop' : 'fa-desktop'"></i></div>
+                  <div>
+                    <strong x-text="c.name"></strong>
+                    <span x-text="c.manufacturer + ' · ' + c.model"></span>
+                  </div>
+                </div>
+              </td>
+              <td><code x-text="c.hostname"></code></td>
+              <td x-text="c.user"></td>
+              <td x-text="c.department"></td>
+              <td x-text="c.os_family"></td>
+              <td><code x-text="c.ip"></code></td>
+              <td><code x-text="c.mac"></code></td>
+              <td>
+                <div class="comp-usage" :class="usageClass(c.cpu)">
+                  <div class="comp-usage-bar"><span :style="'width:' + c.cpu + '%'"></span></div>
+                  <span x-text="c.cpu + '%'"></span>
+                </div>
+              </td>
+              <td>
+                <div class="comp-usage" :class="usageClass(c.ram)">
+                  <div class="comp-usage-bar"><span :style="'width:' + c.ram + '%'"></span></div>
+                  <span x-text="c.ram + '%'"></span>
+                </div>
+              </td>
+              <td>
+                <div class="comp-usage" :class="usageClass(c.disk)">
+                  <div class="comp-usage-bar"><span :style="'width:' + c.disk + '%'"></span></div>
+                  <span x-text="c.disk + '%'"></span>
+                </div>
+              </td>
+              <td x-text="c.last_seen"></td>
+              <td><span class="badge" :class="statusBadge(c.status)" x-text="c.status"></span></td>
+              <td><span class="badge" :class="c.agent === 'Online' ? 'badge-success' : 'badge-danger'" x-text="c.agent"></span></td>
+              <td class="comp-actions" @click.stop>
+                <a class="btn btn-ghost btn-sm" :href="'/computers/' + c.id" title="Open"><i class="fas fa-eye"></i></a>
+                <a class="btn btn-ghost btn-sm" :href="'/computers/' + c.id + '?tab=remote'" title="Remote"><i class="fas fa-desktop"></i></a>
+                <button type="button" class="btn btn-ghost btn-sm" title="Sync agent"><i class="fas fa-rotate"></i></button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+<script>
+  window.__COMPUTERS__ = {{ computers | tojson }};
+  function computersDashboard() {
+    return {
+      q: "",
+      showFilters: true,
+      refreshing: false,
+      selected: [],
+      computers: window.__COMPUTERS__ || [],
+      filters: {
+        status: "", department: "", user: "", os: "", type: "",
+        agent: "", seen: "", manufacturer: "", model: "", criticality: ""
+      },
+      get filtered() {
+        var q = this.q.trim().toLowerCase();
+        var f = this.filters;
+        return this.computers.filter(function (c) {
+          if (q) {
+            var blob = [c.name, c.hostname, c.user, c.department, c.os, c.ip, c.mac, c.model].join(" ").toLowerCase();
+            if (blob.indexOf(q) === -1) return false;
+          }
+          if (f.status && c.status !== f.status) return false;
+          if (f.department && c.department !== f.department) return false;
+          if (f.user && c.user.toLowerCase().indexOf(f.user.toLowerCase()) === -1) return false;
+          if (f.os && c.os_family !== f.os) return false;
+          if (f.type && c.type !== f.type) return false;
+          if (f.agent && c.agent !== f.agent) return false;
+          if (f.manufacturer && c.manufacturer !== f.manufacturer) return false;
+          if (f.model && c.model.toLowerCase().indexOf(f.model.toLowerCase()) === -1) return false;
+          if (f.criticality && c.criticality !== f.criticality) return false;
+          if (f.seen === "stale" && c.status !== "Offline") return false;
+          return true;
+        });
+      },
+      get allSelected() {
+        return this.filtered.length && this.filtered.every((c) => this.selected.includes(c.id));
+      },
+      toggleAll(ev) {
+        if (ev.target.checked) this.selected = this.filtered.map((c) => c.id);
+        else this.selected = [];
+      },
+      usageClass(v) {
+        if (v >= 85) return "is-crit";
+        if (v >= 70) return "is-warn";
+        return "";
+      },
+      statusBadge(s) {
+        if (s === "Online") return "badge-success";
+        if (s === "Warning") return "badge-warning";
+        if (s === "Critical" || s === "Offline") return "badge-danger";
+        return "badge-muted";
+      },
+      openDevice(id) {
+        window.location.href = "/computers/" + id;
+      },
+      refresh() {
+        this.refreshing = true;
+        setTimeout(() => { this.refreshing = false; location.reload(); }, 600);
+      }
+    };
+  }
+</script>
+{% endblock %}

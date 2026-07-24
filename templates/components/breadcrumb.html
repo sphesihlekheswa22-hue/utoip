@@ -1,0 +1,7 @@
+<nav class="uitop-breadcrumb" aria-label="Breadcrumb">
+  {% block breadcrumb_inner %}
+  <a href="{{ url_for('dashboard.index') }}">Home</a>
+  <span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+  <span>{% block crumb_current %}Dashboard{% endblock %}</span>
+  {% endblock %}
+</nav>

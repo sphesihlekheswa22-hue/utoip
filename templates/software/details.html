@@ -1,0 +1,263 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ software.name }}{% endblock %}
+{% block page_title %}{{ software.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('software.index') }}">Software</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ software.name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page" x-data="{ view: {{ view | tojson }} }" x-cloak>
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon"><i class="fas fa-cube"></i></div>
+      <div>
+        <h1>{{ software.name }}</h1>
+        <p class="sw-hero-sub">{{ software.vendor }} · {{ software.category }} · {{ software.installed_count }} installs</p>
+        <div class="sw-hero-badges">
+          {% if software.approved %}
+          <span class="sw-badge sw-badge--success">Approved</span>
+          {% else %}
+          <span class="sw-badge sw-badge--danger">Not approved</span>
+          {% endif %}
+          {% if software.deployable %}
+          <span class="sw-badge sw-badge--accent">Deployable</span>
+          {% endif %}
+          {% if software.blacklisted %}
+          <span class="sw-badge sw-badge--danger">Blacklisted</span>
+          {% endif %}
+          <span class="sw-badge sw-badge--muted">Risk · {{ software.security_risk }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="sw-hero-actions">
+      <a href="{{ url_for('software.edit', item_id=item_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+      <button type="button" class="btn btn-primary btn-sm" onclick="alert('Create deployment package (demo)')"><i class="fas fa-rocket"></i> Deploy</button>
+      <a href="{{ url_for('software.index') }}" class="btn btn-ghost btn-sm">Catalog</a>
+    </div>
+  </section>
+
+  <div>
+    <nav class="sw-subtabs" role="tablist">
+      {% for key, label in [
+        ('overview','Overview'),
+        ('versions','Versions'),
+        ('installed','Installed computers'),
+        ('files','Files'),
+        ('deployments','Deployments'),
+        ('updates','Updates'),
+        ('security','Security'),
+        ('license','License'),
+        ('activity','Activity')
+      ] %}
+      <button type="button" class="sw-subtab" :class="{ 'is-active': view === '{{ key }}' }" @click="view = '{{ key }}'">{{ label }}</button>
+      {% endfor %}
+    </nav>
+
+    <div class="sw-detail-body">
+      {# Overview #}
+      <div x-show="view === 'overview'">
+        <dl class="sw-stat-row">
+          <div class="sw-stat"><dt>Version</dt><dd>{{ software.version }}</dd></div>
+          <div class="sw-stat"><dt>Latest</dt><dd>{{ software.latest_version }}</dd></div>
+          <div class="sw-stat"><dt>Installer</dt><dd>{{ software.installer_size }}</dd></div>
+          <div class="sw-stat"><dt>Security score</dt><dd>{{ software.security_score }}/100</dd></div>
+        </dl>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <tbody>
+              <tr><th style="width:180px;">Name</th><td>{{ software.name }}</td></tr>
+              <tr><th>Vendor</th><td>{{ software.vendor }}</td></tr>
+              <tr><th>Category</th><td>{{ software.category }}</td></tr>
+              <tr><th>Approved</th><td>{{ 'Yes' if software.approved else 'No' }}</td></tr>
+              <tr><th>Deployable</th><td>{{ 'Yes' if software.deployable else 'No' }}</td></tr>
+              <tr><th>Installed computers</th><td>{{ detail.installations|length }} shown · {{ software.installed_count }} estate-wide (mock)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {# Versions #}
+      <div x-show="view === 'versions'" x-cloak>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Version</th><th>Computers</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for v in detail.versions %}
+              <tr>
+                <td><code>{{ v.version }}</code></td>
+                <td>{{ v.computers }}</td>
+                <td>
+                  <span class="sw-badge {% if v.is_latest %}sw-badge--success{% else %}sw-badge--warning{% endif %}">{{ v.status }}</span>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="3">No version breakdown yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {# Installed #}
+      <div x-show="view === 'installed'" x-cloak>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead>
+              <tr>
+                <th>Computer</th>
+                <th>User</th>
+                <th>Department</th>
+                <th>Installed version</th>
+                <th>Install date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in detail.installations %}
+              <tr>
+                <td><strong>{{ row.hostname }}</strong></td>
+                <td>{{ row.user }}</td>
+                <td>{{ row.department }}</td>
+                <td><code>{{ row.version }}</code></td>
+                <td>{{ row.install_date }}</td>
+                <td>
+                  <span class="sw-badge
+                    {% if row.status == 'Current' %}sw-badge--success
+                    {% elif row.status == 'Unauthorized' %}sw-badge--danger
+                    {% else %}sw-badge--warning{% endif %}">{{ row.status }}</span>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6">No agent reports for this title in the demo set.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {# Files #}
+      <div x-show="view === 'files'" x-cloak>
+        {% from "files/_entity_files.html" import entity_files_panel %}
+        {{ entity_files_panel(linked_files or [], 'software', item_id, url_for('software.details', item_id=item_id, view='files')) }}
+      </div>
+
+      {# Deployments #}
+      <div x-show="view === 'deployments'" x-cloak>
+        {% if detail.deployments %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Target</th><th>Progress</th><th>Status</th><th>Started</th></tr></thead>
+            <tbody>
+              {% for d in detail.deployments %}
+              <tr>
+                <td>{{ d.target }}</td>
+                <td><div class="sw-progress"><i style="width:{{ d.progress }}%"></i></div></td>
+                <td><span class="sw-badge sw-badge--accent">{{ d.status }}</span></td>
+                <td>{{ d.started }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-rocket"></i><br>No deployments for this title yet.</p>
+        {% endif %}
+      </div>
+
+      {# Updates #}
+      <div x-show="view === 'updates'" x-cloak>
+        {% if detail.updates %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Latest</th><th>Typical installed</th><th>Affected</th><th></th></tr></thead>
+            <tbody>
+              {% for u in detail.updates %}
+              <tr>
+                <td><code>{{ u.current }}</code></td>
+                <td><code>{{ u.installed_typical }}</code></td>
+                <td>{{ u.affected }} PCs</td>
+                <td><button type="button" class="btn btn-primary btn-sm" onclick="alert('Update deployment queued (demo)')">Deploy update</button></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-circle-check"></i><br>No pending updates flagged for this title.</p>
+        {% endif %}
+      </div>
+
+      {# Security #}
+      <div x-show="view === 'security'" x-cloak>
+        <div class="sw-score" style="--score: {{ detail.security.score }}">
+          <div class="sw-score-ring"><span>{{ detail.security.score }}</span></div>
+          <div>
+            <strong>Security score · {{ detail.security.risk }} risk</strong>
+            <p style="margin:4px 0 0;color:#64748b;font-size:13px;">{{ detail.security.note }}</p>
+          </div>
+        </div>
+        {% if detail.security.cves %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>CVE</th><th>Severity</th><th>Summary</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for c in detail.security.cves %}
+              <tr>
+                <td><code>{{ c.id }}</code></td>
+                <td><span class="sw-badge {% if c.severity == 'Critical' or c.severity == 'High' %}sw-badge--danger{% else %}sw-badge--warning{% endif %}">{{ c.severity }}</span></td>
+                <td>{{ c.summary }}</td>
+                <td>{{ c.status }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-shield-halved"></i><br>No known CVEs in the demo feed for this title.</p>
+        {% endif %}
+      </div>
+
+      {# License #}
+      <div x-show="view === 'license'" x-cloak>
+        {% if detail.license %}
+        <dl class="sw-stat-row">
+          <div class="sw-stat"><dt>Purchased</dt><dd>{{ detail.license.purchased }}</dd></div>
+          <div class="sw-stat"><dt>Installed</dt><dd>{{ detail.license.installed }}</dd></div>
+          <div class="sw-stat"><dt>Remaining</dt><dd style="{% if detail.license.remaining < 0 %}color:#dc2626{% endif %}">{{ detail.license.remaining }}</dd></div>
+          <div class="sw-stat"><dt>Expires</dt><dd>{{ detail.license.expires }}</dd></div>
+        </dl>
+        {% if detail.license.over or detail.license.remaining < 0 %}
+        <p class="uf-flash">⚠ Over licensed — installed seats exceed purchased. Reduce installs or buy more seats.</p>
+        {% endif %}
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-key"></i><br>No seat license tracked — typically freeware / per-device OS entitlement.</p>
+        {% endif %}
+      </div>
+
+      {# Activity #}
+      <div x-show="view === 'activity'" x-cloak>
+        <ul class="sw-timeline">
+          {% for a in detail.activity %}
+          <li class="{% if a.tone %}is-{{ a.tone }}{% endif %}">
+            <strong>{{ a.title }}</strong>
+            <span>{{ a.when }} · {{ a.meta }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

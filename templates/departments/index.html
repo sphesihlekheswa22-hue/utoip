@@ -1,0 +1,65 @@
+{% extends "layouts/base.html" %}
+{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
+
+{% block title %}Departments{% endblock %}
+{% block page_title %}Departments{% endblock %}
+
+{% block content %}
+{% call page_header("Departments", "Manage departments across Umzinyathi IT operations.", "{{ url_for('modules.page', module='departments', page='create') }}", "Add Department", "fa-plus") %}{% endcall %}
+
+<div class="kpi-grid">
+  {{ kpi_card("Total", "128", "+3%", "default", "fa-building") }}
+  {{ kpi_card("Active", "110", "Healthy", "success", "fa-circle-check") }}
+  {{ kpi_card("Attention", "12", "Review", "warning", "fa-triangle-exclamation") }}
+  {{ kpi_card("Critical", "6", "Urgent", "danger", "fa-bolt") }}
+</div>
+
+{% call filter_bar("Search departments…") %}
+  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
+  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
+{% endcall %}
+
+<section class="table-panel panel">
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Owner</th>
+          <th>Type</th>
+          <th>Updated</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Demo Department 1</td>
+          <td>IT Ops</td>
+          <td>Standard</td>
+          <td>Today</td>
+          <td>{{ status_badge('Active') }}</td>
+          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='departments', page='details') }}">View</a></td>
+        </tr>
+        <tr>
+          <td>Demo Department 2</td>
+          <td>Infrastructure</td>
+          <td>{{ status_badge('Critical') }}</td>
+          <td>Yesterday</td>
+          <td>{{ status_badge('Warning') }}</td>
+          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='departments', page='details') }}">View</a></td>
+        </tr>
+        <tr>
+          <td>Demo Department 3</td>
+          <td>Help Desk</td>
+          <td>Standard</td>
+          <td>2 days ago</td>
+          <td>{{ status_badge('Online') }}</td>
+          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='departments', page='details') }}">View</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(1, 4) }}
+</section>
+{% endblock %}

@@ -1,0 +1,183 @@
+/* ============================================================
+   UITOP — Layout Shell
+   Main content area, breadcrumb, footer, dimmer
+   ============================================================ */
+
+.uitop-main {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--topbar-height);
+  min-height: calc(100vh - var(--topbar-height));
+  display: flex;
+  flex-direction: column;
+  transition: margin-left var(--transition-slow);
+}
+
+.uitop-content {
+  flex: 1;
+  padding: 24px 28px;
+  max-width: var(--content-max);
+  width: 100%;
+}
+
+.uitop-content--wide {
+  max-width: none;
+}
+
+.uitop-content--narrow {
+  max-width: 960px;
+}
+
+/* ─── Dimmer (mobile sidebar overlay) ─── */
+.uitop-dimmer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dimmer);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--transition-slow),
+    visibility var(--transition-slow);
+}
+
+.uitop-dimmer.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ─── Breadcrumb ─── */
+.uitop-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.uitop-breadcrumb a {
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+  position: relative;
+}
+
+.uitop-breadcrumb a:hover {
+  color: var(--accent);
+}
+
+.uitop-breadcrumb a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background: var(--accent);
+  transition: width var(--transition-base);
+}
+
+.uitop-breadcrumb a:hover::after {
+  width: 100%;
+}
+
+.uitop-breadcrumb span[aria-hidden] {
+  color: var(--border-hover);
+  font-size: 11px;
+}
+
+.uitop-breadcrumb span:last-child {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ─── Footer ─── */
+.uitop-footer {
+  padding: 16px 28px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: auto;
+}
+
+.uitop-footer p {
+  margin: 0;
+}
+
+/* ─── Toast Container ─── */
+.uitop-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: min(22rem, calc(100vw - 2rem));
+}
+
+.uitop-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-lg);
+  font-size: 14px;
+  pointer-events: auto;
+  animation: fadeInUp 0.35s ease-out both;
+}
+
+.uitop-toast--success {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border-default));
+}
+
+.uitop-toast--error {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border-default));
+}
+
+.uitop-toast--warning {
+  border-color: color-mix(in srgb, var(--warning) 35%, var(--border-default));
+}
+
+.uitop-toast-close {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.uitop-toast-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ─── Section spacing helpers ─── */
+.uitop-section {
+  margin-bottom: 28px;
+}
+
+.uitop-section:last-child {
+  margin-bottom: 0;
+}
+
+.uitop-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}

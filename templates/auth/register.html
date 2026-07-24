@@ -1,0 +1,17 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Register{% endblock %}
+{% block auth_headline %}Request secure access to UITOP.{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h2>Create account</h2>
+  <p class="lede">Self-registration is disabled. Contact your UITOP administrator.</p>
+  <form method="post" class="auth-form">
+    <div class="field"><label for="name">Full name</label><input id="name" name="name" required /></div>
+    <div class="field"><label for="email">Work email</label><input id="email" name="email" type="email" required /></div>
+    <div class="field"><label for="department">Department</label><input id="department" name="department" /></div>
+    <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" required /></div>
+    <button type="submit" class="auth-submit">Request access</button>
+  </form>
+  <p class="auth-links"><a href="{{ url_for('auth.login') }}">Back to sign in</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+<div class="kpi-grid dash-kpis">
+  <article class="kpi-card kpi-rich kpi-success">
+    <div class="kpi-top">
+      <div class="kpi-icon"><i class="fas fa-desktop" aria-hidden="true"></i></div>
+      <span class="kpi-trend kpi-trend--neutral">Live</span>
+    </div>
+    <p class="kpi-label">Computers online</p>
+    <p class="kpi-value" data-count="{{ dash.kpis.devices_online }}">0</p>
+    <p class="kpi-delta">of {{ dash.kpis.devices_total }} enrolled endpoints</p>
+    <canvas class="kpi-spark" id="sparkDevices" height="36"></canvas>
+  </article>
+
+  <article class="kpi-card kpi-rich">
+    <div class="kpi-top">
+      <div class="kpi-icon"><i class="fas fa-server" aria-hidden="true"></i></div>
+      <span class="kpi-trend kpi-trend--neutral">Live</span>
+    </div>
+    <p class="kpi-label">Servers online</p>
+    <p class="kpi-value" data-count="{{ dash.kpis.servers_online }}">0</p>
+    <p class="kpi-delta">{{ dash.kpis.servers_total }} managed · {{ dash.kpis.network_total }} network · {{ dash.kpis.printers_total }} printers</p>
+    <canvas class="kpi-spark" id="sparkTickets" height="36"></canvas>
+  </article>
+
+  <article class="kpi-card kpi-rich kpi-success">
+    <div class="kpi-top">
+      <div class="kpi-icon"><i class="fas fa-boxes-stacked" aria-hidden="true"></i></div>
+      <span class="kpi-trend kpi-trend--neutral">Assets</span>
+    </div>
+    <p class="kpi-label">Assets tracked</p>
+    <p class="kpi-value" data-count="{{ dash.kpis.assets_total }}">0</p>
+    <p class="kpi-delta">{{ dash.kpis.assets_assigned }} in use · {{ dash.kpis.assets_store }} in store · {{ dash.kpis.pending_requests }} requests</p>
+    <canvas class="kpi-spark" id="sparkBackup" height="36"></canvas>
+  </article>
+
+  <article class="kpi-card kpi-rich {% if dash.kpis.critical_alerts %}kpi-danger{% else %}kpi-success{% endif %}">
+    <div class="kpi-top">
+      <div class="kpi-icon"><i class="fas fa-bell" aria-hidden="true"></i></div>
+      <span class="kpi-trend kpi-trend--neutral">Live</span>
+    </div>
+    <p class="kpi-label">Open alerts</p>
+    <p class="kpi-value" data-count="{{ dash.kpis.open_alerts }}">0</p>
+    <p class="kpi-delta">{{ dash.kpis.critical_alerts }} warning/critical · health {{ dash.kpis.health_score }}%</p>
+    <canvas class="kpi-spark" id="sparkAlerts" height="36"></canvas>
+  </article>
+</div>

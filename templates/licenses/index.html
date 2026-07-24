@@ -1,0 +1,149 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Licenses{% endblock %}
+{% block page_title %}Licenses{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page" x-data="licensesHub()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>Licenses</h1>
+      <p>Track purchased seats, assignments, expiry, and compliance — the system of record behind Software license views.</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('software.index', tab='licenses') }}" class="btn btn-secondary"><i class="fas fa-cubes"></i> Software view</a>
+      <a href="{{ url_for('licenses.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add license</a>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="sw-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Total licenses</p><p class="sw-kpi-value">{{ kpis.total }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Active</p><p class="sw-kpi-value">{{ kpis.active }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Expiring soon</p><p class="sw-kpi-value">{{ kpis.expiring }}</p></article>
+    <article class="sw-kpi is-danger"><p class="sw-kpi-label">Expired</p><p class="sw-kpi-value">{{ kpis.expired }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Available seats</p><p class="sw-kpi-value">{{ kpis.available_seats }}</p></article>
+    <article class="sw-kpi {% if kpis.compliance_score >= 85 %}is-success{% elif kpis.compliance_score >= 70 %}is-warning{% else %}is-danger{% endif %}">
+      <p class="sw-kpi-label">Compliance score</p>
+      <p class="sw-kpi-value">{{ kpis.compliance_score }}%</p>
+    </article>
+  </div>
+
+  <section class="sw-panel">
+    <p class="sw-note"><strong>Compliance tip.</strong> Overused titles (assigned &gt; purchased) and expired SA need action before audit. Link catalog titles from Software when available.</p>
+    <div class="sw-toolbar">
+      <div class="sw-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="search" placeholder="Search product, vendor, SKU…" x-model="q" />
+      </div>
+      <select x-model="typeFilter">
+        <option value="">All types</option>
+        <option value="Subscription">Subscription</option>
+        <option value="Perpetual">Perpetual</option>
+      </select>
+      <select x-model="statusFilter">
+        <option value="">All statuses</option>
+        <option value="Active">Active</option>
+        <option value="Warning">Warning</option>
+        <option value="Expired">Expired</option>
+        <option value="Overused">Overused</option>
+        <option value="Fully assigned">Fully assigned</option>
+      </select>
+    </div>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Vendor</th>
+            <th>Type</th>
+            <th>Purchased</th>
+            <th>Assigned</th>
+            <th>Available</th>
+            <th>Utilization</th>
+            <th>Expiry</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="row in filtered" :key="row.id">
+            <tr>
+              <td>
+                <div class="sw-name">
+                  <span class="sw-name-icon"><i class="fas fa-key"></i></span>
+                  <div>
+                    <strong><a :href="'/licenses/' + row.id" x-text="row.product"></a></strong>
+                    <span x-text="row.sku"></span>
+                  </div>
+                </div>
+              </td>
+              <td x-text="row.vendor"></td>
+              <td x-text="row.type"></td>
+              <td x-text="row.purchased"></td>
+              <td x-text="row.assigned"></td>
+              <td>
+                <strong :style="row.available < 0 ? 'color:#dc2626' : ''" x-text="row.available"></strong>
+              </td>
+              <td style="min-width:110px;">
+                <div class="sw-progress" :title="row.utilization + '%'">
+                  <i :style="'width:' + Math.min(100, row.utilization) + '%;background:' + (row.available < 0 ? '#dc2626' : '')"></i>
+                </div>
+              </td>
+              <td x-text="row.expiry"></td>
+              <td>
+                <span class="sw-badge"
+                  :class="{
+                    'sw-badge--success': row.status === 'Active' || row.status === 'Fully assigned',
+                    'sw-badge--warning': row.status === 'Warning',
+                    'sw-badge--danger': row.status === 'Expired' || row.status === 'Overused'
+                  }"
+                  x-text="row.status"></span>
+              </td>
+              <td>
+                <div class="sw-actions-inline">
+                  <a class="btn btn-ghost btn-sm" :href="'/licenses/' + row.id">View</a>
+                  <a class="btn btn-ghost btn-sm" :href="'/licenses/' + row.id + '/edit'">Edit</a>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <p class="sw-empty" x-show="filtered.length === 0">No licenses match.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+window.__LICENSES__ = {{ payload | tojson }};
+function licensesHub() {
+  return {
+    data: window.__LICENSES__ || {},
+    q: "",
+    typeFilter: "",
+    statusFilter: "",
+    get filtered() {
+      var q = this.q.trim().toLowerCase();
+      var t = this.typeFilter;
+      var s = this.statusFilter;
+      return (this.data.licenses || []).filter(function (row) {
+        if (t && row.type !== t) return false;
+        if (s && row.status !== s) return false;
+        if (!q) return true;
+        return [row.product, row.vendor, row.sku, row.po_number, row.contract]
+          .join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    },
+  };
+}
+</script>
+{% endblock %}

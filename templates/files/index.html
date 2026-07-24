@@ -1,0 +1,238 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Files{% endblock %}
+{% block page_title %}Files{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page fr-page" x-data="filesHub()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>IT File Repository</h1>
+      <p>Enterprise attachments for operations — configs, backups, warranties, scripts, and installers linked to computers, servers, assets, vendors, and software. Not a personal drive.</p>
+    </div>
+    <div class="sw-header-actions">
+      <button type="button" class="btn btn-primary" @click="showUpload = true"><i class="fas fa-upload"></i> Upload</button>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="sw-kpi-grid fr-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Total files</p><p class="sw-kpi-value">{{ kpis.total }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Storage used</p><p class="sw-kpi-value">{{ kpis.storage_label }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Recent uploads</p><p class="sw-kpi-value">{{ kpis.recent_uploads }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Shared files</p><p class="sw-kpi-value">{{ kpis.shared }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Scripts</p><p class="sw-kpi-value">{{ kpis.scripts }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Documents</p><p class="sw-kpi-value">{{ kpis.documents }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Backups</p><p class="sw-kpi-value">{{ kpis.backups }}</p></article>
+  </div>
+
+  <div class="fr-layout">
+    <aside class="sw-panel fr-cats">
+      <p class="sw-kpi-label fr-cats-label">Categories</p>
+      <button type="button" class="sw-tab fr-cat" :class="{ 'is-active': !cat }" @click="setCat('')">
+        <span>All files</span>
+        <em x-text="data.files.length"></em>
+      </button>
+      <template x-for="c in data.category_counts" :key="c.name">
+        <button type="button" class="sw-tab fr-cat" :class="{ 'is-active': cat === c.name }" @click="setCat(c.name)">
+          <span><i class="fas" :class="c.icon"></i> <span x-text="c.name"></span></span>
+          <em x-text="c.count"></em>
+        </button>
+      </template>
+    </aside>
+
+    <section class="sw-panel">
+      <div class="sw-toolbar">
+        <div class="sw-search">
+          <i class="fas fa-magnifying-glass"></i>
+          <input type="search" placeholder="Global search — Cisco, PowerShell, SRV-001…" x-model="q" @keydown.enter.prevent="applySearch()" />
+        </div>
+        <select x-model="typeFilter">
+          <option value="">All types</option>
+          <option value="PDF">PDF</option>
+          <option value="ZIP">ZIP</option>
+          <option value="EXE">EXE</option>
+          <option value="MSI">MSI</option>
+          <option value="PS1">PS1</option>
+          <option value="TXT">TXT</option>
+          <option value="XML">XML</option>
+          <option value="DMP">DMP</option>
+          <option value="EVTX">EVTX</option>
+        </select>
+        <label class="checkbox" style="white-space:nowrap;"><input type="checkbox" x-model="sharedOnly" /> Shared only</label>
+      </div>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Category</th>
+              <th>Size</th>
+              <th>Uploaded</th>
+              <th>Linked objects</th>
+              <th>Tags</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="f in filtered" :key="f.id">
+              <tr>
+                <td>
+                  <div class="sw-name">
+                    <span class="sw-name-icon"><i class="fas fa-paperclip"></i></span>
+                    <div>
+                      <strong><a :href="'/files/' + f.id" x-text="f.name"></a></strong>
+                      <span x-text="f.type + ' · v' + f.version + (f.shared ? ' · shared' : '')"></span>
+                    </div>
+                  </div>
+                </td>
+                <td x-text="f.category"></td>
+                <td x-text="f.size_label"></td>
+                <td>
+                  <div x-text="f.uploaded"></div>
+                  <div class="fr-muted" x-text="f.uploaded_by"></div>
+                </td>
+                <td>
+                  <template x-if="f.links && f.links.length">
+                    <div class="fr-links">
+                      <template x-for="(l, i) in f.links.slice(0, 3)" :key="l.id || i">
+                        <a :href="l.url || '#'" x-text="l.label"></a>
+                      </template>
+                      <span class="fr-muted" x-show="f.links.length > 3" x-text="'+' + (f.links.length - 3)"></span>
+                    </div>
+                  </template>
+                  <template x-if="!f.links || !f.links.length"><span class="fr-muted">Unlinked</span></template>
+                </td>
+                <td>
+                  <div class="fr-tags">
+                    <template x-for="t in (f.tags || []).slice(0, 3)" :key="t">
+                      <span class="sw-badge sw-badge--muted" x-text="t"></span>
+                    </template>
+                  </div>
+                </td>
+                <td>
+                  <div class="sw-actions-inline">
+                    <a class="btn btn-ghost btn-sm" :href="'/files/' + f.id">Open</a>
+                    <a class="btn btn-ghost btn-sm" :href="'/files/' + f.id + '/download'">Download</a>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <p class="sw-empty" x-show="filtered.length === 0">No repository files match. Upload and link artifacts to infrastructure and assets.</p>
+      </div>
+    </section>
+  </div>
+
+  <div x-show="showUpload" x-cloak class="fr-modal" @click.self="showUpload=false">
+    <form method="post" action="{{ url_for('files.upload') }}" enctype="multipart/form-data" class="uf-card fr-upload">
+      <section class="uf-section">
+        <div class="uf-section-head">
+          <span class="uf-section-num"><i class="fas fa-upload"></i></span>
+          <div>
+            <h2>Upload to repository</h2>
+            <p>Link this file to a computer, server, asset, vendor, or software so it appears on that object.</p>
+          </div>
+        </div>
+        <div class="uf-section-body">
+          <div class="uf-field">
+            <span class="uf-field-label">File</span>
+            <input type="file" name="file" required />
+          </div>
+          <div class="uf-grid-2">
+            <div class="uf-field">
+              <span class="uf-field-label">Category</span>
+              <select name="category" required>
+                {% for c in payload.categories %}<option>{{ c }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="uf-field">
+              <span class="uf-field-label">Tags</span>
+              <input name="tags" placeholder="Cisco, PowerShell, Critical" />
+            </div>
+          </div>
+          <div class="uf-grid-2">
+            <div class="uf-field">
+              <span class="uf-field-label">Link to</span>
+              <select name="link_type">
+                <option value="">— Optional —</option>
+                <option value="computer">Computer</option>
+                <option value="server">Server</option>
+                <option value="asset">Asset</option>
+                <option value="vendor">Vendor</option>
+                <option value="software">Software</option>
+                <option value="network_device">Network device</option>
+                <option value="ticket">Helpdesk ticket</option>
+              </select>
+            </div>
+            <div class="uf-field">
+              <span class="uf-field-label">Object ID</span>
+              <input name="link_id" type="number" min="1" placeholder="e.g. 1" />
+            </div>
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Description</span>
+            <textarea name="description" rows="2" placeholder="What this file is for in IT operations"></textarea>
+          </div>
+          <label class="checkbox"><input type="checkbox" name="shared" value="1" /> Shared with linked object owners</label>
+        </div>
+      </section>
+      <div class="uf-actions">
+        <button type="button" class="btn btn-secondary" @click="showUpload=false">Cancel</button>
+        <button type="submit" class="btn btn-primary">Upload &amp; link</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+window.__FILES__ = {{ payload | tojson }};
+function filesHub() {
+  return {
+    data: window.__FILES__ || {},
+    q: {{ q | tojson }},
+    cat: {{ category | tojson }},
+    typeFilter: "",
+    sharedOnly: false,
+    showUpload: false,
+    setCat(name) {
+      this.cat = name;
+      var url = new URL(window.location.href);
+      if (name) url.searchParams.set("category", name);
+      else url.searchParams.delete("category");
+      history.replaceState({}, "", url);
+    },
+    applySearch() {
+      var url = new URL(window.location.href);
+      if (this.q) url.searchParams.set("q", this.q);
+      else url.searchParams.delete("q");
+      window.location = url.toString();
+    },
+    get filtered() {
+      var q = this.q.trim().toLowerCase();
+      var cat = this.cat;
+      var ty = this.typeFilter;
+      var shared = this.sharedOnly;
+      return (this.data.files || []).filter(function (f) {
+        if (cat && f.category !== cat) return false;
+        if (ty && f.type !== ty) return false;
+        if (shared && !f.shared) return false;
+        if (!q) return true;
+        var links = (f.links || []).map(function (l) { return l.label; }).join(" ");
+        return [f.name, f.category, f.uploaded_by, f.description, links].concat(f.tags || []).join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    },
+  };
+}
+</script>
+{% endblock %}

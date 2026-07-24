@@ -1,0 +1,270 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}New ticket{% endblock %}
+{% block page_title %}New ticket{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/helpdesk.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('helpdesk.index') }}">Help Desk</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>New ticket</span>
+{% endblock %}
+
+{% block content %}
+<div class="hd-create" x-data="ticketCreate()" x-cloak>
+  <header class="hd-create-hero">
+    <div class="hd-create-hero-inner">
+      <div>
+        <p class="hd-create-eyebrow"><i class="fas fa-headset"></i> UITOP Help Desk</p>
+        <h1>Open a support ticket</h1>
+        <p>Capture the issue clearly — we’ll set SLA from priority and route it into the live queue.</p>
+      </div>
+      <div class="hd-create-hero-meta">
+        <span class="hd-chip"><i class="fas fa-bolt"></i> Live queue</span>
+        <span class="hd-chip"><i class="fas fa-clock"></i> SLA auto-applied</span>
+      </div>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+      <div class="hd-flash" role="alert">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" class="hd-create-layout" id="ticketCreateForm">
+    <div class="hd-create-main">
+      <section class="hd-section">
+        <div class="hd-section-head">
+          <span class="hd-section-num">1</span>
+          <div>
+            <h2>What’s wrong?</h2>
+            <p>A clear subject helps technicians triage in seconds.</p>
+          </div>
+        </div>
+        <div class="hd-section-body">
+          <div class="hd-field">
+            <span class="hd-field-label">Subject <span class="req">*</span></span>
+            <input
+              name="subject"
+              required
+              maxlength="255"
+              placeholder="e.g. VPN cannot connect after password prompt"
+              autocomplete="off"
+              x-model="subject"
+            />
+          </div>
+          <div class="hd-field">
+            <span class="hd-field-label">Description</span>
+            <textarea
+              name="description"
+              rows="4"
+              placeholder="What happened, when it started, who is affected, and any error messages…"
+            ></textarea>
+            <p class="hd-field-hint">Include steps already tried — it shortens first response time.</p>
+          </div>
+
+          <div>
+            <span class="hd-field-label" style="display:block;margin-bottom:8px;">Priority</span>
+            <div class="hd-priority-grid" role="radiogroup" aria-label="Priority">
+              <template x-for="p in priorities" :key="p.id">
+                <label class="hd-priority" :class="{ 'is-active': priority === p.id }" :data-p="p.id">
+                  <input type="radio" name="priority" :value="p.id" x-model="priority" />
+                  <span class="hd-priority-dot" aria-hidden="true"></span>
+                  <strong x-text="p.label"></strong>
+                  <span x-text="p.sla"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+
+          <div>
+            <span class="hd-field-label" style="display:block;margin-bottom:8px;">Category</span>
+            <div class="hd-cat-grid" role="radiogroup" aria-label="Category">
+              <template x-for="c in categories" :key="c.id">
+                <label class="hd-cat" :class="{ 'is-active': category === c.id }">
+                  <input type="radio" name="category" :value="c.id" x-model="category" />
+                  <i class="fas" :class="c.icon" aria-hidden="true"></i>
+                  <strong x-text="c.label"></strong>
+                </label>
+              </template>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="hd-section">
+        <div class="hd-section-head">
+          <span class="hd-section-num">2</span>
+          <div>
+            <h2>Who needs help?</h2>
+            <p>Link a platform user, or enter a walk-in name.</p>
+          </div>
+        </div>
+        <div class="hd-section-body">
+          <div class="hd-field-row">
+            <div class="hd-field">
+              <span class="hd-field-label">Requester (platform user)</span>
+              <select name="requester_user_id">
+                <option value="">— Walk-in / name below —</option>
+                {% for u in users %}
+                <option value="{{ u.id }}">{{ u.full_name }} · {{ u.email }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="hd-field">
+              <span class="hd-field-label">Walk-in name</span>
+              <input name="requester_name" placeholder="e.g. K. Zulu" autocomplete="name" />
+            </div>
+          </div>
+          <div class="hd-field-row">
+            <div class="hd-field">
+              <span class="hd-field-label">Assign to</span>
+              <select name="assignee_user_id">
+                <option value="">Unassigned — goes to queue</option>
+                {% for u in users %}
+                <option value="{{ u.id }}">{{ u.full_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="hd-field">
+              <span class="hd-field-label">Department</span>
+              <select name="department_id">
+                <option value="">— Select —</option>
+                {% for d in departments %}
+                <option value="{{ d.id }}">{{ d.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="hd-section">
+        <div class="hd-section-head">
+          <span class="hd-section-num">3</span>
+          <div>
+            <h2>Context</h2>
+            <p>Optional — link a device so technicians jump straight to inventory.</p>
+          </div>
+        </div>
+        <div class="hd-section-body">
+          <div class="hd-field-row">
+            <div class="hd-field">
+              <span class="hd-field-label">Location</span>
+              <input name="location" placeholder="Building, floor, or remote" />
+            </div>
+            <div class="hd-field">
+              <span class="hd-field-label">Related computer</span>
+              <select name="linked_id">
+                <option value="">None</option>
+                {% for c in computers %}
+                <option value="{{ c.id }}">{{ c.hostname }}{% if c.ip_address %} · {{ c.ip_address }}{% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="hd-create-aside">
+      <div class="hd-sla-card">
+        <p class="hd-sla-label">Response SLA</p>
+        <p class="hd-sla-value">
+          <span x-text="slaHours"></span><span>hours</span>
+        </p>
+        <p class="hd-sla-desc" x-text="slaCopy"></p>
+        <div class="hd-sla-bar" aria-hidden="true">
+          <i :style="'width:' + slaBar + '%'"></i>
+        </div>
+      </div>
+      <div class="hd-tip-card">
+        <h3>Before you submit</h3>
+        <ul class="hd-tip-list">
+          <li><i class="fas fa-check"></i> Prefer a specific subject over “help” or “urgent”.</li>
+          <li><i class="fas fa-link"></i> Link the computer when the issue is endpoint-related.</li>
+          <li><i class="fas fa-user"></i> Assign only if someone is already working it.</li>
+        </ul>
+      </div>
+    </aside>
+
+    <div class="hd-create-actions">
+      <div class="hd-create-actions-inner">
+        <p class="hd-create-actions-copy">
+          Creating as <strong x-text="priorityLabel"></strong>
+          · <span x-text="categoryLabel"></span>
+          <template x-if="subject.trim()"><span> · <strong x-text="subject.trim().slice(0, 42) + (subject.trim().length > 42 ? '…' : '')"></strong></span></template>
+        </p>
+        <div class="hd-create-actions-btns">
+          <a href="{{ url_for('helpdesk.index') }}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create ticket
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+function ticketCreate() {
+  var priorities = [
+    { id: "low", label: "Low", sla: "72h SLA", hours: 72 },
+    { id: "medium", label: "Medium", sla: "24h SLA", hours: 24 },
+    { id: "high", label: "High", sla: "8h SLA", hours: 8 },
+    { id: "critical", label: "Critical", sla: "4h SLA", hours: 4 },
+  ];
+  var categories = [
+    { id: "endpoint", label: "Endpoint", icon: "fa-laptop" },
+    { id: "network", label: "Network", icon: "fa-network-wired" },
+    { id: "printer", label: "Printer", icon: "fa-print" },
+    { id: "account", label: "Account", icon: "fa-user-lock" },
+    { id: "vpn", label: "VPN", icon: "fa-shield-halved" },
+    { id: "email", label: "Email", icon: "fa-envelope" },
+    { id: "server", label: "Server", icon: "fa-server" },
+    { id: "other", label: "Other", icon: "fa-circle-question" },
+  ];
+  return {
+    subject: "",
+    priority: "medium",
+    category: "other",
+    priorities: priorities,
+    categories: categories,
+    get priorityLabel() {
+      var p = priorities.find(function (x) { return x.id === this.priority; }.bind(this));
+      return p ? p.label : "Medium";
+    },
+    get categoryLabel() {
+      var c = categories.find(function (x) { return x.id === this.category; }.bind(this));
+      return c ? c.label : "Other";
+    },
+    get slaHours() {
+      var p = priorities.find(function (x) { return x.id === this.priority; }.bind(this));
+      return p ? p.hours : 24;
+    },
+    get slaCopy() {
+      var map = {
+        low: "Routine issues — addressed within three business days.",
+        medium: "Standard municipal support target for most tickets.",
+        high: "Service degraded — technicians should engage same day.",
+        critical: "Service down or security risk — immediate attention.",
+      };
+      return map[this.priority] || map.medium;
+    },
+    get slaBar() {
+      var h = this.slaHours;
+      return Math.max(12, Math.round((4 / h) * 100));
+    },
+  };
+}
+</script>
+{% endblock %}

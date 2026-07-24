@@ -1,0 +1,252 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ vendor.name }}{% endblock %}
+{% block page_title %}{{ vendor.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('vendors.index') }}">Vendors</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ vendor.name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page" x-data="{ view: {{ view | tojson }} }" x-cloak>
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon"><i class="fas fa-building"></i></div>
+      <div>
+        <h1>{{ vendor.name }}</h1>
+        <p class="sw-hero-sub">{{ vendor.category }} · ★ {{ vendor.rating }} · {{ vendor.city }}, {{ vendor.province }}</p>
+        <div class="sw-hero-badges">
+          <span class="sw-badge {% if vendor.status == 'Active' %}sw-badge--success{% else %}sw-badge--muted{% endif %}">{{ vendor.status }}</span>
+          {% if vendor.preferred %}<span class="sw-badge sw-badge--accent">Preferred</span>{% endif %}
+          <span class="sw-badge sw-badge--muted">{{ vendor.assets_count }} assets</span>
+          <span class="sw-badge sw-badge--muted">{{ vendor.contracts_count }} contracts</span>
+        </div>
+      </div>
+    </div>
+    <div class="sw-hero-actions">
+      <a href="{{ url_for('vendors.edit', item_id=item_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+      {% if vendor.website %}
+      <a href="{{ vendor.website }}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Website</a>
+      {% endif %}
+      <a href="{{ url_for('vendors.index') }}" class="btn btn-ghost btn-sm">All vendors</a>
+    </div>
+  </section>
+
+  <div>
+    <nav class="sw-subtabs" role="tablist">
+      {% for key, label in [
+        ('overview','Overview'),
+        ('assets','Assets'),
+        ('software','Software'),
+        ('files','Files'),
+        ('contracts','Contracts'),
+        ('pos','Purchase orders'),
+        ('warranties','Warranties'),
+        ('contacts','Contacts'),
+        ('activity','Activity')
+      ] %}
+      <button type="button" class="sw-subtab" :class="{ 'is-active': view === '{{ key }}' }" @click="view = '{{ key }}'">{{ label }}</button>
+      {% endfor %}
+    </nav>
+
+    <div class="sw-detail-body">
+      <div x-show="view === 'overview'">
+        <dl class="sw-stat-row">
+          <div class="sw-stat"><dt>Primary contact</dt><dd>{{ vendor.contact_name }}</dd></div>
+          <div class="sw-stat"><dt>Support</dt><dd>{{ vendor.support_email or '—' }}</dd></div>
+          <div class="sw-stat"><dt>SLA</dt><dd>{{ vendor.sla or '—' }}</dd></div>
+          <div class="sw-stat"><dt>Payment terms</dt><dd>{{ vendor.payment_terms }}</dd></div>
+        </dl>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <tbody>
+              <tr><th style="width:200px;">Vendor</th><td>{{ vendor.name }}</td></tr>
+              <tr><th>Category</th><td>{{ vendor.category }}</td></tr>
+              <tr><th>Website</th><td>{% if vendor.website %}<a href="{{ vendor.website }}" target="_blank" rel="noopener">{{ vendor.website }}</a>{% else %}—{% endif %}</td></tr>
+              <tr><th>Email</th><td>{{ vendor.email }}</td></tr>
+              <tr><th>Phone</th><td>{{ vendor.phone }}{% if vendor.mobile %} · {{ vendor.mobile }}{% endif %}</td></tr>
+              <tr><th>Address</th><td>{{ vendor.address }}, {{ vendor.city }}, {{ vendor.province }}, {{ vendor.country }} {{ vendor.postal_code }}</td></tr>
+              <tr><th>Account #</th><td><code>{{ vendor.account_number }}</code></td></tr>
+              <tr><th>Tax / Reg</th><td>{{ vendor.tax_number or '—' }} / {{ vendor.registration or '—' }}</td></tr>
+              <tr><th>Description</th><td>{{ vendor.description }}</td></tr>
+              <tr><th>Notes</th><td>{{ vendor.notes }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div x-show="view === 'assets'" x-cloak>
+        {% if detail.assets %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Asset tag</th><th>Name</th><th>Type</th><th>Assigned to</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for a in detail.assets %}
+              <tr>
+                <td><code>{{ a.tag }}</code></td>
+                <td><strong>{{ a.name }}</strong></td>
+                <td>{{ a.type }}</td>
+                <td>{{ a.assignee }}</td>
+                <td><span class="sw-badge sw-badge--muted">{{ a.status }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-box"></i><br>No assets linked to this vendor in the demo set.</p>
+        {% endif %}
+      </div>
+
+      <div x-show="view === 'software'" x-cloak>
+        {% if detail.software %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Product</th><th>Category</th><th></th></tr></thead>
+            <tbody>
+              {% for s in detail.software %}
+              <tr>
+                <td><strong>{{ s.name }}</strong></td>
+                <td>{{ s.category }}</td>
+                <td>
+                  {% if s.software_id %}<a class="btn btn-ghost btn-sm" href="{{ url_for('software.details', item_id=s.software_id) }}">Software</a>{% endif %}
+                  {% if s.license_id %}<a class="btn btn-ghost btn-sm" href="{{ url_for('licenses.details', item_id=s.license_id) }}">License</a>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-cubes"></i><br>No software titles linked to this vendor.</p>
+        {% endif %}
+      </div>
+
+      <div x-show="view === 'files'" x-cloak>
+        {% from "files/_entity_files.html" import entity_files_panel %}
+        {{ entity_files_panel(linked_files or [], 'vendor', item_id, url_for('vendors.details', item_id=item_id, view='files')) }}
+      </div>
+
+      <div x-show="view === 'contracts'" x-cloak>
+        {% if detail.contracts %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Contract</th><th>Start</th><th>End</th><th>Renewal</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for c in detail.contracts %}
+              <tr>
+                <td><strong>{{ c.name }}</strong></td>
+                <td>{{ c.start }}</td>
+                <td>{{ c.end }}</td>
+                <td>{{ c.renewal }}</td>
+                <td>
+                  <span class="sw-badge
+                    {% if c.status == 'Active' %}sw-badge--success
+                    {% elif c.status == 'Expiring' %}sw-badge--warning
+                    {% else %}sw-badge--danger{% endif %}">{{ c.status }}</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-file-contract"></i><br>No contracts on file.</p>
+        {% endif %}
+      </div>
+
+      <div x-show="view === 'pos'" x-cloak>
+        {% if detail.purchase_orders %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>PO number</th><th>Date</th><th>Amount (ZAR)</th><th>Items</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for p in detail.purchase_orders %}
+              <tr>
+                <td><code>{{ p.number }}</code></td>
+                <td>{{ p.date }}</td>
+                <td>R{{ '{:,.0f}'.format(p.amount) }}</td>
+                <td>{{ p.items }}</td>
+                <td>
+                  <span class="sw-badge {% if p.status == 'Open' %}sw-badge--warning{% else %}sw-badge--success{% endif %}">{{ p.status }}</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-file-invoice-dollar"></i><br>No purchase orders in the demo set.</p>
+        {% endif %}
+      </div>
+
+      <div x-show="view === 'warranties'" x-cloak>
+        {% if detail.warranties %}
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Asset</th><th>Tag</th><th>Term</th><th>Expires</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for w in detail.warranties %}
+              <tr>
+                <td><strong>{{ w.asset }}</strong></td>
+                <td><code>{{ w.tag }}</code></td>
+                <td>{{ w.term }}</td>
+                <td>{{ w.expires }}</td>
+                <td>
+                  <span class="sw-badge {% if w.status == 'Active' %}sw-badge--success{% else %}sw-badge--warning{% endif %}">{{ w.status }}</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="sw-empty"><i class="fas fa-shield-halved"></i><br>No warranties linked.</p>
+        {% endif %}
+      </div>
+
+      <div x-show="view === 'contacts'" x-cloak>
+        <div class="sw-table-wrap">
+          <table class="sw-table">
+            <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Phone</th></tr></thead>
+            <tbody>
+              {% for c in detail.contacts %}
+              <tr>
+                <td>
+                  <strong>{{ c.name }}</strong>
+                  {% if c.primary %}<span class="sw-badge sw-badge--accent">Primary</span>{% endif %}
+                </td>
+                <td>{{ c.role }}</td>
+                <td>{{ c.email }}</td>
+                <td>{{ c.phone }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div x-show="view === 'activity'" x-cloak>
+        <ul class="sw-timeline">
+          {% for a in detail.activity %}
+          <li class="{% if a.tone %}is-{{ a.tone }}{% endif %}">
+            <strong>{{ a.title }}</strong>
+            <span>{{ a.when }} · {{ a.meta }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
