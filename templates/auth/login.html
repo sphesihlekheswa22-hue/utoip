@@ -5,11 +5,11 @@
 <section class="login-card" aria-labelledby="login-title">
   <header class="login-card-head">
     <img
-      src="{{ url_for('static', filename='images/logo.png') }}"
-      alt=""
+      src="{{ url_for('static', filename=logo_file|default('images/logo.png')) }}"
+      alt="{{ app_title }}"
       class="login-card-logo"
-      width="160"
-      height="160"
+      width="280"
+      height="93"
       decoding="async"
       fetchpriority="high"
     />

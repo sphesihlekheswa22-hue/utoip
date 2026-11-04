@@ -5,12 +5,17 @@ import os
 
 APP_SHORT_NAME = "UITOP"
 APP_TAGLINE = "Unified IT Operations Platform"
+APP_TAGLINE_MARK = "One Platform. Every Workplace."
 APP_TITLE = f"{APP_SHORT_NAME} — {APP_TAGLINE}"
 APP_DESCRIPTION = (
     "Manage infrastructure, assets, support, security, and monitoring from one workplace IT platform."
 )
 
-DEFAULT_DEMO_ORG_NAME = "Demo Organization"
+STATIC_LOGO_FILE = "images/logo.png"
+STATIC_FAVICON_FILE = "images/favicon.png"
+STATIC_APPLE_TOUCH_ICON = "images/apple-touch-icon.png"
+
+DEFAULT_DEMO_ORG_NAME = "Your Organization"
 DEFAULT_EMAIL_DOMAIN = "example.com"
 DEFAULT_ADMIN_LOCAL = "admin"
 DEFAULT_ADMIN_PASSWORD = "Admin@UITOP2026"
@@ -53,6 +58,7 @@ def resolve_branding(general_settings: dict | None = None) -> dict[str, str]:
     return {
         "app_name": APP_SHORT_NAME,
         "app_tagline": tagline,
+        "app_tagline_mark": APP_TAGLINE_MARK,
         "app_title": f"{APP_SHORT_NAME} — {tagline}",
         "app_description": APP_DESCRIPTION,
         "org_name": org_name,
@@ -60,4 +66,7 @@ def resolve_branding(general_settings: dict | None = None) -> dict[str, str]:
         "org_portal_subtitle": subtitle,
         "org_footer_line": footer,
         "default_admin_email": admin_email,
+        "logo_file": STATIC_LOGO_FILE,
+        "favicon_file": STATIC_FAVICON_FILE,
+        "apple_touch_icon_file": STATIC_APPLE_TOUCH_ICON,
     }

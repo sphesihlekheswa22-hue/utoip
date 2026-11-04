@@ -300,8 +300,20 @@
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
 }
 
+.rp-doc-brand {
+  margin-bottom: 12px;
+}
+
+.rp-brand-logo {
+  height: 44px;
+  width: auto;
+  max-width: min(100%, 320px);
+  object-fit: contain;
+  object-position: left center;
+}
+
 .rp-doc-header {
-  border-bottom: 2px solid #0f766e;
+  border-bottom: 2px solid #059669;
   padding-bottom: 14px;
   margin-bottom: 20px;
 }

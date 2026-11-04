@@ -1,0 +1,10 @@
+{# Full UITOP wordmark (horizontal logo). class: uitop-brand-logo | auth-premium-logo | login-card-logo | rp-brand-logo #}
+<img
+  src="{{ url_for('static', filename=logo_file|default('images/logo.png')) }}"
+  alt="{{ app_title }}"
+  class="{{ logo_class|default('uitop-brand-logo') }}"
+  {% if logo_width %}width="{{ logo_width }}"{% endif %}
+  {% if logo_height %}height="{{ logo_height }}"{% endif %}
+  decoding="async"
+  {% if logo_priority %}fetchpriority="high"{% endif %}
+/>

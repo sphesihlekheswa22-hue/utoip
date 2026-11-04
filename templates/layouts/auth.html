@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0B3A6E" />
-  <title>{% block title %}Sign in{% endblock %} — UITOP</title>
+  <meta name="theme-color" content="#059669" />
+  <title>{% block title %}Sign in{% endblock %} — {{ app_name }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}" type="image/png" />
+  {% include "components/head-icons.html" %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}" />
@@ -29,15 +29,9 @@
       </div>
 
       <div class="auth-brand-content">
-        <div class="auth-logo-lockup">
-          <img src="{{ url_for('static', filename='images/logo.png') }}"
-               alt="{{ app_title }}"
-               class="auth-premium-logo" />
-          <div class="auth-lockup-divider"></div>
-          <div class="auth-lockup-copy">
-            <strong>{{ app_name }} — {{ app_tagline|upper }}</strong>
-            <span>{{ app_tagline }} for {{ org_name }}</span>
-          </div>
+        <div class="auth-logo-lockup auth-logo-lockup--wordmark">
+          {% set logo_class = 'auth-premium-logo' %}
+          {% include "components/brand-logo.html" %}
         </div>
 
         <div class="auth-hero-copy">
@@ -54,11 +48,11 @@
         </div>
 
         <div class="auth-hero-metrics">
-          <div><strong>2,847</strong><span>Tickets Resolved</span></div>
+          <div><strong>Unified</strong><span>Infrastructure & assets</span></div>
           <i></i>
-          <div><strong>156</strong><span>Active Users</span></div>
+          <div><strong>Integrated</strong><span>Service desk & requests</span></div>
           <i></i>
-          <div><strong>99.9<small>%</small></strong><span>Uptime</span></div>
+          <div><strong>Secure</strong><span>Monitoring & compliance</span></div>
         </div>
 
         <div class="auth-trust-row">

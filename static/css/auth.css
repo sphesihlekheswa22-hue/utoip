@@ -1214,19 +1214,32 @@
   justify-content: center;
 }
 
-.auth-logo-lockup {
-  display: flex;
-  align-items: center;
-  gap: 17px;
+.auth-logo-lockup--wordmark {
+  display: block;
   margin-bottom: clamp(42px, 6vh, 72px);
 }
 
-.auth-premium-logo {
-  display: block;
-  width: clamp(150px, 14vw, 205px);
+.auth-logo-lockup--wordmark .auth-premium-logo,
+.auth-logo-lockup--wordmark .uitop-brand-logo {
+  width: min(100%, 520px);
+  max-width: 520px;
   height: auto;
-  max-height: 130px;
+  max-height: none;
+}
+
+.auth-premium-logo,
+.uitop-brand-logo,
+.login-card-logo,
+.rp-brand-logo {
+  display: block;
+  height: auto;
   object-fit: contain;
+  object-position: left center;
+}
+
+.auth-premium-logo {
+  width: min(100%, 520px);
+  max-width: 520px;
   filter: drop-shadow(0 12px 28px rgba(0,0,0,.2));
 }
 
@@ -1389,7 +1402,18 @@
 }
 
 .login-card-head { text-align: left; margin-bottom: 25px; }
-.login-card-head .login-card-logo { display: none; }
+.login-card-head .login-card-logo {
+  display: block;
+  width: min(100%, 300px);
+  height: auto;
+  margin: 0 0 18px;
+}
+
+@media (min-width: 960px) {
+  .login-card-head .login-card-logo {
+    display: none;
+  }
+}
 .login-card-head h1 { margin: 0; font-size: 36px; line-height: 1.08; letter-spacing: -.045em; font-weight: 850; color: #0d1e36; }
 .login-card-head h1 span { color: #0962d4; }
 .login-card-head p { margin: 10px 0 0; color: #73839a; font-size: 14px; line-height: 1.55; }

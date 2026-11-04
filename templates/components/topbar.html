@@ -4,8 +4,9 @@
       <button type="button" class="uitop-menu-btn" id="uitop-menu-btn" aria-label="Toggle navigation" aria-controls="uitop-sidebar" aria-expanded="false">
         <i class="fas fa-bars-staggered" aria-hidden="true"></i>
       </button>
-      <a href="{{ url_for('employee.index' if is_employee else 'dashboard.index') }}" class="uitop-brand" aria-label="UITOP home">
-        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="{{ app_title }}" class="uitop-brand-logo" />
+      <a href="{{ url_for('employee.index' if is_employee else 'dashboard.index') }}" class="uitop-brand" aria-label="{{ app_title }} home">
+        {% set logo_class = 'uitop-brand-logo' %}
+        {% include "components/brand-logo.html" %}
         <span class="uitop-brand-text" aria-hidden="true">
           <span class="uitop-brand-name">{{ app_tagline }}</span>
           <span class="uitop-brand-sub">{{ org_portal_subtitle }}</span>

@@ -19,12 +19,10 @@
   {# ── Left rail (dense ops) ── #}
   <aside class="copilot-rail" aria-label="Copilot navigation">
     <div class="copilot-rail-brand">
-      <div class="copilot-mark" aria-hidden="true">
-        <i class="fas fa-robot"></i>
-      </div>
+      <img src="{{ url_for('static', filename='images/logo-icon.png') }}" alt="" class="copilot-rail-logo" width="40" height="40" decoding="async" />
       <div>
         <p class="copilot-rail-name">IT Copilot</p>
-        <p class="copilot-rail-tag">{{ org_name }} operations</p>
+        <p class="copilot-rail-tag">{{ org_name }}</p>
       </div>
     </div>
 

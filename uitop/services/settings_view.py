@@ -17,7 +17,7 @@ def utcnow() -> datetime:
 
 DEFAULTS: dict[str, dict] = {
     "general": {
-        "org_name": "Demo Organization",
+        "org_name": "Your Organization",
         "org_tagline": "Unified IT Operations Platform",
         "org_email_domain": "example.com",
         "org_portal_subtitle": "People · Technology · Service Delivery",
@@ -25,7 +25,7 @@ DEFAULTS: dict[str, dict] = {
         "timezone": "UTC",
         "language": "English",
         "date_format": "DD/MM/YYYY",
-        "logo_url": "",
+        "logo_url": "/static/images/logo.png",
     },
     "security": {
         "min_password_length": 12,

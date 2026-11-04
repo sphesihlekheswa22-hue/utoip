@@ -301,6 +301,15 @@
   font-size: 1.05rem;
 }
 
+.copilot-rail-logo {
+  width: 2.55rem;
+  height: 2.55rem;
+  border-radius: 0.85rem;
+  object-fit: cover;
+  box-shadow: 0 8px 18px rgba(5, 150, 105, 0.25);
+  flex-shrink: 0;
+}
+
 .copilot-rail-name {
   margin: 0;
   font-size: 0.98rem;
