@@ -35,6 +35,5 @@ Repository: [sphesihlekheswa22-hue/utoip](https://github.com/sphesihlekheswa22-h
 
 ## Manual deploy (without Blueprint)
 
-- **Build:** `pip install -r requirements.txt`
-- **Release:** `flask db upgrade`
+- **Build:** `pip install -r requirements.txt && flask db upgrade`
 - **Start:** `gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
