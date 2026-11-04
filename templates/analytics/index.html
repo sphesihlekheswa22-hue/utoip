@@ -5,7 +5,7 @@
 {% block page_title %}Analytics{% endblock %}
 
 {% block content %}
-{% call page_header("Analytics", "Manage analytics across Umzinyathi IT operations.", "{{ url_for('modules.page', module='analytics', page='index') }}", "Add Analytic", "fa-plus") %}{% endcall %}
+{% call page_header("Analytics", "Manage analytics across {{ org_name }} IT operations.", "{{ url_for('modules.page', module='analytics', page='index') }}", "Add Analytic", "fa-plus") %}{% endcall %}
 
 <div class="kpi-grid">
   {{ kpi_card("Total", "128", "+3%", "default", "fa-chart-column") }}

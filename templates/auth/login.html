@@ -15,7 +15,7 @@
     />
     <div class="login-welcome">WELCOME BACK</div>
     <h1 id="login-title">Sign in to <span>UITOP</span></h1>
-    <p>Use your municipal UITOP account to continue.</p>
+    <p>Use your organizational UITOP account to continue.</p>
   </header>
 
   {# ---------- Flash messages (announce politely, not assertively) ---------- #}
@@ -73,7 +73,7 @@
           type="email"
           required
           autofocus
-          placeholder="name@umzinyathi.gov.za"
+          placeholder="name@{{ org_email_domain }}"
           value="{{ (email or '')|e }}"
           autocomplete="username"
           inputmode="email"
@@ -140,19 +140,19 @@
   <details class="login-demo">
     <summary>Demo accounts</summary>
     <div class="login-demo-body">
-      <button type="button" class="login-demo-fill" data-email="admin@umzinyathi.gov.za" data-password="Admin@UITOP2026">
+      <button type="button" class="login-demo-fill" data-email="admin@{{ org_email_domain }}" data-password="Admin@UITOP2026">
         <strong>Admin</strong>
-        <span>admin@umzinyathi.gov.za</span>
+        <span>admin@{{ org_email_domain }}</span>
       </button>
-      <button type="button" class="login-demo-fill" data-email="sipho.dlamini@umzinyathi.gov.za" data-password="Demo@UITOP2026">
+      <button type="button" class="login-demo-fill" data-email="sipho.dlamini@{{ org_email_domain }}" data-password="Demo@UITOP2026">
         <strong>IT Admin</strong>
         <span>sipho.dlamini@&hellip;</span>
       </button>
-      <button type="button" class="login-demo-fill" data-email="fatima.hassan@umzinyathi.gov.za" data-password="Demo@UITOP2026">
+      <button type="button" class="login-demo-fill" data-email="fatima.hassan@{{ org_email_domain }}" data-password="Demo@UITOP2026">
         <strong>Employee</strong>
         <span>fatima.hassan@&hellip;</span>
       </button>
-      <button type="button" class="login-demo-fill" data-email="johan.botha@umzinyathi.gov.za" data-password="Demo@UITOP2026">
+      <button type="button" class="login-demo-fill" data-email="johan.botha@{{ org_email_domain }}" data-password="Demo@UITOP2026">
         <strong>Helpdesk</strong>
         <span>johan.botha@&hellip;</span>
       </button>

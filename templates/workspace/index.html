@@ -22,7 +22,7 @@
   <header class="sw-header">
     <div>
       <h1>My Workspace</h1>
-      <p>Your personal files — private by default. Separate from municipal Documents and Backup Center.</p>
+      <p>Your personal files — private by default. Separate from organizational Documents and Backup Center.</p>
     </div>
     <div class="sw-header-actions">
       <button type="button" class="btn btn-primary" @click="showUpload = true"><i class="fas fa-upload"></i> Upload</button>
@@ -113,7 +113,7 @@
       {% else %}
       <div class="ws-empty">
         <h3>No files here yet</h3>
-        <p>Upload presentations, notes, and personal work files. Machine backups belong in Backup Center; municipal policies belong in Documents.</p>
+        <p>Upload presentations, notes, and personal work files. Machine backups belong in Backup Center; organizational policies belong in Documents.</p>
         <button type="button" class="btn btn-primary" @click="showUpload = true">Upload your first file</button>
       </div>
       {% endif %}

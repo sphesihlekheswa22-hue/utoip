@@ -5,7 +5,7 @@
 {% block page_title %}Search{% endblock %}
 
 {% block content %}
-{% call page_header("Search", "Manage search across Umzinyathi IT operations.", "{{ url_for('modules.page', module='search', page='index') }}", "Add Search", "fa-plus") %}{% endcall %}
+{% call page_header("Search", "Manage search across {{ org_name }} IT operations.", "{{ url_for('modules.page', module='search', page='index') }}", "Add Search", "fa-plus") %}{% endcall %}
 
 <div class="kpi-grid">
   {{ kpi_card("Total", "128", "+3%", "default", "fa-magnifying-glass") }}

@@ -158,7 +158,7 @@ def ensure_starter_articles(author_user_id: int | None = None) -> int:
             "tags": "vpn,remote,forticlient",
             "body": (
                 "## VPN connection guide\n\n"
-                "1. Install the municipal VPN client from the Software Centre.\n"
+                "1. Install the organizational VPN client from the Software Centre.\n"
                 "2. Enroll with your staff email and MFA.\n"
                 "3. On timeout: check home internet, then DNS (8.8.8.8 temporarily).\n"
                 "4. Re-authenticate MFA if prompted repeatedly.\n"

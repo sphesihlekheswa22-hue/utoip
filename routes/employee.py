@@ -1,4 +1,4 @@
-"""Employee self-service portal — municipal staff (non-IT)."""
+"""Employee self-service portal — workplace staff (non-IT)."""
 from __future__ import annotations
 
 from pathlib import Path

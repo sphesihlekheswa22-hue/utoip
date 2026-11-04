@@ -287,7 +287,7 @@ def shared_reports() -> list[dict]:
         {
             "id": "shr-3",
             "name": "Security Compliance Pack",
-            "shared_with": "Municipal Auditor",
+            "shared_with": "Organizational Auditor",
             "access": "Read only",
             "shared_by": "IT Director",
             "shared_at": "2026-07-10",
@@ -558,7 +558,7 @@ def build_preview(type_id: str, *, date_range: str = "30d", department: str = ""
         "tables": tables,
         "recommendations": recommendations,
         "title": rtype["name"],
-        "subtitle": "Umzinyathi District Municipality — UITOP official report",
+        "subtitle": "the organization District Organizationality — UITOP official report",
     }
 
 

@@ -36,7 +36,7 @@ def licenses() -> list[dict]:
             "contract": "Microsoft Enterprise Agreement",
             "software_id": 2,
             "owner": "IT Operations",
-            "notes": "Municipal EA — includes Teams and SharePoint Online.",
+            "notes": "Organizational EA — includes Teams and SharePoint Online.",
         },
         {
             "id": 2,
@@ -123,7 +123,7 @@ def licenses() -> list[dict]:
             "expiry": "2026-08-15",
             "start": "2025-08-15",
             "po_number": "PO-2025-0777",
-            "contract": "Kaspersky Municipal Bundle",
+            "contract": "Kaspersky Organizational Bundle",
             "software_id": None,
             "owner": "IT Security",
             "notes": "Endpoint AV across all enrolled PCs.",
@@ -199,26 +199,26 @@ def kpis() -> dict:
 def assigned_users(license_id: int) -> list[dict]:
     samples = {
         1: [
-            {"name": "K. Zulu", "email": "kzulu@umzinyathi.gov.za", "department": "Finance", "assigned": "2025-08-14", "seat": "User"},
-            {"name": "L. Mokoena", "email": "lmokoena@umzinyathi.gov.za", "department": "Corporate Services", "assigned": "2025-08-14", "seat": "User"},
-            {"name": "S. Dlamini", "email": "sdlamini@umzinyathi.gov.za", "department": "IT Operations", "assigned": "2025-09-01", "seat": "User"},
-            {"name": "J. Botha", "email": "jbotha@umzinyathi.gov.za", "department": "Technical Services", "assigned": "2025-10-02", "seat": "User"},
-            {"name": "N. Naidoo", "email": "nnaidoo@umzinyathi.gov.za", "department": "Engineering", "assigned": "2026-01-12", "seat": "User"},
+            {"name": "K. Zulu", "email": "kzulu@example.com", "department": "Finance", "assigned": "2025-08-14", "seat": "User"},
+            {"name": "L. Mokoena", "email": "lmokoena@example.com", "department": "Corporate Services", "assigned": "2025-08-14", "seat": "User"},
+            {"name": "S. Dlamini", "email": "sdlamini@example.com", "department": "IT Operations", "assigned": "2025-09-01", "seat": "User"},
+            {"name": "J. Botha", "email": "jbotha@example.com", "department": "Technical Services", "assigned": "2025-10-02", "seat": "User"},
+            {"name": "N. Naidoo", "email": "nnaidoo@example.com", "department": "Engineering", "assigned": "2026-01-12", "seat": "User"},
         ],
         2: [
-            {"name": "Finance Desk", "email": "finance@umzinyathi.gov.za", "department": "Finance", "assigned": "2025-11-05", "seat": "Shared"},
-            {"name": "SCM Office", "email": "scm@umzinyathi.gov.za", "department": "Finance", "assigned": "2025-11-05", "seat": "Shared"},
-            {"name": "K. Zulu", "email": "kzulu@umzinyathi.gov.za", "department": "Finance", "assigned": "2026-02-01", "seat": "User"},
+            {"name": "Finance Desk", "email": "finance@example.com", "department": "Finance", "assigned": "2025-11-05", "seat": "Shared"},
+            {"name": "SCM Office", "email": "scm@example.com", "department": "Finance", "assigned": "2025-11-05", "seat": "Shared"},
+            {"name": "K. Zulu", "email": "kzulu@example.com", "department": "Finance", "assigned": "2026-02-01", "seat": "User"},
         ],
         3: [
-            {"name": "N. Naidoo", "email": "nnaidoo@umzinyathi.gov.za", "department": "Engineering", "assigned": "2026-01-05", "seat": "Named"},
-            {"name": "T. Mthembu", "email": "tmthembu@umzinyathi.gov.za", "department": "Engineering", "assigned": "2026-01-05", "seat": "Named"},
+            {"name": "N. Naidoo", "email": "nnaidoo@example.com", "department": "Engineering", "assigned": "2026-01-05", "seat": "Named"},
+            {"name": "T. Mthembu", "email": "tmthembu@example.com", "department": "Engineering", "assigned": "2026-01-05", "seat": "Named"},
         ],
     }
     return samples.get(
         license_id,
         [
-            {"name": "IT Operations pool", "email": "itops@umzinyathi.gov.za", "department": "IT Operations", "assigned": "2025-01-01", "seat": "Pool"},
+            {"name": "IT Operations pool", "email": "itops@example.com", "department": "IT Operations", "assigned": "2025-01-01", "seat": "Pool"},
         ],
     )
 

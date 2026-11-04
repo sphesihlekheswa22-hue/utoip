@@ -229,7 +229,7 @@ ROLE_PERMISSIONS = {
         REPORTS_GENERATE,
     ],
 
-    # 5. Employee — municipal staff self-service (not IT department)
+    # 5. Employee — staff self-service (not IT department)
     "employee": [
         DASHBOARD_READ,
         COMPUTERS_READ,
@@ -259,6 +259,6 @@ ROLE_DESCRIPTIONS = {
     "admin": "IT Administrator — infrastructure and operations (no core settings or role design)",
     "operator": "Day-to-day operational tasks — backups, assets, maintenance, reports",
     "helpdesk": "Supports employees — tickets, KB, AI troubleshooting (no backup restore or asset management)",
-    "employee": "Municipal staff self-service — request IT support, view own devices and tickets",
+    "employee": "Employee self-service — request IT support, view own devices and tickets",
     "agent": "Machine identity for enrolled agents",
 }

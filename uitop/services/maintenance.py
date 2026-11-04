@@ -544,7 +544,7 @@ def create_plan(
 def seed_sample_maintenance(*, actor_id: int | None = None) -> int:
     if MaintenanceWorkOrder.query.count():
         return 0
-    admin = User.query.filter_by(email="admin@umzinyathi.gov.za").first()
+    admin = User.query.filter_by(is_super_admin=True).order_by(User.id.asc()).first()
     actor_id = actor_id or (admin.id if admin else None)
     server = Server.query.order_by(Server.id).first()
     computer = Computer.query.order_by(Computer.id).first()

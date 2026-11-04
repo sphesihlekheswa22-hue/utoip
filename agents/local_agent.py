@@ -204,7 +204,7 @@ def enroll_with_token(server: str, enroll_token: str) -> dict:
 
 def enroll_via_admin(server: str) -> dict:
     """Dev helper — creates a short-lived enrollment token using admin login."""
-    email = os.getenv("UITOP_ADMIN_EMAIL", "admin@umzinyathi.gov.za")
+    email = os.getenv("UITOP_ADMIN_EMAIL", "admin@example.com")
     password = os.getenv("UITOP_ADMIN_PASSWORD", "Admin@UITOP2026")
     print("No --token provided; creating enrollment token via admin login (dev only)…")
     login = http_json(

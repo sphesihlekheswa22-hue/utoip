@@ -84,7 +84,7 @@
       <div class="device-field"><dt>Edition</dt><dd>{{ server.os }}</dd></div>
       <div class="device-field"><dt>Kernel / Build</dt><dd>{% if server.os_family == 'Linux' %}5.15.0-105{% else %}20348.2402{% endif %}</dd></div>
       <div class="device-field"><dt>Architecture</dt><dd>x64</dd></div>
-      <div class="device-field"><dt>Domain</dt><dd>UMZINYATHI.LOCAL</dd></div>
+      <div class="device-field"><dt>Domain</dt><dd>CORP.LOCAL</dd></div>
       <div class="device-field"><dt>Last Boot</dt><dd>{{ server.uptime }} ago (approx.)</dd></div>
       <div class="device-field"><dt>Timezone</dt><dd>Africa/Johannesburg</dd></div>
     </dl>
@@ -185,7 +185,7 @@
       <table class="comp-table">
         <thead><tr><th>Name</th><th>Version</th><th>Publisher</th><th>Installed</th><th>Status</th></tr></thead>
         <tbody>
-          <tr><td>UITOP Server Agent</td><td>2.4.1</td><td>Umzinyathi IT</td><td>2026-04-12</td><td><span class="badge badge-success">OK</span></td></tr>
+          <tr><td>UITOP Server Agent</td><td>2.4.1</td><td>{{ org_name }} IT</td><td>2026-04-12</td><td><span class="badge badge-success">OK</span></td></tr>
           <tr><td>{% if server.os_family == 'Linux' %}containerd{% else %}IIS / .NET Hosting{% endif %}</td><td>1.7 / 8.0</td><td>Vendor</td><td>2025-11-01</td><td><span class="badge badge-success">OK</span></td></tr>
           <tr><td>Backup Agent</td><td>12.3</td><td>Veeam / native</td><td>2026-01-20</td><td><span class="badge badge-warning">Update</span></td></tr>
         </tbody>

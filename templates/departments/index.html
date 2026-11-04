@@ -5,7 +5,7 @@
 {% block page_title %}Departments{% endblock %}
 
 {% block content %}
-{% call page_header("Departments", "Manage departments across Umzinyathi IT operations.", "{{ url_for('modules.page', module='departments', page='create') }}", "Add Department", "fa-plus") %}{% endcall %}
+{% call page_header("Departments", "Manage departments across {{ org_name }} IT operations.", "{{ url_for('modules.page', module='departments', page='create') }}", "Add Department", "fa-plus") %}{% endcall %}
 
 <div class="kpi-grid">
   {{ kpi_card("Total", "128", "+3%", "default", "fa-building") }}

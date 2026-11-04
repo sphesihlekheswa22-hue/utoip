@@ -99,7 +99,7 @@ def main() -> int:
         import webview
 
         webview.create_window(
-            "Umzinyathi IT Operations Platform",
+            "UITOP — Unified IT Operations Platform",
             WINDOW_URL,
             width=1440,
             height=920,

@@ -730,12 +730,12 @@
 
 
 /* ============================================================
-   UITOP — Umzinyathi Command Center visual refinement
+   UITOP — {{ org_name }} Command Center visual refinement
    SAFE OVERRIDE LAYER
    Loaded last; does not change routes, data, permissions or JS.
    ============================================================ */
 
-/* Municipal operations canvas */
+/* Organizational operations canvas */
 body {
   background: #f4f8fa;
 }
@@ -747,7 +747,7 @@ body {
     #f5f8fa;
 }
 
-/* Stronger municipal topbar */
+/* Stronger organizational topbar */
 .uitop-topbar {
   background: rgba(255,255,255,.94);
   border-bottom-color: rgba(15,23,42,.07);
@@ -788,7 +788,7 @@ body {
   letter-spacing: .08em;
 }
 
-/* Dark Umzinyathi operations sidebar */
+/* Dark {{ org_name }} operations sidebar */
 [data-theme="dark"] .uitop-sidebar {
   background:
     radial-gradient(500px 420px at 0% 0%, rgba(20,184,166,.13), transparent 58%),

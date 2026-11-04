@@ -17,7 +17,7 @@ with app.app_context():
     print(calendar_kpis(ev))
 
 c = app.test_client()
-c.post("/login", data={"email": "admin@umzinyathi.gov.za", "password": "Admin@UITOP2026"})
+c.post("/login", data={"email": "admin@example.com", "password": "Admin@UITOP2026"})
 for path in ["/calendar/", "/calendar/?view=week", "/calendar/?view=agenda", "/calendar/?view=timeline"]:
     r = c.get(path)
     print(path, r.status_code, len(r.data))

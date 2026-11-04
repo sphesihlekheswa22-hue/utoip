@@ -5,7 +5,7 @@
 {% block page_title %}Roles{% endblock %}
 
 {% block content %}
-{% call page_header("Roles", "Manage roles across Umzinyathi IT operations.", "{{ url_for('modules.page', module='roles', page='create') }}", "Add Role", "fa-plus") %}{% endcall %}
+{% call page_header("Roles", "Manage roles across {{ org_name }} IT operations.", "{{ url_for('modules.page', module='roles', page='create') }}", "Add Role", "fa-plus") %}{% endcall %}
 
 <div class="kpi-grid">
   {{ kpi_card("Total", "128", "+3%", "default", "fa-shield-halved") }}

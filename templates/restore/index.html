@@ -5,7 +5,7 @@
 {% block page_title %}Restore Center{% endblock %}
 
 {% block content %}
-{% call page_header("Restore Center", "Manage restore center across Umzinyathi IT operations.", "{{ url_for('modules.page', module='restore', page='create') }}", "Add Restore Center", "fa-plus") %}{% endcall %}
+{% call page_header("Restore Center", "Manage restore center across {{ org_name }} IT operations.", "{{ url_for('modules.page', module='restore', page='create') }}", "Add Restore Center", "fa-plus") %}{% endcall %}
 
 <div class="kpi-grid">
   {{ kpi_card("Total", "128", "+3%", "default", "fa-rotate-left") }}

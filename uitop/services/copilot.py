@@ -669,8 +669,10 @@ def gather_context(query_text: str, intents: list[str]) -> dict:
 # OpenRouter / OpenAI call
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """You are the IT Copilot for Umzinyathi Municipality's IT Operations Platform (UITOP).
-You are an experienced municipal IT technician embedded in the platform — not a generic chatbot.
+def _system_prompt(org_name: str) -> str:
+    org = (org_name or "your organization").strip()
+    return f"""You are the IT Copilot for {org}'s Unified IT Operations Platform (UITOP).
+You are an experienced workplace IT specialist embedded in the platform — not a generic chatbot.
 
 You help with: dashboard intelligence, assets, backups, helpdesk, knowledge/files, monitoring,
 software/licenses, reports, analytics, audit, natural-language search, troubleshooting, and executive summaries.
@@ -686,6 +688,20 @@ Rules:
 - Decline unrelated or unauthorized actions (e.g. delete all users).
 - Keep answers focused on IT operations.
 """
+
+
+SYSTEM_PROMPT = _system_prompt("your organization")
+
+
+def _copilot_system_prompt() -> str:
+    try:
+        from uitop.core.branding import resolve_branding
+        from uitop.services.settings_view import get_category
+
+        org = resolve_branding(get_category("general")).get("org_name") or "your organization"
+    except Exception:
+        org = "your organization"
+    return _system_prompt(org)
 
 
 def ask_copilot(question: str, history: list[dict], context: dict) -> str:
@@ -720,7 +736,7 @@ def ask_copilot(question: str, history: list[dict], context: dict) -> str:
             else "\n\n[LIVE DATABASE CONTEXT]\n{}\n[END CONTEXT]\n"
         )
 
-        messages = [{"role": "system", "content": SYSTEM_PROMPT + context_block}]
+        messages = [{"role": "system", "content": _copilot_system_prompt() + context_block}]
         for msg in history[-10:]:
             messages.append({"role": msg["role"], "content": msg["content"]})
         messages.append({"role": "user", "content": question})

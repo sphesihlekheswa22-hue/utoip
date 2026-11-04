@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-{% call page_header("Knowledge Base", "Manage knowledge base across Umzinyathi IT operations.", "{{ url_for('modules.page', module='knowledge', page='create') }}", "Add Knowledge Base", "fa-plus") %}{% endcall %}
+{% call page_header("Knowledge Base", "Manage knowledge base across {{ org_name }} IT operations.", "{{ url_for('modules.page', module='knowledge', page='create') }}", "Add Knowledge Base", "fa-plus") %}{% endcall %}
 
 <div class="knowledge-intro">
   <div class="knowledge-intro__copy"><strong>IT Knowledge Centre</strong><p>Central reference for procedures, operational guidance, troubleshooting and support knowledge.</p></div>

@@ -400,7 +400,7 @@
   {% elif view == 'audit' %}
   <section class="sw-panel">
     <h2 class="chart-panel-title">Audit &amp; compliance reports</h2>
-    <p class="rp-muted">For municipal audits — logins, permission changes, deletions, configuration, and security events.</p>
+    <p class="rp-muted">For organizational audits — logins, permission changes, deletions, configuration, and security events.</p>
     <div class="rp-audit-grid" style="margin-top:12px;">
       {% for a in payload.audit_reports %}
       <a class="rp-audit-card" href="{{ url_for('reports.preview', type=a.type_id) }}">

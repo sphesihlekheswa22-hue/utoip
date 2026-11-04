@@ -39,7 +39,7 @@ ATTACH_CATEGORIES = list(ATTACHMENT_CATEGORIES)
 WORKSPACE_CATS = list(WORKSPACE_CATEGORIES)
 
 CATEGORY_META = {
-    "Policies": {"icon": "fa-gavel", "hint": "IT and municipal policies"},
+    "Policies": {"icon": "fa-gavel", "hint": "IT and organizational policies"},
     "Procedures": {"icon": "fa-list-check", "hint": "SOPs and runbooks"},
     "Infrastructure": {"icon": "fa-building", "hint": "Diagrams and estate docs"},
     "Network": {"icon": "fa-network-wired", "hint": "Topology and addressing"},
@@ -973,7 +973,7 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
             "size": 2_400_000,
             "shared": True,
             "tags": ["network", "architecture", "vlan"],
-            "description": "Umzinyathi municipal network architecture overview.",
+            "description": "the organization organizational network architecture overview.",
             "links": [("server", server.id if server else 1)],
             "versions": 4,
             "version_label": "4.2",
@@ -1136,7 +1136,7 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
             "size": 310_000,
             "shared": False,
             "tags": ["security", "policy", "popia"],
-            "description": "Draft municipal IT password policy awaiting approval.",
+            "description": "Draft organizational IT password policy awaiting approval.",
             "links": [],
             "versions": 2,
         },
@@ -1236,7 +1236,7 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
             "size": 5_100_000,
             "shared": True,
             "tags": ["dr", "critical", "documentation"],
-            "description": "Municipal ICT disaster recovery runbook.",
+            "description": "Organizational ICT disaster recovery runbook.",
             "links": [],
             "versions": 5,
             "version_label": "5.0",

@@ -371,7 +371,7 @@ def requests() -> list[dict]:
             "software_id": None,
             "requester": "S. Dlamini",
             "department": "IT Operations",
-            "justification": "Standard IDE for municipal scripts — not yet in catalog.",
+            "justification": "Standard IDE for organizational scripts — not yet in catalog.",
             "status": "Approved",
             "requested": "3 days ago",
         },

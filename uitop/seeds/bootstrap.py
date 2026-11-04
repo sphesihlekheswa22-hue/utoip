@@ -3,6 +3,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from uitop.core.branding import (
+    DEFAULT_ADMIN_PASSWORD as _DEFAULT_ADMIN_PASSWORD,
+    admin_email_from_env,
+    org_email,
+)
 from uitop.core.permissions import ALL_PERMISSIONS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS
 from uitop.core.security import hash_password
 from uitop.extensions import db
@@ -12,15 +17,16 @@ from uitop.models.role import Permission, Role
 from uitop.models.user import User
 
 
-DEFAULT_ADMIN_EMAIL = "admin@umzinyathi.gov.za"
-DEFAULT_ADMIN_PASSWORD = "Admin@UITOP2026"
-DEFAULT_ADMIN_NAME = "Thandi Nkosi"
+DEFAULT_ADMIN_EMAIL = admin_email_from_env()
+DEFAULT_ADMIN_PASSWORD = _DEFAULT_ADMIN_PASSWORD
+DEFAULT_ADMIN_NAME = "Platform Administrator"
 
 DEFAULT_DEPARTMENTS = [
-    ("IT Operations", "IT", "Municipal ICT operations"),
-    ("Corporate Services", "CORP", "Corporate services"),
-    ("Finance", "FIN", "Budget and finance"),
-    ("Technical Services", "TECH", "Technical services"),
+    ("IT Operations", "IT", "Technology operations and service delivery"),
+    ("Corporate Services", "CORP", "HR, administration, and shared services"),
+    ("Finance", "FIN", "Finance and procurement"),
+    ("Technical Services", "TECH", "Facilities and field operations"),
+    ("Engineering", "ENG", "Engineering and product teams"),
 ]
 
 
@@ -117,22 +123,22 @@ DEFAULT_DEMO_PASSWORD = "Demo@UITOP2026"
 
 # (full_name, email, role_name, dept_code, is_active)
 SAMPLE_USERS = [
-    ("Sipho Dlamini", "sipho.dlamini@umzinyathi.gov.za", "admin", "IT", True),
-    ("Lerato Molefe", "lerato.molefe@umzinyathi.gov.za", "operator", "IT", True),
-    ("Johan Botha", "johan.botha@umzinyathi.gov.za", "helpdesk", "IT", True),
-    ("Nomsa Khumalo", "nomsa.khumalo@umzinyathi.gov.za", "helpdesk", "CORP", True),
-    ("Pieter van Wyk", "pieter.vanwyk@umzinyathi.gov.za", "operator", "TECH", True),
-    ("Fatima Hassan", "fatima.hassan@umzinyathi.gov.za", "employee", "FIN", True),
-    ("Ayanda Ndlovu", "ayanda.ndlovu@umzinyathi.gov.za", "employee", "CORP", True),
-    ("Michael Cele", "michael.cele@umzinyathi.gov.za", "admin", "IT", True),
-    ("Grace Mthembu", "grace.mthembu@umzinyathi.gov.za", "helpdesk", "FIN", True),
-    ("Sarah Finance", "sarah.finance@umzinyathi.gov.za", "employee", "FIN", True),
-    ("Inactive Demo", "inactive.user@umzinyathi.gov.za", "employee", "CORP", False),
+    ("Sipho Dlamini", org_email("sipho.dlamini"), "admin", "IT", True),
+    ("Lerato Molefe", org_email("lerato.molefe"), "operator", "IT", True),
+    ("Johan Botha", org_email("johan.botha"), "helpdesk", "IT", True),
+    ("Nomsa Khumalo", org_email("nomsa.khumalo"), "helpdesk", "CORP", True),
+    ("Pieter van Wyk", org_email("pieter.vanwyk"), "operator", "TECH", True),
+    ("Fatima Hassan", org_email("fatima.hassan"), "employee", "FIN", True),
+    ("Ayanda Ndlovu", org_email("ayanda.ndlovu"), "employee", "CORP", True),
+    ("Michael Cele", org_email("michael.cele"), "admin", "IT", True),
+    ("Grace Mthembu", org_email("grace.mthembu"), "helpdesk", "FIN", True),
+    ("Sarah Finance", org_email("sarah.finance"), "employee", "FIN", True),
+    ("Inactive Demo", org_email("inactive.user"), "employee", "CORP", False),
 ]
 
 
 def seed_sample_users(roles: dict[str, Role], *, password: str | None = None) -> list[User]:
-    """Create municipal demo staff across roles/departments (idempotent by email)."""
+    """Create demo staff across roles and departments (idempotent by email)."""
     password = password or DEFAULT_DEMO_PASSWORD
     pwd_hash = hash_password(password)
     depts = {d.code: d for d in Department.query.all()}

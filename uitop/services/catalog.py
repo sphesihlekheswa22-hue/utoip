@@ -8,7 +8,7 @@ CATALOG_ITEMS: list[dict] = [
     {
         "key": "new_laptop",
         "name": "New Laptop",
-        "summary": "Request a new laptop for municipal work.",
+        "summary": "Request a new laptop for organizational work.",
         "description": "Submit a justified request for a laptop. Helpdesk reviews; IT fulfills after approval.",
         "category": "Hardware",
         "icon": "laptop",
@@ -79,7 +79,7 @@ CATALOG_ITEMS: list[dict] = [
     {
         "key": "vpn_access",
         "name": "VPN Access",
-        "summary": "Remote access to municipal systems.",
+        "summary": "Remote access to organizational systems.",
         "description": "Request VPN for remote work. Helpdesk verifies eligibility and configures access.",
         "category": "Access",
         "icon": "shield-halved",
@@ -93,8 +93,8 @@ CATALOG_ITEMS: list[dict] = [
     {
         "key": "email_account",
         "name": "Email Account",
-        "summary": "New municipal email mailbox.",
-        "description": "Request a new @umzinyathi.gov.za mailbox or shared mailbox.",
+        "summary": "New organizational email mailbox.",
+        "description": "Request a new @example.com mailbox or shared mailbox.",
         "category": "Account",
         "icon": "envelope",
         "workflow_key": "service_request",

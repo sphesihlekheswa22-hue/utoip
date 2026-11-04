@@ -168,7 +168,7 @@ def session_role_keys() -> list[str]:
 
 
 def is_employee_session() -> bool:
-    """True when the user is municipal staff self-service (not IT ops roles)."""
+    """True when the user is an employee self-service account (not IT ops roles)."""
     if is_super_admin_session():
         return False
     keys = set(session_role_keys())

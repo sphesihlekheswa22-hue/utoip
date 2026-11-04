@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """UITOP Site Connector — scans the local LAN and pushes results to cloud UITOP.
 
-Run on one always-on PC inside the municipality network (not on Render).
+Run on one always-on PC inside the organization network (not on Render).
 
 First-time enroll:
   python site_connector.py --server https://your-app.onrender.com --token enroll_xxx --site "HQ"

@@ -1,6 +1,14 @@
-# Umzinyathi IT Operations Platform (UITOP)
+# UITOP — Unified IT Operations Platform
 
 Enterprise IT operations platform: Flask + Jinja2 UI with a versioned JWT REST API under `/api/v1`.
+
+## Organization branding
+
+Set your company name and email domain via **Settings → General** in the admin UI, or environment variables before first seed:
+
+- `ORG_NAME` — display name (e.g. Acme Corporation)
+- `ORG_EMAIL_DOMAIN` — default email domain for demo accounts (e.g. `acme.com`)
+- `UITOP_ADMIN_EMAIL` — optional override for the seeded super-admin login
 
 ## Quick start
 
@@ -22,7 +30,7 @@ Open http://127.0.0.1:5500/login
 
 | Field | Value |
 |-------|-------|
-| Email | `admin@umzinyathi.gov.za` |
+| Email | `admin@example.com` |
 | Password | `Admin@UITOP2026` |
 
 Change this password before any non-local deployment.
@@ -40,7 +48,7 @@ Error envelope: `{ "error": { "code", "message", "details" } }`
 # Login
 curl -s -X POST http://127.0.0.1:5500/api/v1/auth/login ^
   -H "Content-Type: application/json" ^
-  -d "{\"email\":\"admin@umzinyathi.gov.za\",\"password\":\"Admin@UITOP2026\"}"
+  -d "{\"email\":\"admin@example.com\",\"password\":\"Admin@UITOP2026\"}"
 
 # Current user
 curl -s http://127.0.0.1:5500/api/v1/auth/me -H "Authorization: Bearer <access_token>"
@@ -127,4 +135,4 @@ gunicorn -w 4 -b 0.0.0.0:5500 wsgi:app
 
 ## Design
 
-Light-first municipal teal theme (Plus Jakarta Sans), dark mode toggle, Chart.js dashboards, reusable KPI/table/form macros. Inventory modules use agent/discovery workflows (no manual Add forms).
+Light-first organizational teal theme (Plus Jakarta Sans), dark mode toggle, Chart.js dashboards, reusable KPI/table/form macros. Inventory modules use agent/discovery workflows (no manual Add forms).

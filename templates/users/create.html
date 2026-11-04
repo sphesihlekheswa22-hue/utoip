@@ -43,7 +43,7 @@
             <span class="uf-section-num">1</span>
             <div>
               <h2>Identity</h2>
-              <p>Name and municipal email for sign-in.</p>
+              <p>Name and organizational email for sign-in.</p>
             </div>
           </div>
           <div class="uf-section-body">
@@ -54,7 +54,7 @@
             <div class="uf-field-row">
               <div class="uf-field">
                 <span class="uf-field-label">Email <span class="req">*</span></span>
-                <input name="email" type="email" required autocomplete="email" placeholder="name@umzinyathi.gov.za" />
+                <input name="email" type="email" required autocomplete="email" placeholder="name@{{ org_email_domain }}" />
               </div>
               <div class="uf-field">
                 <span class="uf-field-label">Temporary password <span class="req">*</span></span>
@@ -123,7 +123,7 @@
       <div class="uf-side-card">
         <h3>Before you save</h3>
         <ul>
-          <li><i class="fas fa-at"></i> Use an @umzinyathi.gov.za address when possible.</li>
+          <li><i class="fas fa-at"></i> Use an @{{ org_email_domain }} address when possible.</li>
           <li><i class="fas fa-key"></i> Never reuse a shared password across staff.</li>
           <li><i class="fas fa-users"></i> Super Admin is rare — prefer Admin for most IT leads.</li>
         </ul>

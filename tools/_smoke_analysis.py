@@ -12,7 +12,7 @@ with app.app_context():
     print("insights", len(p["ai_insights"]), "forecasts", len(p["forecasts"]))
 
 c = app.test_client()
-c.post("/login", data={"email": "admin@umzinyathi.gov.za", "password": "Admin@UITOP2026"})
+c.post("/login", data={"email": "admin@example.com", "password": "Admin@UITOP2026"})
 for path in [
     "/analysis/",
     "/analysis/?view=infrastructure",

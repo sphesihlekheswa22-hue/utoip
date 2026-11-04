@@ -77,10 +77,10 @@ function serverAgent() {
   return {
     token: "uitop_srv_A91C-UMZ-2026",
     get psCmd() {
-      return "irm https://uitop.umzinyathi.gov.za/agent/server/install.ps1 | iex; Install-UitopServerAgent -Token '" + this.token + "' -Silent";
+      return "irm https://uitop.{{ org_email_domain }}/agent/server/install.ps1 | iex; Install-UitopServerAgent -Token '" + this.token + "' -Silent";
     },
     get bashCmd() {
-      return "curl -fsSL https://uitop.umzinyathi.gov.za/agent/server/install.sh | sudo bash -s -- --token " + this.token;
+      return "curl -fsSL https://uitop.{{ org_email_domain }}/agent/server/install.sh | sudo bash -s -- --token " + this.token;
     },
     get msiCmd() {
       return "msiexec /i UITOPServerAgent.msi /qn REGISTRATION_TOKEN=" + this.token + " ROLE=server";

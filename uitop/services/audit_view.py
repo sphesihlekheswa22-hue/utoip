@@ -234,7 +234,7 @@ def ensure_sample_events(*, actor_id: int | None = None) -> int:
 
     samples = [
         ("auth.login", "user", actor_id, {"result": "Success"}),
-        ("auth.login_failed", "authentication", None, {"result": "Failed", "severity": "high", "email": "jsmith@umzinyathi.gov.za"}),
+        ("auth.login_failed", "authentication", None, {"result": "Failed", "severity": "high", "email": "jsmith@example.com"}),
         ("users.create", "user", actor_id, {"result": "Success"}),
         ("helpdesk.close", "ticket", "1024", {"result": "Success", "ticket": "HD-1024"}),
         ("remote.restart", "computer", "PC-101", {"result": "Success", "severity": "high", "reason": "Printer troubleshooting", "agent_version": "1.0.0"}),

@@ -80,8 +80,9 @@
             <label for="f-{{ key }}">{{ key.replace('_', ' ')|title }}</label>
             {% if key == 'timezone' %}
             <select id="f-{{ key }}" name="{{ key }}">
-              <option value="Africa/Johannesburg" {% if val == 'Africa/Johannesburg' %}selected{% endif %}>Africa/Johannesburg</option>
-              <option value="UTC" {% if val == 'UTC' %}selected{% endif %}>UTC</option>
+              {% for tz in ['UTC', 'Africa/Johannesburg', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'Asia/Singapore', 'Australia/Sydney'] %}
+              <option value="{{ tz }}" {% if val == tz %}selected{% endif %}>{{ tz }}</option>
+              {% endfor %}
             </select>
             {% elif key == 'smtp_encryption' %}
             <select id="f-{{ key }}" name="{{ key }}">

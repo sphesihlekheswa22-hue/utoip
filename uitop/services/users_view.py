@@ -44,7 +44,7 @@ ROLE_LABELS = {
 
 ENTERPRISE_ROLE_CATALOG = [
     {"key": "super_admin", "name": "Super Admin", "desc": "Full platform access"},
-    {"key": "admin", "name": "IT Administrator", "desc": "Municipal IT administration"},
+    {"key": "admin", "name": "IT Administrator", "desc": "Organizational IT administration"},
     {"key": "network_admin", "name": "Network Administrator", "desc": "Network devices and availability"},
     {"key": "systems_admin", "name": "Systems Administrator", "desc": "Servers and infrastructure"},
     {"key": "helpdesk_manager", "name": "Help Desk Manager", "desc": "Ticket queues and SLA"},
@@ -240,7 +240,7 @@ def user_documents(user_id: int) -> list[dict]:
 
 def user_software_hint(user_id: int) -> list[dict]:
     """Demo / derived software availability for the profile (catalog snapshot)."""
-    # Prefer licenses or installed software later; for now show common municipal suite
+    # Prefer licenses or installed software later; for now show common organizational suite
     base = [
         {"name": "Microsoft 365", "status": "Assigned"},
         {"name": "Microsoft Teams", "status": "Assigned"},
@@ -528,21 +528,21 @@ def audit_rows(limit: int = 40) -> list[dict]:
 def invitations() -> list[dict]:
     return [
         {
-            "email": "new.hire@umzinyathi.gov.za",
+            "email": "new.hire@example.com",
             "role": "Employee",
             "department": "Corporate Services",
             "status": "Pending",
             "sent": "2026-07-20",
         },
         {
-            "email": "contractor.it@umzinyathi.gov.za",
+            "email": "contractor.it@example.com",
             "role": "Technician",
             "department": "IT",
             "status": "Accepted",
             "sent": "2026-07-12",
         },
         {
-            "email": "auditor@umzinyathi.gov.za",
+            "email": "auditor@example.com",
             "role": "Auditor",
             "department": "Office of the MM",
             "status": "Expired",

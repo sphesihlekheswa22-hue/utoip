@@ -1,17 +1,17 @@
 # UITOP Software Requirements Specification
 
-**System:** Umzinyathi IT Operations Platform (UITOP)
+**System:** UITOP — Unified IT Operations Platform
 **Document type:** Functional and non-functional requirements baseline
 **Status:** As-is requirements with implementation status and target gaps
 **Audience:** Product owner, IT operations, engineering, QA, security, and deployment teams
 
-> This document describes the capabilities currently present in the UITOP codebase and the quality attributes required for a supported municipal deployment. `Implemented` means the behavior exists in code; `Partial` means a UI or service exists but depends on mock data, stubs, or incomplete enforcement; `Not implemented` means the capability is planned or represented only by a page.
+> This document describes the capabilities currently present in the UITOP codebase and the quality attributes required for a supported organizational deployment. `Implemented` means the behavior exists in code; `Partial` means a UI or service exists but depends on mock data, stubs, or incomplete enforcement; `Not implemented` means the capability is planned or represented only by a page.
 
 ---
 
 ## 1. Purpose and scope
 
-UITOP is a web and desktop IT operations platform for the Umzinyathi Municipality. It provides:
+UITOP is a web and desktop IT operations platform for the your organization. It provides:
 
 - IT infrastructure inventory and monitoring for computers, servers, network devices, and printers.
 - Windows agent enrollment, telemetry, and remote command workflows.
@@ -41,7 +41,7 @@ UITOP is a web and desktop IT operations platform for the Umzinyathi Municipalit
 | IT Administrator | Infrastructure and operations lead | Manage infrastructure, assets, support, maintenance, reports, agents, connectors |
 | Operator | Day-to-day IT operator | Operate inventory, assets, tickets, maintenance, backups, reports |
 | Helpdesk | Support agent | Manage tickets, knowledge base, troubleshooting, read-only operational context |
-| Employee | Municipal staff member | Self-service, own devices, own tickets, service requests, documents, workspace |
+| Employee | Organizational staff member | Self-service, own devices, own tickets, service requests, documents, workspace |
 | Agent | Enrolled machine identity | Submit inventory, heartbeat, performance, events, and alerts |
 | Site Connector | On-premises LAN scanner | Submit network and printer discovery data to a cloud-hosted platform |
 | IT Copilot | Assisted user | Ask permission-aware operational questions and receive data-backed guidance |
@@ -477,7 +477,7 @@ The Copilot shall:
 6. Provide a global assistant entry point from the application shell.
 7. Return a safe, deterministic fallback when no model is configured.
 
-Live data sent to an external model provider must be reviewed against municipal privacy and information-governance requirements.
+Live data sent to an external model provider must be reviewed against organizational privacy and information-governance requirements.
 
 **Evidence:** `routes/ai.py`, `uitop/services/copilot.py`, `static/js/ai.js`, `.env.example`.
 
@@ -631,7 +631,7 @@ The system shall:
 6. Provide a documented production WSGI deployment command.
 7. Provide a real backup and restore process for the platform database and file repository.
 8. Provide readiness/liveness checks that verify application and database availability.
-9. Define a recovery point objective (RPO) and recovery time objective (RTO) for municipal operations.
+9. Define a recovery point objective (RPO) and recovery time objective (RTO) for organizational operations.
 
 The current backup/restore module is a UI simulation, and no high-availability or disaster-recovery implementation exists.
 
@@ -718,7 +718,7 @@ The system shall:
 5. Support a documented fallback when `pywebview` is not installed.
 6. Support cloud deployment where an on-premises site connector bridges LAN discovery.
 
-Third-party CDN assets (fonts, Font Awesome, Chart.js) shall be either locally bundled or protected by an explicit availability and integrity policy for air-gapped municipal networks.
+Third-party CDN assets (fonts, Font Awesome, Chart.js) shall be either locally bundled or protected by an explicit availability and integrity policy for air-gapped organizational networks.
 
 **Evidence:** `desktop_app.py`, `agents/`, `templates/layouts/base.html`, `requirements.txt`, `requirements-desktop.txt`.
 
@@ -777,7 +777,7 @@ The system shall:
 4. Enforce upload and per-user workspace limits.
 5. Maintain activity and version history for controlled documents and files.
 6. Define retention and archival periods for audit, telemetry, events, alerts, files, and backups.
-7. Define data-subject access, correction, and deletion procedures appropriate to POPIA and municipal policy.
+7. Define data-subject access, correction, and deletion procedures appropriate to POPIA and organizational policy.
 8. Provide an exportable, restorable copy of the platform database and file repository.
 
 The current system implements versioning and soft deletion for some files, but not a complete retention, archival, or data-subject erasure policy.
@@ -851,7 +851,7 @@ The baseline data model covers:
 
 # 6. Current implementation gaps and priorities
 
-The following items should be treated as release blockers or high-priority roadmap work before a production municipal rollout.
+The following items should be treated as release blockers or high-priority roadmap work before a production organizational rollout.
 
 ## P0 — Security and data protection
 

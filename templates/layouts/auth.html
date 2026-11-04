@@ -31,19 +31,19 @@
       <div class="auth-brand-content">
         <div class="auth-logo-lockup">
           <img src="{{ url_for('static', filename='images/logo.png') }}"
-               alt="UITOP — Umzinyathi IT Operations Platform"
+               alt="{{ app_title }}"
                class="auth-premium-logo" />
           <div class="auth-lockup-divider"></div>
           <div class="auth-lockup-copy">
-            <strong>UMZINYATHI IT OPERATIONS PLATFORM</strong>
-            <span>Powering Operations. Strengthening Umzinyathi.</span>
+            <strong>{{ app_name }} — {{ app_tagline|upper }}</strong>
+            <span>{{ app_tagline }} for {{ org_name }}</span>
           </div>
         </div>
 
         <div class="auth-hero-copy">
-          <div class="auth-eyebrow"><span></span> MUNICIPAL OPERATIONS PLATFORM</div>
-          <h1>Smart Operations<br>for a Better <em>Umzinyathi</em></h1>
-          <p>A unified platform to manage assets, support services, requests and operations across the municipality.</p>
+          <div class="auth-eyebrow"><span></span> {{ app_tagline|upper }}</div>
+          <h1>Workplace IT operations<br>for <em>{{ org_name }}</em></h1>
+          <p>A unified platform to manage assets, support services, requests and operations across the organization.</p>
         </div>
 
         <div class="auth-feature-grid" aria-label="UITOP capabilities">
@@ -67,13 +67,13 @@
           <span><i class="fa-solid fa-chart-simple"></i> Efficient</span>
         </div>
       </div>
-      <p class="auth-brand-credit">Umzinyathi Municipality · IT Department</p>
+      <p class="auth-brand-credit">{{ org_footer_line }}</p>
     </aside>
 
     <main class="auth-form-pane">
       <div class="auth-form-wrap">
         {% block content %}{% endblock %}
-        <p class="auth-footnote">&copy; <span id="uitop-year">2026</span> Umzinyathi Municipality</p>
+        <p class="auth-footnote">&copy; <span id="uitop-year">2026</span> {{ org_name }}</p>
       </div>
     </main>
   </div>

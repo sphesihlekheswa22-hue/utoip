@@ -216,9 +216,19 @@ def _register_context(app: Flask) -> None:
             except Exception:
                 unread_notifications = 0
 
+        branding = {}
+        try:
+            from uitop.core.branding import resolve_branding
+            from uitop.services.settings_view import get_category
+
+            branding = resolve_branding(get_category("general"))
+        except Exception:
+            from uitop.core.branding import resolve_branding
+
+            branding = resolve_branding(None)
+
         return {
-            "app_name": "UITOP",
-            "org_name": "Umzinyathi Municipality",
+            **branding,
             "demo_user": user,
             "current_user": user,
             "is_authenticated": bool(session.get("user_id")),

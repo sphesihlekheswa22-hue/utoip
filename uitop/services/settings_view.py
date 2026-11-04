@@ -17,8 +17,12 @@ def utcnow() -> datetime:
 
 DEFAULTS: dict[str, dict] = {
     "general": {
-        "org_name": "Umzinyathi District Municipality",
-        "timezone": "Africa/Johannesburg",
+        "org_name": "Demo Organization",
+        "org_tagline": "Unified IT Operations Platform",
+        "org_email_domain": "example.com",
+        "org_portal_subtitle": "People · Technology · Service Delivery",
+        "org_footer_line": "",
+        "timezone": "UTC",
         "language": "English",
         "date_format": "DD/MM/YYYY",
         "logo_url": "",
@@ -35,7 +39,7 @@ DEFAULTS: dict[str, dict] = {
         "smtp_host": "smtp.office365.com",
         "smtp_port": 587,
         "smtp_encryption": "TLS",
-        "smtp_username": "uitop@umzinyathi.gov.za",
+        "smtp_username": "uitop@example.com",
         "smtp_password_set": False,
         "status": "Connected",
     },
@@ -81,7 +85,7 @@ DEFAULTS: dict[str, dict] = {
     },
     "appearance": {
         "theme": "light",
-        "primary_color": "Municipal Teal",
+        "primary_color": "UITOP Teal",
         "dashboard_layout": "expanded",
     },
     "system": {
@@ -94,7 +98,7 @@ DEFAULTS: dict[str, dict] = {
 
 CATEGORIES = [
     ("general", "General", "Organization name, timezone, language"),
-    ("organization", "Organization", "Municipal profile and branding"),
+    ("organization", "Organization", "Company profile, tagline, and branding"),
     ("security", "Security", "Password policy, MFA, lockout"),
     ("authentication", "Authentication", "Sessions and sign-in rules"),
     ("email", "Email / SMTP", "Outbound mail configuration"),

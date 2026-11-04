@@ -770,7 +770,7 @@ def ensure_itsm_demo() -> int:
                 changed += 1
 
     if not Ticket.query.filter_by(ticket_type="problem").count():
-        admin = User.query.filter_by(email="admin@umzinyathi.gov.za").first()
+        admin = User.query.filter_by(is_super_admin=True).order_by(User.id.asc()).first()
         actor_id = admin.id if admin else None
         printer = Printer.query.order_by(Printer.id).first()
         problem = create_ticket(
@@ -807,7 +807,7 @@ def seed_sample_tickets() -> int:
     """Create demo ITSM tickets if the queue is empty."""
     if Ticket.query.count():
         return 0
-    admin = User.query.filter_by(email="admin@umzinyathi.gov.za").first()
+    admin = User.query.filter_by(is_super_admin=True).order_by(User.id.asc()).first()
     actor_id = admin.id if admin else None
     computer = Computer.query.order_by(Computer.id).first()
     printer = Printer.query.order_by(Printer.id).first()
@@ -873,7 +873,7 @@ def seed_sample_tickets() -> int:
             "linked_id": computer.id if computer else None,
         },
         {
-            "subject": "Reset MFA for municipal email",
+            "subject": "Reset MFA for organizational email",
             "description": "User lost phone; needs MFA reset for Exchange Online.",
             "priority": "high",
             "category": "account",

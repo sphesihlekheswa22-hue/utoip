@@ -1,4 +1,4 @@
-# UITOP Site Connector installer (run on an always-on PC on the municipality LAN)
+# UITOP Site Connector installer (run on an always-on PC on the organization LAN)
 #
 # Usage:
 #   irm https://YOUR-APP.onrender.com/network/site-connector/install.ps1 | iex

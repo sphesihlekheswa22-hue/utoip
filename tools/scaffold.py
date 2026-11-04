@@ -73,10 +73,10 @@ MODULES = {
         ],
         "columns": ["Name", "Email", "Role", "Department", "Status", "Last login"],
         "rows": [
-            ["Thandi Nkosi", "admin@umzinyathi.gov.za", "Super Admin", "IT", "Active", "Today"],
-            ["Sipho Dlamini", "sipho.d@umzinyathi.gov.za", "Help Desk", "IT", "Active", "Today"],
-            ["Lerato Mokoena", "lerato.m@umzinyathi.gov.za", "Dept Manager", "HR", "Active", "Yesterday"],
-            ["Johan Botha", "j.botha@umzinyathi.gov.za", "Infra Eng", "IT", "Locked", "5 days ago"],
+            ["Thandi Nkosi", "admin@example.com", "Super Admin", "IT", "Active", "Today"],
+            ["Sipho Dlamini", "sipho.d@example.com", "Help Desk", "IT", "Active", "Today"],
+            ["Lerato Mokoena", "lerato.m@example.com", "Dept Manager", "HR", "Active", "Yesterday"],
+            ["Johan Botha", "j.botha@example.com", "Infra Eng", "IT", "Locked", "5 days ago"],
         ],
     },
     "servers": {
@@ -430,7 +430,7 @@ def write_module(key, meta, dedicated_route=True):
             content = INDEX_TMPL.format(
                 title=title,
                 title_lower=title.lower(),
-                subtitle=f"Manage {title.lower()} across Umzinyathi IT operations.",
+                subtitle=f"Manage {title.lower()} across the organization IT operations.",
                 create_href=create_href if "create" in pages else index_href,
                 singular=singular,
                 icon="fa-plus",

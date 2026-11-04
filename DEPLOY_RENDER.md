@@ -10,7 +10,7 @@ Repository: [sphesihlekheswa22-hue/utoip](https://github.com/sphesihlekheswa22-h
 4. First deploy runs **migrations and seed automatically** when gunicorn loads `wsgi.py` (`BOOTSTRAP_DB=true`, `--preload`).
 
 5. Log in at `https://<your-service>.onrender.com/login`  
-   Default admin: `admin@umzinyathi.gov.za` / `Admin@UITOP2026` — **change immediately**.
+   Default admin: `admin@example.com` / `Admin@UITOP2026` — **change immediately**.
 
    To re-seed manually (paid Shell or local with production `DATABASE_URL`): `flask seed`
 

@@ -164,7 +164,7 @@ ntp server 10.12.0.11
       <div class="device-field"><dt>sysDescr</dt><dd>{{ device.manufacturer }} {{ device.model }} · {{ device.firmware }}</dd></div>
       <div class="device-field"><dt>sysObjectID</dt><dd>1.3.6.1.4.1.{{ 9 if device.manufacturer == 'Cisco' else 12356 }}.1</dd></div>
       <div class="device-field"><dt>sysUpTime</dt><dd>{{ device.uptime }}</dd></div>
-      <div class="device-field"><dt>sysContact</dt><dd>itops@umzinyathi.gov.za</dd></div>
+      <div class="device-field"><dt>sysContact</dt><dd>itops@{{ org_email_domain }}</dd></div>
       <div class="device-field"><dt>sysLocation</dt><dd>{{ device.location }}</dd></div>
       <div class="device-field"><dt>Profile</dt><dd>HQ Read-Only (v2c)</dd></div>
       <div class="device-field"><dt>Last successful poll</dt><dd>{{ device.last_seen }}</dd></div>
