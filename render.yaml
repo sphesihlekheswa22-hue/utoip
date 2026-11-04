@@ -7,15 +7,15 @@ services:
     plan: free
     # Web app region (EU). Postgres is `oregon` below — app expands internal DB host via RENDER_PG_REGION.
     region: frankfurt
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --preload
-    healthCheckPath: /login
+    buildCommand: pip install -r requirements.txt && flask db upgrade && python scripts/seed_if_empty.py
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --timeout 180
+    healthCheckPath: /healthz
     envVars:
       - key: FLASK_APP
         value: app:app
       - key: FLASK_ENV
         value: production
-      - key: BOOTSTRAP_DB
+      - key: RENDER_LIGHT_SEED
         value: "true"
       - key: RENDER_PG_REGION
         value: oregon

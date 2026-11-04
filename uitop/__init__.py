@@ -39,8 +39,16 @@ def create_app(config_name: str | None = None) -> Flask:
     _register_error_handlers(app)
     _register_cli(app)
     _register_context(app)
+    _register_health_route(app)
 
     return app
+
+
+def _register_health_route(app: Flask) -> None:
+    @app.get("/healthz")
+    def healthz():
+        """Render/load-balancer probe — no DB, no template."""
+        return "ok", 200
 
 
 def _init_extensions(app: Flask) -> None:
@@ -113,6 +121,8 @@ def _register_context(app: Flask) -> None:
 
     @app.before_request
     def require_ui_login():
+        if request.path in ("/healthz", "/health"):
+            return None
         if request.path.startswith("/api/"):
             return None
         if request.endpoint in PUBLIC_ENDPOINTS or (request.endpoint or "").startswith("static"):

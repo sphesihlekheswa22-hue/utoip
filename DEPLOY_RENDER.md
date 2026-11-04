@@ -7,7 +7,7 @@ Repository: [sphesihlekheswa22-hue/utoip](https://github.com/sphesihlekheswa22-h
 1. Push this repo to GitHub (`main`).
 2. In [Render Dashboard](https://dashboard.render.com/) → **New** → **Blueprint**.
 3. Connect **utoip** and apply `render.yaml` (web service + PostgreSQL).
-4. First deploy runs **migrations and seed automatically** when gunicorn loads `wsgi.py` (`BOOTSTRAP_DB=true`, `--preload`).
+4. First deploy **migrates and seeds during build** (`flask db upgrade` + `scripts/seed_if_empty.py`). Gunicorn binds to `$PORT` immediately at start — health check hits **`/healthz`** (no database).
 
 5. Log in at `https://<your-service>.onrender.com/login`  
    Default admin: `admin@example.com` / `Admin@UITOP2026` — **change immediately**.
@@ -39,7 +39,11 @@ Render’s **internal** Postgres hostname only resolves when the web service and
 
 To use **Frankfurt** for both: delete **utoip** and **utoip-db** in the dashboard, set `region: frankfurt` on **both** in `render.yaml`, remove or change `RENDER_PG_REGION`, and apply the Blueprint again.
 
+### 502 Bad Gateway
+
+Usually the web process never bound to `$PORT` in time (old setup ran migrate+seed inside `wsgi.py` with `--preload`). Current blueprint runs DB work in **build** and uses **`/healthz`**. After pushing latest `main`, open the web service → **Manual Deploy** → check **Logs** (build must finish `flask db upgrade`; runtime must show `Listening at: http://0.0.0.0:10000`).
+
 ## Manual deploy (without Blueprint)
 
-- **Build:** `pip install -r requirements.txt`
-- **Start:** `gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --preload` (with `BOOTSTRAP_DB=true`)
+- **Build:** `pip install -r requirements.txt && flask db upgrade && python scripts/seed_if_empty.py`
+- **Start:** `gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --timeout 180`
