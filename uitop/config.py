@@ -2,13 +2,43 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
 
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
+
+_RENDER_SHORT_PG_HOST = re.compile(r"^dpg-[a-z0-9]+-a$", re.IGNORECASE)
+
+
+def _render_postgres_fqdn(short_host: str) -> str | None:
+    """Expand Render internal hostname when private DNS is unavailable (region mismatch)."""
+    override = (os.getenv("DATABASE_HOST") or os.getenv("PGHOST") or "").strip()
+    if override and "." in override and override.lower() != short_host.lower():
+        return override
+    pg_region = (os.getenv("RENDER_PG_REGION") or "").strip().lower()
+    if pg_region:
+        return f"{short_host}.{pg_region}-postgres.render.com"
+    return None
+
+
+def _replace_url_host(url: str, new_host: str) -> str:
+    parsed = urlparse(url)
+    if not parsed.hostname:
+        return url
+    auth = ""
+    if parsed.username is not None:
+        auth = parsed.username
+        if parsed.password is not None:
+            auth = f"{auth}:{parsed.password}"
+        auth = f"{auth}@"
+    port = f":{parsed.port}" if parsed.port else ""
+    netloc = f"{auth}{new_host}{port}"
+    return urlunparse(parsed._replace(netloc=netloc))
 
 
 def _normalize_database_url(raw: str | None) -> str | None:
@@ -20,6 +50,11 @@ def _normalize_database_url(raw: str | None) -> str | None:
         url = url.replace("postgres://", "postgresql+psycopg2://", 1)
     if url.startswith("postgresql://") and "+psycopg2" not in url and "+psycopg" not in url:
         url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    host = (urlparse(url).hostname or "").lower()
+    if host and _RENDER_SHORT_PG_HOST.match(host):
+        fqdn = _render_postgres_fqdn(host)
+        if fqdn:
+            url = _replace_url_host(url, fqdn)
     if "render.com" in url and "sslmode=" not in url:
         sep = "&" if "?" in url else "?"
         url = f"{url}{sep}sslmode=require"

@@ -5,6 +5,7 @@ services:
     name: utoip
     runtime: python
     plan: free
+    # Web app region (EU). Postgres is `oregon` below — app expands internal DB host via RENDER_PG_REGION.
     region: frankfurt
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --preload
@@ -16,6 +17,12 @@ services:
         value: production
       - key: BOOTSTRAP_DB
         value: "true"
+      - key: RENDER_PG_REGION
+        value: oregon
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: utoip-db
+          property: host
       - key: PYTHON_VERSION
         value: 3.12.8
       - key: DEMO_MODE
@@ -32,5 +39,6 @@ services:
 databases:
   - name: utoip-db
     plan: free
+    region: oregon
     databaseName: utoip
     user: utoip

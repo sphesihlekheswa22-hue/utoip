@@ -31,6 +31,14 @@ Repository: [sphesihlekheswa22-hue/utoip](https://github.com/sphesihlekheswa22-h
 - **No LAN discovery from the cloud** — use **Network → Site Connector** on an on-prem PC (see README).
 - **Free tier** — service sleeps after inactivity; first request may be slow.
 
+## Troubleshooting
+
+### `could not translate host name "dpg-…-a"`
+
+Render’s **internal** Postgres hostname only resolves when the web service and database are in the **same region**. If the web service is in **Frankfurt** but the database was created in **Oregon** (Blueprint default), sync the latest `render.yaml` (sets `RENDER_PG_REGION=oregon` and expands the host to `….oregon-postgres.render.com`), then **Manual Deploy**.
+
+To use **Frankfurt** for both: delete **utoip** and **utoip-db** in the dashboard, set `region: frankfurt` on **both** in `render.yaml`, remove or change `RENDER_PG_REGION`, and apply the Blueprint again.
+
 ## Manual deploy (without Blueprint)
 
 - **Build:** `pip install -r requirements.txt`
