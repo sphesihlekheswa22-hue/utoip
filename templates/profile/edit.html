@@ -1,42 +1,69 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import form_field %}
 
 {% block title %}Edit Profile{% endblock %}
 {% block page_title %}Edit Profile{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('profile.index') }}">My Profile</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Edit</span>
+{% endblock %}
+
 {% block content %}
-<div class="uf-page uf-page--single">
-  <header class="uf-hero">
-    <div class="uf-hero-inner">
-      <div>
-        <p class="uf-eyebrow"><i class="fas fa-id-card"></i> Your account</p>
-        <h1>Edit profile</h1>
-        <p>Keep your display details current for colleagues across UITOP.</p>
+<div class="pf-page pf-page--narrow">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+      <div class="pf-flash pf-flash--{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <section class="pf-edit-hero">
+    <div class="pf-avatar pf-avatar--lg" aria-hidden="true">{{ current_user.initials }}</div>
+    <div>
+      <p class="pf-eyebrow">Account settings</p>
+      <h1 class="pf-name">Edit profile</h1>
+      <p class="pf-lead">Update how you appear to colleagues across Umzinyathi IT operations.</p>
+    </div>
+  </section>
+
+  <form class="pf-form-card" method="post" action="{{ url_for('profile.edit') }}" novalidate>
+    <div class="pf-form-section">
+      <h2>Identity</h2>
+      <p class="pf-form-help">These details show in the top bar, tickets, and audit trails.</p>
+      <div class="pf-form-grid">
+        <label class="pf-field">
+          <span>Display name</span>
+          <input type="text" name="full_name" value="{{ me.full_name }}" required maxlength="120" autocomplete="name" />
+        </label>
+        <label class="pf-field">
+          <span>Work email</span>
+          <input type="email" name="email" value="{{ me.email }}" required maxlength="255" autocomplete="email" />
+        </label>
       </div>
     </div>
-  </header>
 
-  <form class="uf-card" method="post" data-validate>
-    <section class="uf-section">
-      <div class="uf-section-head">
-        <span class="uf-section-num">1</span>
-        <div>
-          <h2>Profile</h2>
-          <p>Basic identity fields for this session.</p>
-        </div>
+    <div class="pf-form-section pf-form-section--muted">
+      <h2>Managed by IT</h2>
+      <p class="pf-form-help">Role and department are assigned by administrators — contact IT to change them.</p>
+      <div class="pf-readonly-grid">
+        <div><span>Role</span><strong>{{ current_user.role }}</strong></div>
+        <div><span>Department</span><strong>{{ me.department.name if me.department else '—' }}</strong></div>
+        <div><span>Status</span><strong>{{ 'Active' if me.is_active else 'Inactive' }}</strong></div>
+        <div><span>MFA</span><strong>{{ 'Enabled' if me.mfa_enabled else 'Off' }}</strong></div>
       </div>
-      <div class="uf-section-body">
-        <div class="form-grid uf-form-grid">
-          {{ form_field("name", "Name", value=item.name if item is defined else "Demo Profile", required=True) }}
-          {{ form_field("status", "Status", value="Active") }}
-          {{ form_field("owner", "Owner", value="IT Operations") }}
-          {{ form_field("notes", "Notes", type="textarea", value="Updated via UITOP.") }}
-        </div>
-      </div>
-    </section>
-    <div class="uf-actions">
-      <a href="{{ url_for('modules.page', module='profile', page='index') }}" class="btn btn-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary">Save changes</button>
+    </div>
+
+    <div class="pf-form-actions">
+      <a href="{{ url_for('profile.index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Save changes</button>
     </div>
   </form>
 </div>

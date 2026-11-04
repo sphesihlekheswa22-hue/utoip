@@ -1,65 +1,181 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
 
-{% block title %}Calendar{% endblock %}
+{% block title %}Operations Calendar{% endblock %}
 {% block page_title %}Calendar{% endblock %}
 
-{% block content %}
-{% call page_header("Calendar", "Manage calendar across Umzinyathi IT operations.", "{{ url_for('modules.page', module='calendar', page='create') }}", "Add Calendar", "fa-plus") %}{% endcall %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/calendar.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
 
-<div class="kpi-grid">
-  {{ kpi_card("Total", "128", "+3%", "default", "fa-calendar-days") }}
-  {{ kpi_card("Active", "110", "Healthy", "success", "fa-circle-check") }}
-  {{ kpi_card("Attention", "12", "Review", "warning", "fa-triangle-exclamation") }}
-  {{ kpi_card("Critical", "6", "Urgent", "danger", "fa-bolt") }}
+{% block content %}
+<div class="sw-page cal-page" x-data="opsCalendar()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>Operations Calendar</h1>
+      <p>IT timeline aggregated from Maintenance, Backup, Licenses, Assets, Help Desk, Security, and Monitoring — not a personal appointment book.</p>
+    </div>
+  </header>
+
+  <nav class="sw-subtabs" role="tablist">
+    {% for key, label in [('month','Month'),('week','Week'),('day','Day'),('agenda','Agenda'),('timeline','Timeline')] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('calendar.index', view=key, year=payload.year, month=payload.month, day=payload.focus_day) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="cal-ops-strip" aria-label="Calendar operations shortcuts">
+    <a class="cal-ops-chip" href="{{ url_for('calendar.create') }}"><i class="fas fa-plus"></i><div><strong>Schedule event</strong><span>Create an IT operation</span></div></a>
+    <div class="cal-ops-chip"><i class="fas fa-calendar-day"></i><div><strong>Today</strong><span>{{ payload.today_label }}</span></div></div>
+    <div class="cal-ops-chip"><i class="fas fa-screwdriver-wrench"></i><div><strong>Maintenance</strong><span>Planned work visibility</span></div></div>
+    <div class="cal-ops-chip"><i class="fas fa-list-check"></i><div><strong>Operations</strong><span>Tasks &amp; scheduled work</span></div></div>
+  </div>
+  <div class="sw-kpi-grid cal-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Today's Events</p><p class="sw-kpi-value">{{ kpis.today }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Maintenance</p><p class="sw-kpi-value">{{ kpis.maintenance }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Backups</p><p class="sw-kpi-value">{{ kpis.backups }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Expiring Licenses</p><p class="sw-kpi-value">{{ kpis.expiring_licenses }}</p></article>
+    <article class="sw-kpi is-danger"><p class="sw-kpi-label">Critical Changes</p><p class="sw-kpi-value">{{ kpis.critical_changes }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Upcoming Warranties</p><p class="sw-kpi-value">{{ kpis.upcoming_warranties }}</p></article>
+  </div>
+
+  <div class="cal-layout">
+    <aside class="sw-panel cal-filters">
+      <p class="sw-kpi-label">Sources</p>
+      <label class="cal-filter"><input type="checkbox" checked @change="toggleAll($event)" /> All sources</label>
+      <template x-for="f in filters" :key="f">
+        <label class="cal-filter">
+          <input type="checkbox" :value="f" x-model="activeFilters" />
+          <span class="cal-dot" :style="'background:' + (types[f]?.color || '#64748b')"></span>
+          <span x-text="types[f]?.label || f"></span>
+        </label>
+      </template>
+      <p class="sw-kpi-label" style="margin-top:16px;">AI schedule tips</p>
+      {% for tip in payload.ai_suggestions %}
+      <div class="cal-ai cal-ai--{{ tip.tone }}">
+        <strong>{{ tip.title }}</strong>
+        <p>{{ tip.body }}</p>
+      </div>
+      {% endfor %}
+    </aside>
+
+    <section class="sw-panel cal-main">
+      <div class="cal-toolbar">
+        <div>
+          <strong>{{ payload.month_label }}</strong>
+          <span class="cal-muted"> · {{ payload.today_label }}</span>
+        </div>
+        <div class="cal-nav-btns">
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('calendar.index', view=view, year=payload.year if payload.month > 1 else payload.year - 1, month=payload.month - 1 if payload.month > 1 else 12) }}">Prev</a>
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('calendar.index', view=view) }}">Today</a>
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('calendar.index', view=view, year=payload.year if payload.month < 12 else payload.year + 1, month=payload.month + 1 if payload.month < 12 else 1) }}">Next</a>
+        </div>
+      </div>
+
+      {% if view == 'month' %}
+      <div class="cal-month">
+        <div class="cal-month-head">
+          {% for d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<span>{{ d }}</span>{% endfor %}
+        </div>
+        <div class="cal-month-grid">
+          {% for cell in payload.month_cells %}
+          <div class="cal-cell {% if not cell.in_month %}is-out{% endif %} {% if cell.is_today %}is-today{% endif %}">
+            <a class="cal-cell-day" href="{{ url_for('calendar.index', view='day', day=cell.date) }}">{{ cell.day }}</a>
+            <div class="cal-cell-events">
+              <template x-for="ev in filteredCell({{ cell.events | tojson }})" :key="ev.id">
+                <a class="cal-pill" :href="ev.url || ('/calendar/event/' + ev.id)" :style="'border-left-color:' + ev.color" :title="ev.title">
+                  <span x-text="ev.time_label"></span>
+                  <strong x-text="ev.title"></strong>
+                </a>
+              </template>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% elif view == 'week' %}
+      <div class="cal-week">
+        {% for day in payload.week_days %}
+        <div class="cal-week-col {% if day.is_today %}is-today{% endif %}">
+          <h3>{{ day.label }}</h3>
+          <template x-for="ev in filteredCell({{ day.events | tojson }})" :key="ev.id">
+            <a class="cal-card" :href="ev.url || ('/calendar/event/' + ev.id)" :style="'border-left-color:' + ev.color">
+              <span x-text="ev.time_label"></span>
+              <strong x-text="ev.title"></strong>
+              <em x-text="ev.device"></em>
+            </a>
+          </template>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% elif view == 'day' %}
+      <h2 class="chart-panel-title">{{ payload.focus_day }}</h2>
+      <div class="cal-day-list">
+        <template x-for="ev in filteredCell({{ payload.day_events | tojson }})" :key="ev.id">
+          <a class="cal-card cal-card-wide" :href="ev.url || ('/calendar/event/' + ev.id)" :style="'border-left-color:' + ev.color">
+            <div class="cal-card-time"><span x-text="ev.time_label"></span><em x-text="ev.type_label"></em></div>
+            <div>
+              <strong x-text="ev.title"></strong>
+              <p x-text="(ev.device || '') + ' · ' + (ev.assignee || '')"></p>
+              <p class="cal-muted" x-text="ev.description"></p>
+            </div>
+          </a>
+        </template>
+        <p class="sw-empty" x-show="filteredCell({{ payload.day_events | tojson }}).length === 0">No IT operations events this day for the selected filters.</p>
+      </div>
+
+      {% elif view == 'agenda' %}
+      <div class="cal-agenda">
+        <template x-for="ev in filteredCell({{ payload.agenda | tojson }})" :key="ev.id">
+          <a class="cal-card cal-card-wide" :href="ev.url || ('/calendar/event/' + ev.id)" :style="'border-left-color:' + ev.color">
+            <div class="cal-card-time">
+              <span x-text="ev.date_label"></span>
+              <em x-text="ev.time_label"></em>
+            </div>
+            <div>
+              <strong x-text="ev.title"></strong>
+              <p><span x-text="ev.type_label"></span> · <span x-text="ev.device"></span></p>
+            </div>
+          </a>
+        </template>
+      </div>
+
+      {% elif view == 'timeline' %}
+      <ol class="cal-timeline">
+        <template x-for="ev in filteredCell({{ payload.timeline | tojson }})" :key="ev.id">
+          <li>
+            <time x-text="ev.date_label + ' ' + ev.time_label"></time>
+            <div :style="'border-left:3px solid ' + ev.color + ';padding-left:10px;'">
+              <strong x-text="ev.title"></strong>
+              <span x-text="ev.type_label + ' · ' + ev.device"></span>
+              <a :href="ev.url || '#'" x-show="ev.url">Open source</a>
+            </div>
+          </li>
+        </template>
+      </ol>
+      {% endif %}
+    </section>
+  </div>
 </div>
 
-{% call filter_bar("Search calendar…") %}
-  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
-  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
-{% endcall %}
-
-<section class="table-panel panel">
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Owner</th>
-          <th>Type</th>
-          <th>Updated</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Demo Calendar 1</td>
-          <td>IT Ops</td>
-          <td>Standard</td>
-          <td>Today</td>
-          <td>{{ status_badge('Active') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='calendar', page='details') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Calendar 2</td>
-          <td>Infrastructure</td>
-          <td>{{ status_badge('Critical') }}</td>
-          <td>Yesterday</td>
-          <td>{{ status_badge('Warning') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='calendar', page='details') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Calendar 3</td>
-          <td>Help Desk</td>
-          <td>Standard</td>
-          <td>2 days ago</td>
-          <td>{{ status_badge('Online') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='calendar', page='details') }}">View</a></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  {{ pagination(1, 4) }}
-</section>
+<script>
+function opsCalendar() {
+  const types = {{ payload.event_types | tojson }};
+  const filters = {{ payload.filters | tojson }};
+  return {
+    types,
+    filters,
+    activeFilters: filters.slice(),
+    toggleAll(e) {
+      this.activeFilters = e.target.checked ? filters.slice() : [];
+    },
+    filteredCell(list) {
+      const af = this.activeFilters;
+      return (list || []).filter(ev => af.includes(ev.type) || af.includes(ev.source_module));
+    }
+  };
+}
+</script>
 {% endblock %}

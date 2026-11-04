@@ -1,0 +1,115 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ instance.number }}{% endblock %}
+{% block page_title %}{{ instance.number }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workflow.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('workflows.index') }}">Workflows</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ instance.number }}</span>
+{% endblock %}
+
+{% block content %}
+<header class="sw-header">
+  <div>
+    <p class="wf-eyebrow">{{ instance.definition_name }} · {{ instance.number }}</p>
+    <h1>{{ instance.title }}</h1>
+    <p>
+      <span class="wf-pill wf-pill--{{ instance.status }}">{{ instance.status|replace('_',' ') }}</span>
+      · Priority {{ instance.priority }}
+      · {{ instance.resource_label or '—' }}
+    </p>
+  </div>
+  <div class="sw-header-actions">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('workflows.index') }}">Back</a>
+  </div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+{% endwith %}
+
+<ol class="wf-pipeline">
+  {% for s in detail.steps %}
+  <li class="{% if s.key == instance.current_step_key %}is-current{% endif %}">
+    <strong>{{ s.label }}</strong>
+    <span>{{ s.type }}</span>
+  </li>
+  {% endfor %}
+</ol>
+
+<div class="wf-grid">
+  <section class="sw-panel">
+    <h2>Details</h2>
+    <dl class="wf-meta">
+      <div><dt>Requester</dt><dd>{{ instance.requester or '—' }}</dd></div>
+      <div><dt>Assignee</dt><dd>{{ instance.assignee or 'Unassigned' }}</dd></div>
+      <div><dt>Backup point</dt><dd>{{ instance.payload.backup_point or '—' }}</dd></div>
+      <div><dt>Reason</dt><dd>{{ instance.payload.reason or '—' }}</dd></div>
+    </dl>
+
+    {% if can_act %}
+    <form method="post" action="{{ url_for('workflows.action', item_id=item_id) }}" class="wf-actions">
+      <h3>Take action</h3>
+      <textarea name="note" rows="2" placeholder="Note for audit / requester"></textarea>
+      {% if users %}
+      <label>
+        Assign to
+        <select name="assignee_user_id">
+          <option value="">— Keep / choose —</option>
+          {% for u in users %}
+          <option value="{{ u.id }}">{{ u.full_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      <div class="wf-action-btns">
+        {% if instance.current_step_key == 'execute' %}
+        <button class="btn btn-primary" name="action" value="execute" type="submit">Mark restore executed</button>
+        {% else %}
+        <button class="btn btn-primary" name="action" value="approve" type="submit">Approve &amp; advance</button>
+        {% endif %}
+        <button class="btn btn-secondary" name="action" value="assign" type="submit">Assign</button>
+        <button class="btn btn-ghost" name="action" value="comment" type="submit">Add comment</button>
+        <button class="btn btn-danger" name="action" value="reject" type="submit">Reject</button>
+      </div>
+    </form>
+    {% elif is_employee and instance.status not in ['completed','rejected','cancelled'] %}
+    <p class="wf-waiting">Waiting on IT — you’ll be notified when this advances.</p>
+    {% endif %}
+  </section>
+
+  <section class="sw-panel">
+    <h2>Timeline</h2>
+    <ul class="wf-timeline">
+      {% for e in detail.events %}
+      <li>
+        <strong>{{ e.action }}</strong>
+        <span>{{ e.actor }} · {{ (e.created_at or '')[:16]|replace('T',' ') }}</span>
+        {% if e.note %}<p>{{ e.note }}</p>{% endif %}
+      </li>
+      {% else %}
+      <li>No events yet.</li>
+      {% endfor %}
+    </ul>
+
+    {% if detail.tasks %}
+    <h3 style="margin-top:1.25rem;">Linked tasks</h3>
+    <ul class="wf-task-list">
+      {% for t in detail.tasks %}
+      <li>
+        <strong>{{ t.title }}</strong>
+        <span class="wf-pill wf-pill--{{ t.status }}">{{ t.status }}</span>
+        · {{ t.assignee or 'Unassigned' }}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

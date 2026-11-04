@@ -1,0 +1,337 @@
+/* UITOP — Security posture center */
+
+.sec-page {
+  --sec-teal: #0f766e;
+  --sec-line: color-mix(in srgb, #0f766e 14%, #e2e8f0);
+  --sec-muted: #64748b;
+}
+
+.sec-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.sec-nav {
+  flex-wrap: wrap;
+}
+
+.sec-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.sec-span-2 {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 960px) {
+  .sec-dash-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sec-score-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sec-score-stack > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--sec-line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.sec-score-stack strong {
+  letter-spacing: -0.02em;
+}
+
+.sec-ai {
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 8px;
+  border: 1px solid var(--sec-line);
+}
+
+.sec-ai p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.sec-ai--danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.sec-ai--warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.sec-ai--success {
+  background: #f0fdfa;
+  border-color: #99f6e4;
+}
+
+.sec-muted {
+  color: var(--sec-muted);
+  font-size: 13px;
+}
+
+.sec-alert-text {
+  color: #b91c1c;
+}
+
+.sec-row-alert {
+  background: #fef2f2;
+}
+
+.sec-comp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.sec-comp-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--sec-line);
+  border-radius: 12px;
+  padding: 14px;
+  background: linear-gradient(165deg, #fff, #f8fafc);
+}
+
+.sec-comp-card strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.sec-comp-meter {
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.sec-comp-meter span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #0f766e, #14b8a6);
+}
+
+.sec-comp-card em {
+  display: block;
+  margin: 8px 0;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--sec-muted);
+}
+
+.sec-comp-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sec-comp-card li {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+}
+
+.sec-comp-card li.ok {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.sec-comp-card li.bad {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.sec-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.sec-policy-card h3 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.sec-policy-card > p {
+  margin: 0 0 12px;
+  color: var(--sec-muted);
+  font-size: 13px;
+}
+
+.sec-policy-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.sec-policy-card dt {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sec-muted);
+}
+
+.sec-policy-card dd {
+  margin: 2px 0 0;
+  font-weight: 650;
+}
+
+.sec-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 2px solid color-mix(in srgb, var(--sec-teal) 35%, #e2e8f0);
+}
+
+.sec-timeline li {
+  position: relative;
+  padding: 0 0 16px 18px;
+}
+
+.sec-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sec-teal);
+  box-shadow: 0 0 0 3px #ccfbf1;
+}
+
+.sec-timeline time {
+  display: block;
+  font-size: 11px;
+  color: var(--sec-muted);
+}
+
+.sec-timeline span {
+  display: block;
+  font-size: 12px;
+  color: var(--sec-muted);
+}
+
+.sec-report-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sec-report-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--sec-line);
+  border-radius: 10px;
+}
+
+.sec-report-list span {
+  font-size: 12px;
+  color: var(--sec-muted);
+}
+
+.sec-check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 480px;
+}
+
+.sec-check-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--sec-line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.sec-check-list .is-ok i {
+  color: #0f766e;
+}
+
+.sec-check-list .is-bad i {
+  color: #b91c1c;
+}
+
+.sec-check-list span {
+  display: block;
+  font-size: 12px;
+  color: var(--sec-muted);
+}
+
+.sec-finding-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sec-finding-list li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--sec-line);
+  border-radius: 8px;
+}
+
+/* Phase 10 — Security & Governance refinement */
+.sec-page .sw-header {
+  padding: 18px 20px;
+  border: 1px solid var(--sec-line);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%);
+  box-shadow: 0 8px 24px rgba(15, 118, 110, .06);
+}
+.sec-page .sw-header h1 { letter-spacing: -0.035em; }
+.sec-page .sw-kpi {
+  position: relative;
+  overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.sec-page .sw-kpi:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,23,42,.08); }
+.sec-page .sw-kpi::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 3px;
+  background: linear-gradient(90deg, #0f766e, #14b8a6); opacity: .55;
+}
+.sec-page .sw-panel { box-shadow: 0 6px 20px rgba(15,23,42,.045); }
+.sec-page .sw-table tbody tr { transition: background .15s ease, transform .15s ease; }
+.sec-page .sw-table tbody tr:hover { background: #f8fafc; }
+.sec-page .sec-comp-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.sec-page .sec-comp-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,23,42,.08); border-color: #99f6e4; }
+@media (max-width: 640px) {
+  .sec-page .sw-header { padding: 14px; }
+  .sec-page .sw-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -14,8 +14,14 @@ from werkzeug.utils import secure_filename
 from uitop.extensions import db
 from uitop.models.assets import Asset, AssetVendor
 from uitop.models.files import (
+    ATTACHMENT_CATEGORIES,
+    DOCUMENT_CATEGORIES,
+    DOC_STATUSES,
     FILE_CATEGORIES,
     LINK_TYPES,
+    WORKSPACE_CATEGORIES,
+    WORKSPACE_QUOTA_BYTES,
+    DocumentApproval,
     FileActivity,
     FileLink,
     FilePermission,
@@ -28,21 +34,82 @@ from uitop.models.inventory import Computer, NetworkDevice, Printer, Server
 from uitop.models.user import User
 
 CATEGORIES = list(FILE_CATEGORIES)
+DOC_CATEGORIES = list(DOCUMENT_CATEGORIES)
+ATTACH_CATEGORIES = list(ATTACHMENT_CATEGORIES)
+WORKSPACE_CATS = list(WORKSPACE_CATEGORIES)
 
 CATEGORY_META = {
-    "Documentation": {"icon": "fa-book", "hint": "Manuals, diagrams, runbooks"},
-    "Scripts": {"icon": "fa-terminal", "hint": "PowerShell, Bash, automation"},
-    "Software": {"icon": "fa-cube", "hint": "Installers and packages"},
-    "Drivers": {"icon": "fa-microchip", "hint": "Device driver packages"},
-    "Configurations": {"icon": "fa-sliders", "hint": "Switch, router, server configs"},
-    "Backups": {"icon": "fa-hard-drive", "hint": "Backup archives and metadata"},
+    "Policies": {"icon": "fa-gavel", "hint": "IT and municipal policies"},
+    "Procedures": {"icon": "fa-list-check", "hint": "SOPs and runbooks"},
+    "Infrastructure": {"icon": "fa-building", "hint": "Diagrams and estate docs"},
+    "Network": {"icon": "fa-network-wired", "hint": "Topology and addressing"},
+    "Servers": {"icon": "fa-server", "hint": "Build and recovery guides"},
+    "Assets": {"icon": "fa-boxes-stacked", "hint": "Asset documentation"},
+    "Vendors": {"icon": "fa-handshake", "hint": "Vendor documentation"},
+    "Contracts": {"icon": "fa-file-contract", "hint": "SLAs and agreements"},
+    "Licenses": {"icon": "fa-key", "hint": "License certificates"},
+    "Software": {"icon": "fa-cube", "hint": "Install and deploy guides"},
+    "Disaster Recovery": {"icon": "fa-life-ring", "hint": "DR plans and checklists"},
+    "Security": {"icon": "fa-shield-halved", "hint": "Security standards"},
+    "Compliance": {"icon": "fa-scale-balanced", "hint": "POPIA, ISO, audits"},
+    "Projects": {"icon": "fa-diagram-project", "hint": "Project documentation"},
     "Reports": {"icon": "fa-chart-column", "hint": "Audits and diagnostics"},
-    "Contracts": {"icon": "fa-file-contract", "hint": "Vendor and maintenance contracts"},
-    "Warranties": {"icon": "fa-shield-halved", "hint": "Warranty certificates"},
+    "Manuals": {"icon": "fa-book", "hint": "User and service manuals"},
+    "HR": {"icon": "fa-users", "hint": "Human Resources libraries"},
+    "Finance": {"icon": "fa-coins", "hint": "Budget and finance libraries"},
+    "Meeting Minutes": {"icon": "fa-clipboard-list", "hint": "Council and committee minutes"},
+    "Templates": {"icon": "fa-copy", "hint": "Official templates"},
+    "My Documents": {"icon": "fa-folder-open", "hint": "Personal files"},
+    "Presentations": {"icon": "fa-chalkboard", "hint": "Slides and decks"},
+    "Spreadsheets": {"icon": "fa-table", "hint": "Workbooks"},
+    "Images": {"icon": "fa-image", "hint": "Personal images"},
+    "Notes": {"icon": "fa-sticky-note", "hint": "Notes and drafts"},
+    "Shared": {"icon": "fa-share-nodes", "hint": "Items you shared"},
+    "Scripts": {"icon": "fa-terminal", "hint": "PowerShell, Bash, automation"},
+    "Drivers": {"icon": "fa-microchip", "hint": "Device driver packages"},
+    "Configurations": {"icon": "fa-sliders", "hint": "Exported configs"},
     "Logs": {"icon": "fa-scroll", "hint": "Event logs, dumps, traces"},
+    "Photos": {"icon": "fa-camera", "hint": "Site and asset photos"},
+    "Warranties": {"icon": "fa-certificate", "hint": "Warranty certificates"},
+    "Invoices": {"icon": "fa-receipt", "hint": "Purchase invoices"},
+    "Other": {"icon": "fa-folder", "hint": "Uncategorised"},
+    "Documentation": {"icon": "fa-book", "hint": "Legacy documentation"},
+    "Backups": {"icon": "fa-hard-drive", "hint": "Legacy — use Backup Center / DR docs"},
 }
 
 PREVIEWABLE = {"PDF", "PNG", "JPG", "JPEG", "GIF", "WEBP", "TXT", "LOG", "CSV", "XML", "JSON", "PS1", "BAT", "SH", "MD"}
+
+# Legacy / attachment-leaning categories
+_ATTACHMENT_HINT = {"Scripts", "Drivers", "Logs", "Software", "Photos", "Configurations", "Warranties", "Invoices", "Other"}
+
+
+def infer_kind(category: str, *, explicit: str | None = None) -> str:
+    if explicit in ("document", "attachment", "workspace"):
+        return explicit
+    if category in WORKSPACE_CATEGORIES:
+        return "workspace"
+    if category in _ATTACHMENT_HINT or category in ATTACHMENT_CATEGORIES:
+        return "attachment"
+    return "document"
+
+
+def normalize_category(category: str | None, *, kind: str = "document") -> str:
+    cat = (category or "").strip()
+    if cat == "Documentation":
+        return "Manuals"
+    # Backup blobs do not belong in Documents — procedures live under DR
+    if cat == "Backups":
+        return "Disaster Recovery" if kind == "document" else "Other"
+    if kind == "workspace":
+        cat = cat or "My Documents"
+        return cat if cat in WORKSPACE_CATEGORIES else "My Documents"
+    if kind == "attachment":
+        cat = cat or "Other"
+        return cat if cat in ATTACHMENT_CATEGORIES or cat in FILE_CATEGORIES else "Other"
+    cat = cat or "Manuals"
+    if cat in DOCUMENT_CATEGORIES or cat in FILE_CATEGORIES:
+        return cat if cat != "Backups" else "Disaster Recovery"
+    return "Manuals"
 
 
 def utcnow():
@@ -52,7 +119,59 @@ def utcnow():
 def files_root() -> Path:
     root = Path(current_app.config.get("FILES_ROOT") or (Path(current_app.instance_path) / "repo_files"))
     root.mkdir(parents=True, exist_ok=True)
+    for sub in ("documents", "workspace", "backups", "temp", "trash"):
+        (root / sub).mkdir(parents=True, exist_ok=True)
     return root
+
+
+def storage_subdir_for_kind(kind: str) -> str:
+    if kind == "workspace":
+        return "workspace"
+    if kind == "attachment":
+        return "documents"  # attachments stay with official storage tree
+    return "documents"
+
+
+def user_can_access_file(f: RepoFile, user_id: int | None, *, is_super_admin: bool = False) -> bool:
+    """Workspace files are private unless shared; documents/attachments follow module RBAC."""
+    if f is None or f.is_deleted:
+        return False
+    if is_super_admin:
+        return True
+    if f.kind != "workspace":
+        return True
+    if not user_id:
+        return False
+    if f.owner_user_id == user_id or f.uploaded_by_id == user_id:
+        return True
+    return bool(f.is_shared)
+
+
+def workspace_usage_bytes(user_id: int) -> int:
+    total = (
+        db.session.query(func.coalesce(func.sum(RepoFile.size_bytes), 0))
+        .filter(
+            RepoFile.is_deleted.is_(False),
+            RepoFile.kind == "workspace",
+            or_(RepoFile.owner_user_id == user_id, RepoFile.uploaded_by_id == user_id),
+        )
+        .scalar()
+        or 0
+    )
+    return int(total)
+
+
+def migrate_legacy_backup_document_category() -> int:
+    """Move legacy Documents category 'Backups' → Disaster Recovery (procedures, not blobs)."""
+    rows = RepoFile.query.filter_by(category="Backups", is_deleted=False).all()
+    n = 0
+    for f in rows:
+        if f.kind == "document":
+            f.category = "Disaster Recovery"
+            n += 1
+    if n:
+        db.session.flush()
+    return n
 
 
 def ext_type(filename: str) -> str:
@@ -85,6 +204,8 @@ def link_url(link_type: str, link_id: int) -> str | None:
         "ticket": f"/helpdesk/{link_id}",
         "license": f"/licenses/{link_id}",
         "contract": f"/vendors/{link_id}",
+        "maintenance": f"/maintenance/{link_id}",
+        "document": f"/documents/{link_id}",
     }
     return mapping.get(link_type)
 
@@ -139,6 +260,12 @@ def serialize_file(f: RepoFile, *, primary_link_only: bool = False) -> dict:
     tags = [t.tag for t in f.tags.order_by(FileTag.tag).all()]
     links = [serialize_link(l) for l in f.links.order_by(FileLink.created_at.asc()).all()]
     uploader = f.uploaded_by.full_name if f.uploaded_by else "System"
+    owner = f.owner_name or (f.owner_user.full_name if f.owner_user else uploader)
+    status = f.status or "draft"
+    expired = False
+    if f.expires_at:
+        exp = f.expires_at if f.expires_at.tzinfo else f.expires_at.replace(tzinfo=timezone.utc)
+        expired = utcnow() > exp
     data = {
         "id": f.id,
         "name": f.name,
@@ -150,16 +277,24 @@ def serialize_file(f: RepoFile, *, primary_link_only: bool = False) -> dict:
         "size_label": format_size(f.size_bytes),
         "uploaded": f.created_at.strftime("%Y-%m-%d") if f.created_at else "",
         "uploaded_at": f.created_at.isoformat() if f.created_at else None,
+        "updated": f.updated_at.strftime("%Y-%m-%d") if f.updated_at else "",
         "uploaded_by": uploader,
+        "owner": owner,
         "shared": f.is_shared,
+        "kind": f.kind or "document",
+        "status": status,
+        "status_label": status.replace("_", " ").title(),
+        "expired": expired,
         "tags": tags,
         "version": f.version,
+        "version_label": f.version_label or f"{f.version}.0",
         "description": f.description or "",
         "previewable": (f.file_type or "").upper() in PREVIEWABLE and bool(f.storage_path),
         "storage_backend": f.storage_backend,
         "has_blob": bool(f.storage_path),
         "links": links,
         "linked": links[0] if links else None,
+        "linked_label": ", ".join(l["label"] for l in links[:3]) if links else "—",
     }
     if primary_link_only and links:
         data["linked"] = links[0]
@@ -233,8 +368,19 @@ def list_files_for_object(link_type: str, link_id: int) -> list[dict]:
     return [serialize_file(f) for f in rows]
 
 
-def search_files(q: str | None = None, category: str | None = None, limit: int = 200) -> list[RepoFile]:
+def search_files(
+    q: str | None = None,
+    category: str | None = None,
+    *,
+    kind: str | None = None,
+    status: str | None = None,
+    limit: int = 200,
+) -> list[RepoFile]:
     query = RepoFile.query.filter_by(is_deleted=False)
+    if kind:
+        query = query.filter(RepoFile.kind == kind)
+    if status:
+        query = query.filter(RepoFile.status == status)
     if category:
         query = query.filter(RepoFile.category == category)
     if q:
@@ -247,27 +393,30 @@ def search_files(q: str | None = None, category: str | None = None, limit: int =
                     RepoFile.name.ilike(term),
                     RepoFile.description.ilike(term),
                     RepoFile.file_type.ilike(term),
+                    RepoFile.owner_name.ilike(term),
                     FileTag.tag.ilike(term),
                     FileLink.label.ilike(term),
                 )
             )
             .distinct()
         )
-    return query.order_by(RepoFile.created_at.desc()).limit(limit).all()
+    return query.order_by(RepoFile.updated_at.desc()).limit(limit).all()
 
 
-def kpis() -> dict:
+def kpis(*, kind: str | None = "document") -> dict:
     base = RepoFile.query.filter_by(is_deleted=False)
+    if kind:
+        base = base.filter(RepoFile.kind == kind)
     total = base.count()
-    storage = db.session.query(func.coalesce(func.sum(RepoFile.size_bytes), 0)).filter(
-        RepoFile.is_deleted.is_(False)
-    ).scalar() or 0
+    storage_q = db.session.query(func.coalesce(func.sum(RepoFile.size_bytes), 0)).filter(RepoFile.is_deleted.is_(False))
+    if kind:
+        storage_q = storage_q.filter(RepoFile.kind == kind)
+    storage = storage_q.scalar() or 0
     since = utcnow() - timedelta(days=7)
     recent = base.filter(RepoFile.created_at >= since).count()
     shared = base.filter(RepoFile.is_shared.is_(True)).count()
-    scripts = base.filter(RepoFile.category == "Scripts").count()
-    docs = base.filter(RepoFile.category == "Documentation").count()
-    backups = base.filter(RepoFile.category == "Backups").count()
+    pending = base.filter(RepoFile.status.in_(("draft", "review"))).count()
+    expired = base.filter(RepoFile.expires_at.isnot(None), RepoFile.expires_at < utcnow()).count()
     return {
         "total": total,
         "storage_bytes": int(storage),
@@ -275,22 +424,31 @@ def kpis() -> dict:
         "storage_label": format_size(int(storage)),
         "recent_uploads": recent,
         "shared": shared,
-        "scripts": scripts,
-        "documents": docs,
-        "backups": backups,
+        "pending_approval": pending,
+        "expired": expired,
+        "scripts": RepoFile.query.filter_by(is_deleted=False, category="Scripts").count(),
+        "documents": total,
+        "archived": base.filter(RepoFile.status == "archived").count(),
+        "backups": 0,  # machine/DB backups live in Backup Center
     }
 
 
-def category_counts() -> list[dict]:
-    rows = (
-        db.session.query(RepoFile.category, func.count(RepoFile.id))
-        .filter(RepoFile.is_deleted.is_(False))
-        .group_by(RepoFile.category)
-        .all()
-    )
+def category_counts(*, kind: str | None = "document") -> list[dict]:
+    if kind == "document":
+        cats = DOC_CATEGORIES
+    elif kind == "attachment":
+        cats = ATTACH_CATEGORIES
+    elif kind == "workspace":
+        cats = WORKSPACE_CATS
+    else:
+        cats = CATEGORIES
+    query = db.session.query(RepoFile.category, func.count(RepoFile.id)).filter(RepoFile.is_deleted.is_(False))
+    if kind:
+        query = query.filter(RepoFile.kind == kind)
+    rows = query.group_by(RepoFile.category).all()
     by_cat = {c: n for c, n in rows}
     out = []
-    for cat in CATEGORIES:
+    for cat in cats:
         meta = CATEGORY_META.get(cat, {})
         out.append(
             {
@@ -300,19 +458,110 @@ def category_counts() -> list[dict]:
                 "hint": meta.get("hint", ""),
             }
         )
+    # Include any leftover categories present in data
+    for cat, n in by_cat.items():
+        if cat not in cats:
+            meta = CATEGORY_META.get(cat, {})
+            out.append({"name": cat, "count": n, "icon": meta.get("icon", "fa-folder"), "hint": meta.get("hint", "")})
     return out
 
 
-def build_module_payload(*, q: str | None = None, category: str | None = None) -> dict:
-    rows = search_files(q=q, category=category)
+def build_module_payload(
+    *,
+    q: str | None = None,
+    category: str | None = None,
+    kind: str | None = "document",
+    status: str | None = None,
+    view: str = "dashboard",
+) -> dict:
+    rows = search_files(q=q, category=category, kind=kind, status=status)
     return {
-        "kpis": kpis(),
+        "kpis": kpis(kind=kind),
         "files": [serialize_file(f) for f in rows],
-        "categories": CATEGORIES,
-        "category_counts": category_counts(),
+        "documents": [serialize_file(f) for f in rows],
+        "categories": (
+            DOC_CATEGORIES
+            if kind == "document"
+            else (WORKSPACE_CATS if kind == "workspace" else ATTACH_CATEGORIES)
+        ),
+        "category_counts": category_counts(kind=kind),
         "link_types": list(LINK_TYPES),
+        "statuses": list(DOC_STATUSES),
         "q": q or "",
         "category": category or "",
+        "status": status or "",
+        "kind": kind or "",
+        "view": view,
+    }
+
+
+def build_workspace_payload(
+    user_id: int,
+    *,
+    q: str | None = None,
+    category: str | None = None,
+    view: str = "mine",
+) -> dict:
+    """Personal workspace — only this user's files (plus shared-with-me via is_shared)."""
+    migrate_legacy_backup_document_category()
+    query = RepoFile.query.filter_by(is_deleted=False, kind="workspace")
+    if view == "shared":
+        query = query.filter(RepoFile.is_shared.is_(True)).filter(
+            or_(RepoFile.owner_user_id != user_id, RepoFile.owner_user_id.is_(None))
+        )
+    elif view == "shared_by_me":
+        query = query.filter(RepoFile.owner_user_id == user_id, RepoFile.is_shared.is_(True))
+    elif view == "recent":
+        query = query.filter(
+            or_(RepoFile.owner_user_id == user_id, RepoFile.uploaded_by_id == user_id)
+        ).order_by(RepoFile.updated_at.desc())
+    elif view == "trash":
+        query = RepoFile.query.filter_by(is_deleted=True, kind="workspace").filter(
+            or_(RepoFile.owner_user_id == user_id, RepoFile.uploaded_by_id == user_id)
+        )
+    else:
+        query = query.filter(
+            or_(RepoFile.owner_user_id == user_id, RepoFile.uploaded_by_id == user_id)
+        )
+
+    if category:
+        query = query.filter(RepoFile.category == category)
+    if q:
+        term = f"%{q.strip()}%"
+        query = query.filter(
+            or_(
+                RepoFile.name.ilike(term),
+                RepoFile.description.ilike(term),
+                RepoFile.file_type.ilike(term),
+            )
+        )
+    if view != "recent":
+        query = query.order_by(RepoFile.updated_at.desc())
+    rows = query.limit(200).all()
+    used = workspace_usage_bytes(user_id)
+    quota = WORKSPACE_QUOTA_BYTES
+    return {
+        "kpis": {
+            "total": len(rows) if view != "mine" else RepoFile.query.filter_by(
+                is_deleted=False, kind="workspace", owner_user_id=user_id
+            ).count(),
+            "storage_label": format_size(used),
+            "storage_bytes": used,
+            "quota_label": format_size(quota),
+            "quota_bytes": quota,
+            "quota_pct": min(100, round((used / quota) * 100, 1)) if quota else 0,
+            "shared": RepoFile.query.filter_by(
+                is_deleted=False, kind="workspace", owner_user_id=user_id, is_shared=True
+            ).count(),
+            "recent_uploads": kpis(kind="workspace")["recent_uploads"],
+        },
+        "files": [serialize_file(f) for f in rows],
+        "categories": WORKSPACE_CATS,
+        "category_counts": category_counts(kind="workspace"),
+        "q": q or "",
+        "category": category or "",
+        "view": view,
+        "kind": "workspace",
     }
 
 
@@ -380,14 +629,36 @@ def build_detail_payload(file_id: int) -> dict | None:
         "permissions": perms,
         "activities": activities,
         "links": [serialize_link(l) for l in f.links.all()],
+        "approvals": [
+            {
+                "from_status": a.from_status,
+                "to_status": a.to_status,
+                "note": a.note,
+                "actor": a.actor.full_name if a.actor else "System",
+                "when": a.created_at.strftime("%Y-%m-%d %H:%M") if a.created_at else "",
+            }
+            for a in f.approvals.limit(30).all()
+        ],
     }
 
 
-def _write_upload(file_id: int, version: int, upload: FileStorage) -> tuple[str, int]:
+def _write_upload(
+    file_id: int,
+    version: int,
+    upload: FileStorage,
+    *,
+    kind: str = "document",
+    owner_user_id: int | None = None,
+) -> tuple[str, int]:
     safe = secure_filename(upload.filename or f"file-{file_id}")
-    folder = files_root() / str(file_id)
+    sub = storage_subdir_for_kind(kind)
+    if kind == "workspace" and owner_user_id:
+        folder = files_root() / sub / str(owner_user_id) / str(file_id)
+        rel = f"{sub}/{owner_user_id}/{file_id}/v{version}_{safe}"
+    else:
+        folder = files_root() / sub / str(file_id)
+        rel = f"{sub}/{file_id}/v{version}_{safe}"
     folder.mkdir(parents=True, exist_ok=True)
-    rel = f"{file_id}/v{version}_{safe}"
     dest = files_root() / rel
     upload.save(dest)
     size = dest.stat().st_size
@@ -404,13 +675,36 @@ def create_file_from_upload(
     actor_id: int | None = None,
     links: list[tuple[str, int]] | None = None,
     note: str | None = None,
+    kind: str | None = None,
+    status: str | None = None,
+    owner_name: str | None = None,
 ) -> RepoFile:
     if not upload or not upload.filename:
         raise ValueError("A file is required")
-    category = category if category in CATEGORIES else "Documentation"
+    resolved_kind = infer_kind(category or "", explicit=kind)
+    category = normalize_category(category, kind=resolved_kind)
+    if resolved_kind == "workspace":
+        status = "published"
+    else:
+        status = (status or ("draft" if resolved_kind == "document" else "published")).lower()
+    if status not in DOC_STATUSES:
+        status = "draft"
     name = upload.filename
     ftype = ext_type(name)
     mime = upload.mimetype or mimetypes.guess_type(name)[0]
+
+    # Soft quota check for personal workspace
+    if resolved_kind == "workspace" and actor_id:
+        used = workspace_usage_bytes(actor_id)
+        # Approximate incoming size from stream if available
+        upload.stream.seek(0, 2)
+        incoming = upload.stream.tell()
+        upload.stream.seek(0)
+        if used + incoming > WORKSPACE_QUOTA_BYTES:
+            raise ValueError(
+                f"Workspace quota exceeded ({format_size(WORKSPACE_QUOTA_BYTES)}). "
+                "Delete files or ask IT to raise your quota."
+            )
 
     f = RepoFile(
         name=name,
@@ -421,14 +715,19 @@ def create_file_from_upload(
         category=category,
         description=(description or "").strip() or None,
         version=1,
+        version_label="1.0",
         is_shared=bool(is_shared),
         storage_backend="local",
         uploaded_by_id=actor_id,
+        owner_user_id=actor_id,
+        owner_name=(owner_name or "").strip() or None,
+        kind=resolved_kind,
+        status=status,
     )
     db.session.add(f)
     db.session.flush()
 
-    rel, size = _write_upload(f.id, 1, upload)
+    rel, size = _write_upload(f.id, 1, upload, kind=resolved_kind, owner_user_id=actor_id)
     f.storage_path = rel
     f.size_bytes = size
 
@@ -450,6 +749,59 @@ def create_file_from_upload(
     return f
 
 
+def transition_status(
+    file_id: int,
+    to_status: str,
+    *,
+    note: str | None = None,
+    actor_id: int | None = None,
+) -> RepoFile:
+    f = get_file_or_none(file_id)
+    if not f:
+        raise ValueError("Document not found")
+    to_status = (to_status or "").lower()
+    if to_status not in DOC_STATUSES:
+        raise ValueError("Invalid status")
+    from_status = f.status
+    f.status = to_status
+    f.updated_at = utcnow()
+    db.session.add(
+        DocumentApproval(
+            file_id=f.id,
+            from_status=from_status,
+            to_status=to_status,
+            note=(note or "").strip() or None,
+            actor_user_id=actor_id,
+        )
+    )
+    activity = {
+        "review": "submitted_review",
+        "approved": "approved",
+        "published": "published",
+        "archived": "archived",
+    }.get(to_status, "status_changed")
+    log_activity(f.id, activity, f"Status {from_status} → {to_status}", actor_id)
+    db.session.commit()
+    return f
+
+
+def rollback_version(file_id: int, version: int, *, actor_id: int | None = None) -> RepoFile:
+    f = get_file_or_none(file_id)
+    if not f:
+        raise ValueError("Document not found")
+    ver = FileVersion.query.filter_by(file_id=f.id, version=version).first()
+    if not ver:
+        raise ValueError("Version not found")
+    f.version = ver.version
+    f.storage_path = ver.storage_path
+    f.size_bytes = ver.size_bytes
+    f.version_label = f"{ver.version}.0"
+    f.updated_at = utcnow()
+    log_activity(f.id, "rolled_back", f"Rolled back to version {ver.version}", actor_id)
+    db.session.commit()
+    return f
+
+
 def add_new_version(
     file_id: int,
     upload: FileStorage,
@@ -463,10 +815,13 @@ def add_new_version(
     if not upload or not upload.filename:
         raise ValueError("A file is required")
     new_ver = f.version + 1
-    rel, size = _write_upload(f.id, new_ver, upload)
+    rel, size = _write_upload(
+        f.id, new_ver, upload, kind=f.kind or "document", owner_user_id=f.owner_user_id
+    )
     f.version = new_ver
     f.storage_path = rel
     f.size_bytes = size
+    f.version_label = f"{new_ver}.0"
     f.name = upload.filename or f.name
     f.original_name = upload.filename or f.original_name
     f.file_type = ext_type(f.name)
@@ -494,6 +849,91 @@ def absolute_path(f: RepoFile) -> Path | None:
     return path if path.is_file() else None
 
 
+def _minimal_pdf_bytes(title: str) -> bytes:
+    """Tiny valid PDF so demo downloads open in Acrobat/Edge (not corrupt text stubs)."""
+    safe = (title or "UITOP Document").replace("(", "[").replace(")", "]")[:80]
+    # Single-page PDF with Helvetica text
+    stream = f"BT /F1 12 Tf 50 750 Td ({safe}) Tj ET".encode("latin-1", errors="replace")
+    objects = [
+        b"1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj\n",
+        b"2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj\n",
+        b"3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/Contents 4 0 R /Resources<< /Font<< /F1 5 0 R >> >> >>endobj\n",
+        b"4 0 obj<< /Length " + str(len(stream)).encode() + b" >>stream\n" + stream + b"\nendstream\nendobj\n",
+        b"5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj\n",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for obj in objects:
+        offsets.append(len(out))
+        out.extend(obj)
+    xref_pos = len(out)
+    out.extend(f"xref\n0 {len(offsets)}\n".encode())
+    out.extend(b"0000000000 65535 f \n")
+    for off in offsets[1:]:
+        out.extend(f"{off:010d} 00000 n \n".encode())
+    out.extend(
+        f"trailer<< /Size {len(offsets)} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF\n".encode()
+    )
+    return bytes(out)
+
+
+def _write_demo_blob(path: Path, *, name: str, file_type: str, text_content: str | None = None) -> int:
+    """Write a downloadable demo file that opens correctly for its extension."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ftype = (file_type or "").upper()
+    if ftype == "PDF" or (name or "").lower().endswith(".pdf"):
+        data = _minimal_pdf_bytes(name or path.name)
+        path.write_bytes(data)
+        return len(data)
+    if ftype in {"PNG", "JPG", "JPEG"} or (name or "").lower().endswith((".png", ".jpg", ".jpeg")):
+        # 1x1 PNG
+        data = bytes.fromhex(
+            "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
+            "0000000a49444154789c63000100000500010d0a2db40000000049454e44ae426082"
+        )
+        path.write_bytes(data)
+        return len(data)
+    body = text_content or f"UITOP demo file: {name}\n"
+    path.write_text(body, encoding="utf-8")
+    return path.stat().st_size
+
+
+def repair_placeholder_document_blobs() -> int:
+    """Fix existing seed PDFs/images that were saved as plain-text stubs (can't open after download)."""
+    fixed = 0
+    rows = RepoFile.query.filter(
+        RepoFile.is_deleted.is_(False),
+        RepoFile.storage_path.isnot(None),
+        RepoFile.kind.in_(("document", "attachment")),
+    ).all()
+    for f in rows:
+        path = files_root() / f.storage_path
+        if not path.is_file():
+            continue
+        ftype = (f.file_type or "").upper()
+        needs = False
+        if ftype == "PDF" or (f.name or "").lower().endswith(".pdf"):
+            head = path.read_bytes()[:8]
+            if not head.startswith(b"%PDF"):
+                needs = True
+        elif ftype in {"PNG", "JPG", "JPEG"}:
+            head = path.read_bytes()[:4]
+            if head[:4] != b"\x89PNG" and head[:2] != b"\xff\xd8":
+                needs = True
+        if not needs:
+            continue
+        _write_demo_blob(path, name=f.name or path.name, file_type=ftype)
+        # Keep declared KPI size if larger; otherwise sync to real bytes
+        real = path.stat().st_size
+        if not f.size_bytes or f.size_bytes < real:
+            f.size_bytes = real
+        fixed += 1
+    if fixed:
+        db.session.flush()
+    return fixed
+
+
 def seed_sample_repository(*, actor_id: int | None = None) -> int:
     """Create demo repository metadata (+ small placeholder blobs) if empty."""
     if RepoFile.query.count() > 0:
@@ -509,20 +949,40 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
 
     samples = [
         {
-            "name": "SRV-001-Backup.zip",
-            "category": "Backups",
-            "type": "ZIP",
-            "size": 1_840_000_000,
-            "shared": False,
-            "tags": ["backup", "server", "critical"],
-            "description": "Daily full backup archive for the primary application server.",
-            "links": [("server", server.id if server else 1), ("asset", asset.id if asset else 1)],
-            "versions": 1,
-            "perms": [("super_admin", True)],
+            "name": "Backup-Policy.pdf",
+            "category": "Disaster Recovery",
+            "kind": "document",
+            "status": "published",
+            "owner_name": "ICT",
+            "type": "PDF",
+            "size": 420_000,
+            "shared": True,
+            "tags": ["backup", "policy", "dr"],
+            "description": "Official backup policy — actual backup archives live in Backup Center.",
+            "links": [("server", server.id if server else 1)],
+            "versions": 2,
+            "perms": [("super_admin", True), ("admin", True)],
+        },
+        {
+            "name": "Network-Architecture.pdf",
+            "category": "Network",
+            "kind": "document",
+            "status": "published",
+            "owner_name": "Network Team",
+            "type": "PDF",
+            "size": 2_400_000,
+            "shared": True,
+            "tags": ["network", "architecture", "vlan"],
+            "description": "Umzinyathi municipal network architecture overview.",
+            "links": [("server", server.id if server else 1)],
+            "versions": 4,
+            "version_label": "4.2",
         },
         {
             "name": "Network-Configuration.txt",
             "category": "Configurations",
+            "kind": "attachment",
+            "status": "published",
             "type": "TXT",
             "size": 12_400,
             "shared": True,
@@ -534,7 +994,10 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         },
         {
             "name": "Windows-Server-License.pdf",
-            "category": "Contracts",
+            "category": "Licenses",
+            "kind": "document",
+            "status": "approved",
+            "owner_name": "Software Asset Team",
             "type": "PDF",
             "size": 420_000,
             "shared": False,
@@ -544,8 +1007,11 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
             "versions": 1,
         },
         {
-            "name": "Recovery-Guide.pdf",
-            "category": "Documentation",
+            "name": "Server-Recovery-Guide.pdf",
+            "category": "Servers",
+            "kind": "document",
+            "status": "published",
+            "owner_name": "Server Team",
             "type": "PDF",
             "size": 890_000,
             "shared": True,
@@ -557,6 +1023,8 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "enroll-agent.ps1",
             "category": "Scripts",
+            "kind": "attachment",
+            "status": "published",
             "type": "PS1",
             "size": 2400,
             "shared": True,
@@ -569,6 +1037,8 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "Windows-Event-Log.evtx",
             "category": "Logs",
+            "kind": "attachment",
+            "status": "published",
             "type": "EVTX",
             "size": 8_200_000,
             "shared": False,
@@ -580,6 +1050,8 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "Memory-Dump.dmp",
             "category": "Logs",
+            "kind": "attachment",
+            "status": "published",
             "type": "DMP",
             "size": 268_435_456,
             "shared": False,
@@ -591,6 +1063,8 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "Driver-Package.zip",
             "category": "Drivers",
+            "kind": "attachment",
+            "status": "published",
             "type": "ZIP",
             "size": 45_000_000,
             "shared": False,
@@ -603,6 +1077,8 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "Dell-Warranty.pdf",
             "category": "Warranties",
+            "kind": "attachment",
+            "status": "published",
             "type": "PDF",
             "size": 380_000,
             "shared": False,
@@ -618,7 +1094,9 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         },
         {
             "name": "Purchase-Invoice.pdf",
-            "category": "Contracts",
+            "category": "Invoices",
+            "kind": "attachment",
+            "status": "published",
             "type": "PDF",
             "size": 220_000,
             "shared": False,
@@ -635,6 +1113,9 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "Maintenance-Contract.pdf",
             "category": "Contracts",
+            "kind": "document",
+            "status": "published",
+            "owner_name": "Vendor Management",
             "type": "PDF",
             "size": 1_100_000,
             "shared": False,
@@ -646,8 +1127,39 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
             "link_labels": {"vendor": "Dell Technologies"},
         },
         {
+            "name": "Password-Policy.pdf",
+            "category": "Policies",
+            "kind": "document",
+            "status": "review",
+            "owner_name": "Security Team",
+            "type": "PDF",
+            "size": 310_000,
+            "shared": False,
+            "tags": ["security", "policy", "popia"],
+            "description": "Draft municipal IT password policy awaiting approval.",
+            "links": [],
+            "versions": 2,
+        },
+        {
+            "name": "Incident-Response-Plan.pdf",
+            "category": "Security",
+            "kind": "document",
+            "status": "published",
+            "owner_name": "Security Team",
+            "type": "PDF",
+            "size": 780_000,
+            "shared": True,
+            "tags": ["security", "incident", "ir"],
+            "description": "Security incident response procedures.",
+            "links": [],
+            "versions": 3,
+            "version_label": "3.0",
+        },
+        {
             "name": "Office-Installer.exe",
             "category": "Software",
+            "kind": "attachment",
+            "status": "published",
             "type": "EXE",
             "size": 980_000_000,
             "shared": False,
@@ -660,6 +1172,8 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "Office-Deploy.ps1",
             "category": "Scripts",
+            "kind": "attachment",
+            "status": "published",
             "type": "PS1",
             "size": 3100,
             "shared": True,
@@ -673,6 +1187,8 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "Office-Configuration.xml",
             "category": "Configurations",
+            "kind": "attachment",
+            "status": "published",
             "type": "XML",
             "size": 4200,
             "shared": True,
@@ -686,6 +1202,8 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "Cisco-Switch-Config.txt",
             "category": "Configurations",
+            "kind": "attachment",
+            "status": "published",
             "type": "TXT",
             "size": 18_000,
             "shared": True,
@@ -698,6 +1216,8 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         {
             "name": "HD-Diagnostic.zip",
             "category": "Reports",
+            "kind": "attachment",
+            "status": "published",
             "type": "ZIP",
             "size": 12_500_000,
             "shared": False,
@@ -708,7 +1228,10 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         },
         {
             "name": "Disaster-Recovery-Plan-2026.pdf",
-            "category": "Documentation",
+            "category": "Disaster Recovery",
+            "kind": "document",
+            "status": "published",
+            "owner_name": "ICT Management",
             "type": "PDF",
             "size": 5_100_000,
             "shared": True,
@@ -716,10 +1239,29 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
             "description": "Municipal ICT disaster recovery runbook.",
             "links": [],
             "versions": 5,
+            "version_label": "5.0",
+        },
+        {
+            "name": "POPIA-Data-Processing.pdf",
+            "category": "Compliance",
+            "kind": "document",
+            "status": "draft",
+            "owner_name": "Compliance Office",
+            "type": "PDF",
+            "size": 640_000,
+            "shared": False,
+            "tags": ["popia", "compliance"],
+            "description": "Draft POPIA processing notice for ICT systems.",
+            "links": [],
+            "versions": 1,
+            "expires_days": -5,
         },
         {
             "name": "Asset-Delivery-Note.pdf",
-            "category": "Documentation",
+            "category": "Assets",
+            "kind": "document",
+            "status": "approved",
+            "owner_name": "Asset Team",
             "type": "PDF",
             "size": 180_000,
             "shared": False,
@@ -730,7 +1272,9 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
         },
         {
             "name": "Asset-Photo.jpg",
-            "category": "Documentation",
+            "category": "Photos",
+            "kind": "attachment",
+            "status": "published",
             "type": "JPG",
             "size": 2_400_000,
             "shared": False,
@@ -746,6 +1290,10 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
     root.mkdir(parents=True, exist_ok=True)
 
     for sample in samples:
+        kind = sample.get("kind") or infer_kind(sample["category"])
+        expires = None
+        if sample.get("expires_days") is not None:
+            expires = utcnow() + timedelta(days=int(sample["expires_days"]))
         f = RepoFile(
             name=sample["name"],
             original_name=sample["name"],
@@ -755,9 +1303,15 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
             category=sample["category"],
             description=sample["description"],
             version=sample["versions"],
+            version_label=sample.get("version_label") or f"{sample['versions']}.0",
             is_shared=sample["shared"],
             storage_backend="local",
             uploaded_by_id=uploader_id,
+            owner_user_id=uploader_id,
+            owner_name=sample.get("owner_name"),
+            kind=kind,
+            status=sample.get("status") or "published",
+            expires_at=expires,
             created_at=utcnow() - timedelta(days=max(0, 10 - created)),
         )
         db.session.add(f)
@@ -773,14 +1327,27 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
             rel = f"{f.id}/v{ver}_{secure_filename(sample['name'])}"
             path = root / rel
             if ver == sample["versions"]:
-                path.write_text(content if isinstance(content, str) else content.decode(), encoding="utf-8")
+                if isinstance(content, bytes):
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(content)
+                    size = path.stat().st_size
+                else:
+                    size = _write_demo_blob(
+                        path,
+                        name=sample["name"],
+                        file_type=sample["type"],
+                        text_content=content if sample["type"] in {"TXT", "PS1", "XML", "LOG", "MD", "CSV", "JSON"} else None,
+                    )
                 f.storage_path = rel.replace("\\", "/")
-                # Keep declared size for estate storage KPIs (demo binaries are placeholders)
-                f.size_bytes = sample["size"]
-                size = path.stat().st_size if sample["type"] in {"TXT", "PS1", "XML", "LOG", "MD", "CSV", "JSON"} else sample["size"]
+                # Keep declared size for estate storage KPIs when demo declares a larger size
+                f.size_bytes = max(int(sample["size"]), size)
             else:
-                path.write_text(f"Version {ver} of {sample['name']}\n", encoding="utf-8")
-                size = path.stat().st_size
+                size = _write_demo_blob(
+                    path,
+                    name=sample["name"],
+                    file_type=sample["type"],
+                    text_content=f"Version {ver} of {sample['name']}\n",
+                )
             db.session.add(
                 FileVersion(
                     file_id=f.id,
@@ -821,9 +1388,41 @@ def seed_sample_repository(*, actor_id: int | None = None) -> int:
     return created
 
 
+def ensure_documents_demo(*, actor_id: int | None = None) -> int:
+    """Backfill DMS statuses/owners on existing rows when the estate is thin."""
+    updated = 0
+    pending = RepoFile.query.filter(
+        RepoFile.is_deleted.is_(False),
+        RepoFile.kind == "document",
+        RepoFile.status.in_(("draft", "review")),
+    ).count()
+    if pending == 0:
+        candidates = (
+            RepoFile.query.filter_by(is_deleted=False, kind="document")
+            .order_by(RepoFile.id.asc())
+            .limit(3)
+            .all()
+        )
+        for i, row in enumerate(candidates):
+            row.status = "review" if i == 0 else "draft"
+            row.owner_name = row.owner_name or ("Security Team" if i == 0 else "ICT Management")
+            if i == 1 and not row.expires_at:
+                row.expires_at = utcnow() - timedelta(days=3)
+            updated += 1
+    # Promote leftover Documentation category labels
+    for row in RepoFile.query.filter_by(category="Documentation", is_deleted=False).all():
+        row.category = "Manuals"
+        if not row.kind:
+            row.kind = "document"
+        updated += 1
+    if updated:
+        db.session.commit()
+    return updated
+
+
 # Back-compat helpers used by older templates
 def files() -> list[dict]:
-    return [serialize_file(f) for f in search_files()]
+    return [serialize_file(f) for f in search_files(kind=None)]
 
 
 def get_file(file_id: int) -> dict | None:

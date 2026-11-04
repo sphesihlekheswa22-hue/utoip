@@ -1,33 +1,51 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, status_badge, detail_row %}
 
-{% block title %}Audit Log details{% endblock %}
-{% block page_title %}Audit Log details{% endblock %}
+{% block title %}{{ event.code }}{% endblock %}
+{% block page_title %}Audit event{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/audit.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('audit.index') }}">Audit Logs</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ event.code }}</span>
+{% endblock %}
 
 {% block content %}
-{% call page_header("Audit Log details", "Operational profile and related activity.", "{{ url_for('modules.page', module='audit', page='index') }}", "Edit", "fa-pen") %}{% endcall %}
+<div class="sw-page au-page">
+  <header class="sw-header">
+    <div>
+      <h1>{{ event.action_label }} <span class="au-sev au-sev--{{ event.severity }}">{{ event.severity }}</span></h1>
+      <p>{{ event.code }} · {{ event.category }} · {{ event.result }}</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('audit.index', view='events') }}" class="btn btn-ghost btn-sm">Back</a>
+      {% if event.related_url %}
+      <a href="{{ event.related_url }}" class="btn btn-secondary btn-sm">View related</a>
+      {% endif %}
+    </div>
+  </header>
 
-<div class="detail-layout">
-  <section class="panel detail-card">
-    <header class="card-header">
-      <h2>Overview</h2>
-      {{ status_badge("Online") }}
-    </header>
-    <dl class="detail-list">
-      {{ detail_row("Name", "Demo Audit Log 01") }}
-      {{ detail_row("Identifier", "UITOP-DEMO-001") }}
-      {{ detail_row("Owner", "IT Operations") }}
-      {{ detail_row("Department", "Corporate Services") }}
-      {{ detail_row("Last updated", "Today 09:42") }}
-    </dl>
-  </section>
-  <section class="panel detail-card">
-    <header class="card-header"><h2>Related</h2></header>
-    <ul class="related-list">
-      <li><a href="{{ url_for('modules.page', module='audit', page='index') }}">Back to Audit Logs</a></li>
-      <li><a href="{{ url_for('monitoring.index') }}">Open monitoring</a></li>
-      <li><a href="{{ url_for('ai.index') }}">Ask AI about this record</a></li>
-    </ul>
+  <dl class="au-detail-grid">
+    <div class="au-field"><dt>Event ID</dt><dd>{{ event.code }}</dd></div>
+    <div class="au-field"><dt>Timestamp</dt><dd>{{ event.when }}</dd></div>
+    <div class="au-field"><dt>User</dt><dd>{{ event.actor_email if event.actor_email != '—' else event.actor_name }}</dd></div>
+    <div class="au-field"><dt>IP Address</dt><dd>{{ event.ip }}</dd></div>
+    <div class="au-field"><dt>Action</dt><dd>{{ event.action }}</dd></div>
+    <div class="au-field"><dt>Resource</dt><dd>{{ event.resource }}</dd></div>
+    <div class="au-field"><dt>Result</dt><dd class="{% if event.result == 'Failed' %}au-result--failed{% else %}au-result--success{% endif %}">{{ event.result }}</dd></div>
+    <div class="au-field"><dt>Severity</dt><dd>{{ event.severity }}</dd></div>
+  </dl>
+
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Additional metadata</h2>
+    <pre class="au-meta">{{ event.meta | tojson(indent=2) if event.meta else '{ }' }}</pre>
+    <p class="au-muted" style="margin-top:10px;">User-Agent: {{ event.user_agent }}</p>
   </section>
 </div>
 {% endblock %}

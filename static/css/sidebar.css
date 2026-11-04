@@ -128,7 +128,7 @@
 }
 
 .sidebar-link.is-active {
-  background: var(--bg-active);
+  background: linear-gradient(90deg, var(--bg-active), color-mix(in srgb, var(--bg-active) 40%, transparent));
   color: var(--accent-text);
   font-weight: 600;
   box-shadow: inset 0 0 0 1px var(--accent-soft);
@@ -195,6 +195,50 @@
 .uitop-status--warning .uitop-status-dot {
   background: var(--amber-500);
   box-shadow: 0 0 0 2px var(--amber-400), 0 0 8px var(--amber-400);
+}
+
+[data-theme="light"] .uitop-sidebar {
+  background: #ffffff;
+}
+
+[data-theme="light"] .uitop-sidebar-user-role {
+  color: var(--teal-700);
+}
+
+[data-theme="light"] .uitop-nav-label {
+  color: var(--slate-600);
+}
+
+[data-theme="light"] .sidebar-link {
+  color: var(--slate-700);
+}
+
+[data-theme="light"] .sidebar-link i {
+  color: var(--slate-500);
+}
+
+[data-theme="light"] .sidebar-link:hover {
+  color: var(--slate-900);
+}
+
+[data-theme="light"] .sidebar-link:hover i {
+  color: var(--slate-600);
+}
+
+[data-theme="light"] .sidebar-link.is-active {
+  color: var(--teal-800);
+}
+
+[data-theme="light"] .sidebar-link.is-active i {
+  color: var(--teal-700);
+}
+
+[data-theme="light"] .uitop-sidebar-foot {
+  color: var(--slate-600);
+}
+
+[data-theme="light"] .uitop-status {
+  color: #047857;
 }
 
 /* Collapsed sidebar variant */

@@ -1,65 +1,255 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
 
-{% block title %}Profile{% endblock %}
-{% block page_title %}Profile{% endblock %}
+{% block title %}My Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>My Profile</span>
+{% endblock %}
 
 {% block content %}
-{% call page_header("Profile", "Manage profile across Umzinyathi IT operations.", "{{ url_for('modules.page', module='profile', page='index') }}", "Add Profile", "fa-plus") %}{% endcall %}
+{% set u = user %}
+{% set tickets = profile.tickets if profile else {} %}
+{% set assets = profile.assets if profile else [] %}
+{% set sessions = profile.sessions if profile else [] %}
+{% set activity = profile.activity if profile else [] %}
+{% set insights = profile.ai_insights if profile else [] %}
+{% set perms = profile.permissions if profile else [] %}
+{% set active_sessions = sessions|selectattr('active')|list if sessions else [] %}
 
-<div class="kpi-grid">
-  {{ kpi_card("Total", "128", "+3%", "default", "fa-user") }}
-  {{ kpi_card("Active", "110", "Healthy", "success", "fa-circle-check") }}
-  {{ kpi_card("Attention", "12", "Review", "warning", "fa-triangle-exclamation") }}
-  {{ kpi_card("Critical", "6", "Urgent", "danger", "fa-bolt") }}
-</div>
+<div class="pf-page">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+      <div class="pf-flash pf-flash--{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 
-{% call filter_bar("Search profile…") %}
-  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
-  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
-{% endcall %}
+  <section class="pf-hero">
+    <div class="pf-hero-glow" aria-hidden="true"></div>
+    <div class="pf-hero-main">
+      <div class="pf-avatar" aria-hidden="true">{{ current_user.initials }}</div>
+      <div class="pf-hero-copy">
+        <p class="pf-eyebrow">Your UITOP account</p>
+        <h1 class="pf-name">{{ u.full_name }}</h1>
+        <p class="pf-email">{{ u.email }}</p>
+        <div class="pf-chips">
+          <span class="pf-chip {% if u.is_active %}pf-chip--ok{% else %}pf-chip--bad{% endif %}">
+            <i class="fas fa-circle"></i> {{ 'Active' if u.is_active else 'Inactive' }}
+          </span>
+          <span class="pf-chip"><i class="fas fa-shield-halved"></i> {{ current_user.role }}</span>
+          {% if u.department and u.department != '—' %}
+          <span class="pf-chip"><i class="fas fa-building"></i> {{ u.department }}</span>
+          {% endif %}
+          <span class="pf-chip {% if u.mfa_enabled %}pf-chip--ok{% else %}pf-chip--warn{% endif %}">
+            <i class="fas fa-lock"></i> MFA {{ 'on' if u.mfa_enabled else 'off' }}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="pf-hero-actions">
+      <a href="{{ url_for('profile.edit') }}" class="btn btn-primary"><i class="fas fa-pen"></i> Edit profile</a>
+      <a href="{{ url_for('profile.security') }}" class="btn btn-secondary"><i class="fas fa-key"></i> Security</a>
+      <a href="{{ url_for('ai.index') }}" class="btn btn-ghost"><i class="fas fa-robot"></i> Ask Copilot</a>
+    </div>
+  </section>
 
-<section class="table-panel panel">
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Owner</th>
-          <th>Type</th>
-          <th>Updated</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Demo Profile 1</td>
-          <td>IT Ops</td>
-          <td>Standard</td>
-          <td>Today</td>
-          <td>{{ status_badge('Active') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='profile', page='index') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Profile 2</td>
-          <td>Infrastructure</td>
-          <td>{{ status_badge('Critical') }}</td>
-          <td>Yesterday</td>
-          <td>{{ status_badge('Warning') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='profile', page='index') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Profile 3</td>
-          <td>Help Desk</td>
-          <td>Standard</td>
-          <td>2 days ago</td>
-          <td>{{ status_badge('Online') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='profile', page='index') }}">View</a></td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="pf-stats">
+    <article class="pf-stat">
+      <span class="pf-stat-label">Assigned assets</span>
+      <strong class="pf-stat-value">{{ assets|length }}</strong>
+    </article>
+    <article class="pf-stat {% if tickets.open %}is-alert{% endif %}">
+      <span class="pf-stat-label">Open tickets</span>
+      <strong class="pf-stat-value">{{ tickets.open or 0 }}</strong>
+    </article>
+    <article class="pf-stat">
+      <span class="pf-stat-label">Resolved</span>
+      <strong class="pf-stat-value">{{ tickets.resolved or 0 }}</strong>
+    </article>
+    <article class="pf-stat">
+      <span class="pf-stat-label">Active sessions</span>
+      <strong class="pf-stat-value">{{ active_sessions|length }}</strong>
+    </article>
+    <article class="pf-stat">
+      <span class="pf-stat-label">Last login</span>
+      <strong class="pf-stat-value pf-stat-value--sm">{{ u.last_login or u.last_login_at or '—' }}</strong>
+    </article>
+    <article class="pf-stat">
+      <span class="pf-stat-label">Permissions</span>
+      <strong class="pf-stat-value">{{ (u.permissions or [])|length }}</strong>
+    </article>
   </div>
-  {{ pagination(1, 4) }}
-</section>
+
+  <div class="pf-grid">
+    <div class="pf-col">
+      {% if insights %}
+      <section class="pf-panel">
+        <header class="pf-panel-head">
+          <h2>Insights for you</h2>
+          <p>Based on your tickets, assets, and activity</p>
+        </header>
+        <div class="pf-insights">
+          {% for tip in insights %}
+          <article class="pf-insight pf-insight--{{ tip.tone or 'accent' }}">
+            <strong>{{ tip.title }}</strong>
+            <p>{{ tip.body }}</p>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="pf-panel">
+        <header class="pf-panel-head">
+          <div>
+            <h2>Your tickets</h2>
+            <p>Requested and assigned work</p>
+          </div>
+          {% if can('helpdesk:read') %}
+          <a href="{{ url_for('helpdesk.index') }}" class="btn btn-ghost btn-sm">Open helpdesk</a>
+          {% endif %}
+        </header>
+        {% set req = tickets.requested or [] %}
+        {% set asn = tickets.assigned or [] %}
+        {% if req or asn %}
+        <div class="pf-split">
+          <div>
+            <h3 class="pf-mini-label">Requested</h3>
+            <ul class="pf-list">
+              {% for t in req[:6] %}
+              <li>
+                <a href="{{ url_for('helpdesk.details', item_id=t.id) if t.id is defined else '#' }}">
+                  <strong>{{ t.ticket_number or t.number or 'Ticket' }}</strong>
+                  <span>{{ t.subject }}</span>
+                </a>
+                <em>{{ t.status }} · {{ t.priority }}</em>
+              </li>
+              {% else %}
+              <li class="pf-empty">No requested tickets</li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div>
+            <h3 class="pf-mini-label">Assigned to you</h3>
+            <ul class="pf-list">
+              {% for t in asn[:6] %}
+              <li>
+                <a href="{{ url_for('helpdesk.details', item_id=t.id) if t.id is defined else '#' }}">
+                  <strong>{{ t.ticket_number or t.number or 'Ticket' }}</strong>
+                  <span>{{ t.subject }}</span>
+                </a>
+                <em>{{ t.status }} · {{ t.priority }}</em>
+              </li>
+              {% else %}
+              <li class="pf-empty">Nothing assigned</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% else %}
+        <p class="pf-empty-block">No tickets linked to your account yet.</p>
+        {% endif %}
+      </section>
+
+      <section class="pf-panel">
+        <header class="pf-panel-head">
+          <div>
+            <h2>Assigned assets</h2>
+            <p>Devices and equipment linked to you</p>
+          </div>
+          {% if can('assets:read') %}
+          <a href="{{ url_for('assets.index') }}" class="btn btn-ghost btn-sm">Assets</a>
+          {% endif %}
+        </header>
+        {% if assets %}
+        <div class="pf-asset-grid">
+          {% for a in assets[:8] %}
+          <article class="pf-asset">
+            <div class="pf-asset-icon"><i class="fas fa-laptop"></i></div>
+            <div>
+              <strong>{{ a.asset_tag or a.name }}</strong>
+              <span>{{ a.name if a.asset_tag else (a.status_label or a.status or '') }}</span>
+              <em>{{ a.status_label or a.status or '—' }}{% if a.location %} · {{ a.location }}{% endif %}</em>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="pf-empty-block">No assets are assigned to you.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <aside class="pf-side">
+      <section class="pf-panel">
+        <header class="pf-panel-head">
+          <h2>Account</h2>
+          <p>Identity details</p>
+        </header>
+        <dl class="pf-dl">
+          <div><dt>Display name</dt><dd>{{ u.full_name }}</dd></div>
+          <div><dt>Email</dt><dd>{{ u.email }}</dd></div>
+          <div><dt>Role</dt><dd>{{ current_user.role }}</dd></div>
+          <div><dt>Department</dt><dd>{{ u.department or '—' }}</dd></div>
+          <div><dt>Member since</dt><dd>{{ (u.created_at or '')[:10] or '—' }}</dd></div>
+          <div><dt>Super admin</dt><dd>{{ 'Yes' if u.is_super_admin else 'No' }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="pf-panel">
+        <header class="pf-panel-head">
+          <h2>Quick links</h2>
+        </header>
+        <div class="pf-links">
+          <a href="{{ url_for('profile.edit') }}"><i class="fas fa-user-pen"></i> Edit profile</a>
+          <a href="{{ url_for('profile.security') }}"><i class="fas fa-key"></i> Change password</a>
+          <a href="{{ url_for('ai.index') }}"><i class="fas fa-robot"></i> IT Copilot</a>
+          {% if can('settings:manage') %}
+          <a href="{{ url_for('settings.index') }}"><i class="fas fa-gear"></i> Platform settings</a>
+          {% endif %}
+          <a href="{{ url_for('auth.logout') }}" class="is-danger"><i class="fas fa-arrow-right-from-bracket"></i> Sign out</a>
+        </div>
+      </section>
+
+      <section class="pf-panel">
+        <header class="pf-panel-head">
+          <h2>Recent activity</h2>
+        </header>
+        <ul class="pf-timeline">
+          {% for a in activity[:8] %}
+          <li>
+            <strong>{{ a.action or 'Event' }}</strong>
+            <span>{{ a.resource_type or '' }} {% if a.resource_id %}#{{ a.resource_id }}{% endif %}</span>
+            <em>{{ (a.created_at or '')[:16]|replace('T', ' ') }}</em>
+          </li>
+          {% else %}
+          <li class="pf-empty">No recent activity recorded.</li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      {% if perms %}
+      <section class="pf-panel">
+        <header class="pf-panel-head">
+          <h2>Access modules</h2>
+          <p>{{ (u.permissions or [])|length }} permission codes</p>
+        </header>
+        <div class="pf-perm-tags">
+          {% for g in perms[:8] %}
+          <span class="pf-perm">{{ g.module }}</span>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    </aside>
+  </div>
+</div>
 {% endblock %}

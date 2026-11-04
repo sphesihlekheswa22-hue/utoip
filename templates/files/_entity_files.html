@@ -1,9 +1,9 @@
-{# Shared Files panel for entity detail pages #}
-{% macro entity_files_panel(files, bound_type, bound_id, next_url, title='Files') -%}
+{# Shared Attachments panel for entity detail pages #}
+{% macro entity_files_panel(files, bound_type, bound_id, next_url, title='Attachments') -%}
 <div class="fr-entity-files">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
-    <p class="chart-panel-subtitle" style="margin:0;">IT repository attachments — configs, warranties, scripts, backups linked to this object.</p>
-    <a class="btn btn-ghost btn-sm" href="{{ url_for('files.index') }}">Open repository</a>
+    <p class="chart-panel-subtitle" style="margin:0;">Supporting files linked to this record — photos, logs, warranties, configs. Managed policies live in Documents.</p>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('documents.index') }}">Open Documents</a>
   </div>
 
   {% if files %}
@@ -23,12 +23,12 @@
         {% for f in files %}
         <tr>
           <td>
-            <strong><a href="{{ url_for('files.details', item_id=f.id) }}">{{ f.name }}</a></strong>
+            <strong><a href="{{ url_for('documents.details', item_id=f.id) }}">{{ f.name }}</a></strong>
             <div style="font-size:11.5px;color:#64748b;">{{ f.type }}{% if f.tags %} · {{ f.tags[:3]|join(', ') }}{% endif %}</div>
           </td>
           <td>{{ f.category }}</td>
           <td>{{ f.size_label }}</td>
-          <td>v{{ f.version }}</td>
+          <td>{{ f.version_label or ('v' ~ f.version) }}</td>
           <td>{{ f.uploaded }} · {{ f.uploaded_by }}</td>
           <td>
             <a class="btn btn-ghost btn-sm" href="{{ url_for('files.download', item_id=f.id) }}">Download</a>
@@ -39,17 +39,18 @@
     </table>
   </div>
   {% else %}
-  <p class="chart-panel-subtitle">No files linked yet. Upload a warranty PDF, config, or script and it will appear here.</p>
+  <p class="chart-panel-subtitle">No attachments yet. Upload a warranty PDF, photo, config, or log and it will appear here.</p>
   {% endif %}
 
   <form method="post" action="{{ url_for('files.upload') }}" enctype="multipart/form-data" class="uf-card" style="margin-top:16px;padding:0;">
     <input type="hidden" name="bound_type" value="{{ bound_type }}" />
     <input type="hidden" name="bound_id" value="{{ bound_id }}" />
+    <input type="hidden" name="kind" value="attachment" />
     <input type="hidden" name="next" value="{{ next_url }}" />
     <section class="uf-section">
       <div class="uf-section-head">
-        <span class="uf-section-num"><i class="fas fa-upload"></i></span>
-        <div><h2>Upload &amp; link here</h2><p>Stored in the repository and attached to this record.</p></div>
+        <span class="uf-section-num"><i class="fas fa-paperclip"></i></span>
+        <div><h2>Add attachment</h2><p>Stored in the repository and linked to this record.</p></div>
       </div>
       <div class="uf-section-body">
         <div class="uf-grid-2">
@@ -60,27 +61,26 @@
           <div class="uf-field">
             <span class="uf-field-label">Category</span>
             <select name="category">
-              <option>Documentation</option>
+              <option>Other</option>
+              <option>Photos</option>
+              <option>Logs</option>
               <option>Scripts</option>
-              <option>Software</option>
               <option>Drivers</option>
               <option>Configurations</option>
-              <option>Backups</option>
-              <option>Reports</option>
-              <option>Contracts</option>
               <option>Warranties</option>
-              <option>Logs</option>
+              <option>Invoices</option>
+              <option>Backups</option>
             </select>
           </div>
         </div>
         <div class="uf-field">
           <span class="uf-field-label">Tags</span>
-          <input name="tags" placeholder="Windows, Critical" />
+          <input name="tags" placeholder="screenshot, warranty" />
         </div>
       </div>
     </section>
     <div class="uf-actions">
-      <button type="submit" class="btn btn-primary">Upload</button>
+      <button type="submit" class="btn btn-primary">Upload attachment</button>
     </div>
   </form>
 </div>

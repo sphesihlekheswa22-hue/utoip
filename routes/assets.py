@@ -14,6 +14,10 @@ bp = Blueprint("assets", __name__, url_prefix="/assets")
 
 @bp.get("/")
 def index():
+    from uitop.core.ui_rbac import is_employee_session
+
+    if is_employee_session():
+        return redirect(url_for("employee.devices"))
     empty_flag = request.args.get("empty") == "1"
     rows = [] if empty_flag else assets_svc.list_assets()
     return render_template(

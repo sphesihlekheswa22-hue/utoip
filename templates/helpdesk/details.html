@@ -5,6 +5,10 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/helpdesk.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 {% endblock %}
 
 {% block breadcrumb %}
@@ -16,99 +20,310 @@
 {% endblock %}
 
 {% block content %}
-<div class="comp-page">
-  <section class="device-hero">
-    <div class="device-hero-main">
-      <div class="device-hero-icon"><i class="fas fa-ticket"></i></div>
+<div class="sw-page hd-page" x-data="{ view: {{ view | tojson }} }" x-cloak>
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon"><i class="fas fa-headset"></i></div>
       <div>
         <h1>{{ ticket.subject }}</h1>
-        <p class="device-hero-sub">{{ ticket.ticket_number }} · {{ ticket.category_label }} · Updated {{ ticket.updated }}</p>
-        <div class="device-hero-badges">
-          <span class="badge {% if ticket.status in ['resolved','closed'] %}badge-success{% elif ticket.status == 'in_progress' %}badge-accent{% else %}badge-warning{% endif %}">{{ ticket.status_label }}</span>
-          <span class="badge badge-muted">{{ ticket.priority_label }}</span>
-          {% if ticket.sla_breached %}<span class="badge badge-danger">SLA breached</span>{% endif %}
+        <p class="sw-hero-sub">{{ ticket.ticket_number }} · {{ ticket.type_label }} · {{ ticket.category_label }} · Updated {{ ticket.updated }}</p>
+        <div class="sw-hero-badges">
+          <span class="sw-badge {% if ticket.status in ['resolved','closed'] %}sw-badge--success{% elif ticket.status == 'in_progress' %}sw-badge--accent{% else %}sw-badge--warning{% endif %}">{{ ticket.status_label }}</span>
+          <span class="sw-badge {% if ticket.priority == 'critical' %}sw-badge--danger{% else %}sw-badge--muted{% endif %}">{{ ticket.priority_label }}</span>
+          {% if ticket.overdue %}<span class="sw-badge sw-badge--danger">Overdue</span>{% endif %}
+          {% if ticket.problem_number %}<span class="sw-badge sw-badge--muted">Problem {{ ticket.problem_number }}</span>{% endif %}
         </div>
       </div>
     </div>
-    <div class="device-hero-actions">
-      <a href="{{ url_for('helpdesk.edit', item_id=item_id) }}" class="btn btn-secondary btn-sm">Edit</a>
-      <a href="{{ url_for('helpdesk.index') }}" class="btn btn-ghost btn-sm">Queue</a>
+    <div class="sw-hero-actions">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="alert('Remote session will use UITOP Agent (coming soon). Open the linked computer Remote Actions for now.')"><i class="fas fa-desktop"></i> Start remote</button>
+      <a href="{{ url_for('helpdesk.edit', item_id=item_id) }}" class="btn btn-ghost btn-sm">Edit</a>
+      <a href="{{ url_for('helpdesk.index', view='tickets') }}" class="btn btn-ghost btn-sm">Queue</a>
     </div>
   </section>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}{% for cat, msg in messages %}<p>{{ msg }}</p>{% endfor %}{% endif %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
   {% endwith %}
 
-  <section class="device-panel">
-    <h2 class="chart-panel-title">Details</h2>
-    <dl class="device-grid">
-      <div class="device-field"><dt>Requester</dt><dd>{{ ticket.requester }}</dd></div>
-      <div class="device-field"><dt>Assignee</dt><dd>{{ ticket.assignee }}</dd></div>
-      <div class="device-field"><dt>Department</dt><dd>{{ ticket.department }}</dd></div>
-      <div class="device-field"><dt>Location</dt><dd>{{ ticket.location or '—' }}</dd></div>
-      <div class="device-field"><dt>Created</dt><dd>{{ ticket.created }}</dd></div>
-      <div class="device-field"><dt>SLA due</dt><dd>{{ ticket.sla_due_at or '—' }}</dd></div>
-      <div class="device-field"><dt>Related device</dt>
-        <dd>{% if ticket.linked %}<a href="{{ ticket.linked.url }}">{{ ticket.linked.label }}</a>{% else %}—{% endif %}</dd>
+  <nav class="sw-subtabs">
+    {% for key, label in [
+      ('overview','Overview'),
+      ('comments','Comments'),
+      ('assets','Assets'),
+      ('files','Attachments'),
+      ('activity','Activity'),
+      ('timelog','Time Log'),
+      ('history','History')
+    ] %}
+    <button type="button" class="sw-subtab" :class="{ 'is-active': view === '{{ key }}' }" @click="view = '{{ key }}'">{{ label }}</button>
+    {% endfor %}
+  </nav>
+
+  <div class="sw-detail-body">
+    {# Overview #}
+    <div x-show="view === 'overview'">
+      <dl class="sw-stat-row">
+        <div class="sw-stat"><dt>Ticket</dt><dd>{{ ticket.ticket_number }}</dd></div>
+        <div class="sw-stat"><dt>Priority</dt><dd>{{ ticket.priority_label }}</dd></div>
+        <div class="sw-stat"><dt>Status</dt><dd>{{ ticket.status_label }}</dd></div>
+        <div class="sw-stat"><dt>SLA resolve</dt><dd>{{ detail.sla_resolve_hours }}h · respond {{ detail.sla_response_min }}m</dd></div>
+      </dl>
+      <dl class="device-grid" style="margin-top:12px;">
+        <div class="device-field"><dt>Requester</dt><dd>{{ ticket.requester }}</dd></div>
+        <div class="device-field"><dt>Department</dt><dd>{{ ticket.department }}</dd></div>
+        <div class="device-field"><dt>Assigned technician</dt><dd>{{ ticket.assignee }}</dd></div>
+        <div class="device-field"><dt>Category</dt><dd>{{ ticket.category_label }}</dd></div>
+        <div class="device-field"><dt>Type</dt><dd>{{ ticket.type_label }}</dd></div>
+        <div class="device-field"><dt>Created</dt><dd>{{ ticket.created }}</dd></div>
+        <div class="device-field"><dt>Location</dt><dd>{{ ticket.location or '—' }}</dd></div>
+        <div class="device-field"><dt>Time logged</dt><dd>{{ ticket.time_logged_minutes }} min</dd></div>
+      </dl>
+      {% if ticket.description %}
+      <p class="hd-desc">{{ ticket.description }}</p>
+      {% endif %}
+
+      <div class="hd-actions-grid">
+        <form method="post" action="{{ url_for('helpdesk.assign', item_id=item_id) }}" class="uf-card" style="padding:0;">
+          <section class="uf-section">
+            <div class="uf-section-head">
+              <span class="uf-section-num"><i class="fas fa-user"></i></span>
+              <div><h2>Assign</h2><p>Route to a technician.</p></div>
+            </div>
+            <div class="uf-section-body">
+              <div class="uf-field">
+                <span class="uf-field-label">Technician</span>
+                <select name="assignee_user_id">
+                  <option value="">Unassigned</option>
+                  {% for u in users %}
+                  <option value="{{ u.id }}" {% if ticket.assignee_user_id == u.id %}selected{% endif %}>{{ u.full_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </section>
+          <div class="uf-actions"><button type="submit" class="btn btn-primary btn-sm">Save assignee</button></div>
+        </form>
+
+        <form method="post" action="{{ url_for('helpdesk.set_status', item_id=item_id) }}" class="uf-card" style="padding:0;">
+          <input type="hidden" name="next_view" value="overview" />
+          <section class="uf-section">
+            <div class="uf-section-head">
+              <span class="uf-section-num"><i class="fas fa-flag"></i></span>
+              <div><h2>Status</h2><p>Track progress to resolution.</p></div>
+            </div>
+            <div class="uf-section-body">
+              <div class="uf-field">
+                <span class="uf-field-label">Status</span>
+                <select name="status">
+                  {% for s in statuses %}
+                  <option value="{{ s }}" {% if ticket.status == s %}selected{% endif %}>{{ s.replace('_',' ').title() }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </section>
+          <div class="uf-actions"><button type="submit" class="btn btn-primary btn-sm">Update status</button></div>
+        </form>
       </div>
-    </dl>
-    {% if ticket.description %}
-    <p style="margin-top:16px;white-space:pre-wrap;">{{ ticket.description }}</p>
-    {% endif %}
-  </section>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-    <section class="device-panel">
-      <h2 class="chart-panel-title">Assign</h2>
-      <form method="post" action="{{ url_for('helpdesk.assign', item_id=item_id) }}" class="uf-field" style="gap:10px;">
-        <span class="uf-field-label">Assignee</span>
-        <select name="assignee_user_id">
-          <option value="">Unassigned</option>
-          {% for u in users %}
-          <option value="{{ u.id }}" {% if ticket.assignee_user_id == u.id %}selected{% endif %}>{{ u.full_name }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-primary btn-sm" style="justify-self:start;margin-top:4px;">Save assignee</button>
+      {% if detail.related_incidents %}
+      <h3 class="hd-section-title">Linked incidents</h3>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Ticket</th><th>Subject</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for r in detail.related_incidents %}
+            <tr>
+              <td><code>{{ r.ticket_number }}</code></td>
+              <td>{{ r.subject }}</td>
+              <td>{{ r.status_label }}</td>
+              <td><a class="btn btn-ghost btn-sm" href="{{ url_for('helpdesk.details', item_id=r.id) }}">Open</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+    {# Comments #}
+    <div x-show="view === 'comments'" x-cloak>
+      {% if comments %}
+      <ul class="hd-comments">
+        {% for c in comments %}
+        <li class="{% if c.is_internal %}is-internal{% endif %}">
+          <div class="hd-comment-meta">
+            <strong>{{ c.author_name }}</strong>
+            {% if c.is_internal %}<span class="sw-badge sw-badge--muted">Internal</span>{% endif %}
+            <span>{{ c.created_at }}</span>
+          </div>
+          <p>{{ c.body }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="sw-empty">No conversation yet.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('helpdesk.comment', item_id=item_id) }}" class="uf-card" style="margin-top:16px;padding:0;">
+        <section class="uf-section">
+          <div class="uf-section-head">
+            <span class="uf-section-num"><i class="fas fa-comment"></i></span>
+            <div><h2>Add comment</h2><p>Update the requester or leave an internal note.</p></div>
+          </div>
+          <div class="uf-section-body">
+            <div class="uf-field">
+              <span class="uf-field-label">Message</span>
+              <textarea name="body" rows="3" required placeholder="Printer stopped working / Checking now…"></textarea>
+            </div>
+            <label class="checkbox"><input type="checkbox" name="is_internal" value="1" /> Internal note (staff only)</label>
+          </div>
+        </section>
+        <div class="uf-actions"><button type="submit" class="btn btn-primary">Post</button></div>
       </form>
-    </section>
-    <section class="device-panel">
-      <h2 class="chart-panel-title">Status</h2>
-      <form method="post" action="{{ url_for('helpdesk.set_status', item_id=item_id) }}" class="uf-field" style="gap:10px;">
-        <span class="uf-field-label">Status</span>
-        <select name="status">
-          {% for s in statuses %}
-          <option value="{{ s }}" {% if ticket.status == s %}selected{% endif %}>{{ s.replace('_',' ').title() }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-primary btn-sm" style="justify-self:start;margin-top:4px;">Update status</button>
+    </div>
+
+    {# Assets / infrastructure #}
+    <div x-show="view === 'assets'" x-cloak>
+      <p class="hd-desc">Linked computers, printers, servers, network devices, and assets — open live UITOP data without leaving the ticket.</p>
+      {% if detail.snapshots %}
+      <div class="hd-snap-grid">
+        {% for s in detail.snapshots %}
+        <article class="hd-snap">
+          <header>
+            <strong>{{ s.label }}</strong>
+            <span class="sw-badge sw-badge--muted">{{ s.type.replace('_',' ') }}</span>
+          </header>
+          <dl>
+            {% if s.status %}<div><dt>Status</dt><dd>{{ s.status }}</dd></div>{% endif %}
+            {% if s.ip %}<div><dt>IP</dt><dd>{{ s.ip }}</dd></div>{% endif %}
+            {% if s.os %}<div><dt>OS</dt><dd>{{ s.os }}</dd></div>{% endif %}
+            {% if s.cpu is not none %}<div><dt>CPU</dt><dd>{{ s.cpu }}%</dd></div>{% endif %}
+            {% if s.ram is not none %}<div><dt>RAM</dt><dd>{{ s.ram }}%</dd></div>{% endif %}
+            {% if s.disk is not none %}<div><dt>Disk</dt><dd>{{ s.disk }}%</dd></div>{% endif %}
+            {% if s.model %}<div><dt>Model</dt><dd>{{ s.model }}</dd></div>{% endif %}
+            {% if s.name %}<div><dt>Name</dt><dd>{{ s.name }}</dd></div>{% endif %}
+            {% if s.last_seen %}<div><dt>Last seen</dt><dd>{{ s.last_seen }}</dd></div>{% endif %}
+          </dl>
+          <a class="btn btn-primary btn-sm" href="{{ s.url }}">Open in Infrastructure</a>
+        </article>
+        {% endfor %}
+      </div>
+      {% elif detail.object_links %}
+      <ul class="fr-link-list">
+        {% for l in detail.object_links %}
+        <li><a href="{{ l.url }}"><i class="fas fa-link"></i> {{ l.label }}</a> <span class="fr-muted">({{ l.type_label }})</span></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="sw-empty">No infrastructure linked yet.</p>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('helpdesk.add_link', item_id=item_id) }}" class="uf-card" style="margin-top:16px;padding:0;">
+        <section class="uf-section">
+          <div class="uf-section-head">
+            <span class="uf-section-num"><i class="fas fa-link"></i></span>
+            <div><h2>Link object</h2><p>Attach a computer, printer, server, network device, or asset.</p></div>
+          </div>
+          <div class="uf-section-body uf-grid-2">
+            <div class="uf-field">
+              <span class="uf-field-label">Type</span>
+              <select name="link_type" required>
+                <option value="computer">Computer</option>
+                <option value="printer">Printer</option>
+                <option value="server">Server</option>
+                <option value="network_device">Network device</option>
+                <option value="asset">Asset</option>
+              </select>
+            </div>
+            <div class="uf-field">
+              <span class="uf-field-label">Object ID</span>
+              <input type="number" name="link_id" min="1" required placeholder="e.g. 1" />
+            </div>
+          </div>
+          <p class="fr-muted" style="padding:0 20px 12px;">Quick picks — Computers: {% for c in inventory.computers[:5] %}<code>{{ c.id }}={{ c.hostname }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        </section>
+        <div class="uf-actions"><button type="submit" class="btn btn-primary">Link</button></div>
       </form>
-    </section>
+    </div>
+
+    {# Files #}
+    <div x-show="view === 'files'" x-cloak>
+      {% from "files/_entity_files.html" import entity_files_panel %}
+      {{ entity_files_panel(detail.files or [], 'ticket', item_id, url_for('helpdesk.details', item_id=item_id, view='files')) }}
+    </div>
+
+    {# Activity #}
+    <div x-show="view === 'activity' || view === 'history'" x-cloak>
+      <ul class="fr-activity">
+        {% for a in detail.activities %}
+        <li>
+          <time>{{ a.when }}</time>
+          <strong>{{ a.message }}</strong>
+          <span class="fr-muted">{{ a.actor }} · {{ a.type }}</span>
+        </li>
+        {% else %}
+        <li class="fr-muted">No activity yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    {# Time log #}
+    <div x-show="view === 'timelog'" x-cloak>
+      <p class="hd-desc">Record work time for reporting — e.g. started 09:30, finished 10:10 (40 minutes).</p>
+      {% if detail.time_logs %}
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Technician</th><th>Started</th><th>Finished</th><th>Minutes</th><th>Note</th></tr></thead>
+          <tbody>
+            {% for t in detail.time_logs %}
+            <tr>
+              <td>{{ t.technician }}</td>
+              <td>{{ t.started_at }}</td>
+              <td>{{ t.finished_at or '—' }}</td>
+              <td><strong>{{ t.minutes }}</strong></td>
+              <td>{{ t.note or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="sw-empty">No time logged yet.</p>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('helpdesk.add_time', item_id=item_id) }}" class="uf-card" style="margin-top:16px;padding:0;">
+        <section class="uf-section">
+          <div class="uf-section-head">
+            <span class="uf-section-num"><i class="fas fa-clock"></i></span>
+            <div><h2>Log time</h2><p>Useful for SLA and workload reports.</p></div>
+          </div>
+          <div class="uf-section-body">
+            <div class="uf-grid-2">
+              <div class="uf-field">
+                <span class="uf-field-label">Started</span>
+                <input type="datetime-local" name="started_at" required />
+              </div>
+              <div class="uf-field">
+                <span class="uf-field-label">Finished</span>
+                <input type="datetime-local" name="finished_at" />
+              </div>
+            </div>
+            <div class="uf-grid-2">
+              <div class="uf-field">
+                <span class="uf-field-label">Minutes (optional override)</span>
+                <input type="number" name="minutes" min="0" placeholder="Auto from start/finish" />
+              </div>
+              <div class="uf-field">
+                <span class="uf-field-label">Note</span>
+                <input type="text" name="note" placeholder="Restarted Print Spooler" />
+              </div>
+            </div>
+          </div>
+        </section>
+        <div class="uf-actions"><button type="submit" class="btn btn-primary">Save time</button></div>
+      </form>
+    </div>
   </div>
-
-  <section class="device-panel" id="activity">
-    <h2 class="chart-panel-title">Activity</h2>
-    {% if comments %}
-    <ul style="list-style:none;padding:0;margin:0 0 20px;display:grid;gap:12px;">
-      {% for c in comments %}
-      <li style="border-left:3px solid var(--teal-600);padding-left:12px;">
-        <strong>{{ c.author_name }}</strong>
-        {% if c.is_internal %}<span class="badge badge-muted">Internal</span>{% endif %}
-        <span style="color:#6b7c8c;font-size:12px;"> · {{ c.created_at }}</span>
-        <p style="margin:6px 0 0;white-space:pre-wrap;">{{ c.body }}</p>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p class="chart-panel-subtitle" style="margin-bottom:16px;">No comments yet.</p>
-    {% endif %}
-
-    <form method="post" action="{{ url_for('helpdesk.comment', item_id=item_id) }}" class="uf-field" style="max-width:560px;gap:10px;">
-      <span class="uf-field-label">Add comment</span>
-      <textarea name="body" rows="3" required placeholder="Update the requester or note an internal finding…"></textarea>
-      <label class="checkbox"><input type="checkbox" name="is_internal" value="1" /> Internal note (staff only)</label>
-      <button type="submit" class="btn btn-primary btn-sm" style="justify-self:start;">Post comment</button>
-    </form>
-  </section>
 </div>
 {% endblock %}

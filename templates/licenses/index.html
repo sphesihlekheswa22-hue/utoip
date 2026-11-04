@@ -3,6 +3,8 @@
 {% block title %}Licenses{% endblock %}
 {% block page_title %}Licenses{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
@@ -75,7 +77,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="row in filtered" :key="row.id">
+          <template x-for="row in pagedItems(filtered)" :key="row.id">
             <tr>
               <td>
                 <div class="sw-name">
@@ -119,6 +121,7 @@
         </tbody>
       </table>
       <p class="sw-empty" x-show="filtered.length === 0">No licenses match.</p>
+      {{ alpine_pager('filtered') }}
     </div>
   </section>
 </div>
@@ -126,11 +129,12 @@
 <script>
 window.__LICENSES__ = {{ payload | tojson }};
 function licensesHub() {
-  return {
+  return Object.assign({
     data: window.__LICENSES__ || {},
     q: "",
     typeFilter: "",
     statusFilter: "",
+    init() { this.watchPagerReset(['q', 'typeFilter', 'statusFilter']); },
     get filtered() {
       var q = this.q.trim().toLowerCase();
       var t = this.typeFilter;
@@ -143,7 +147,7 @@ function licensesHub() {
           .join(" ").toLowerCase().indexOf(q) !== -1;
       });
     },
-  };
+  }, UITOP.createPager(10));
 }
 </script>
 {% endblock %}

@@ -47,12 +47,15 @@
   color: white;
   box-shadow:
     0 2px 8px rgba(13, 148, 136, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 8px 20px -10px rgba(13, 148, 136, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--teal-700), var(--teal-600));
-  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35);
+  box-shadow:
+    0 4px 16px rgba(13, 148, 136, 0.35),
+    0 12px 28px -12px rgba(13, 148, 136, 0.5);
   transform: translateY(-1px);
 }
 

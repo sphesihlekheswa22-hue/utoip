@@ -3,6 +3,8 @@
 {% block title %}Network Devices{% endblock %}
 {% block page_title %}Network{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/network.css') }}" />
@@ -151,7 +153,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="d in filtered" :key="d.id">
+          <template x-for="d in pagedItems(filtered)" :key="d.id">
             <tr @click="openDevice(d.id)">
               <td @click.stop><input type="checkbox" :value="d.id" x-model="selected" /></td>
               <td>
@@ -187,6 +189,7 @@
         </tbody>
       </table>
     </div>
+    {{ alpine_pager('filtered') }}
   </section>
   {% endif %}
 </div>
@@ -194,13 +197,19 @@
 <script>
   window.__NET_DEVICES__ = {{ devices | tojson }};
   function networkDashboard() {
-    return {
+    return Object.assign({
       q: "",
       showFilters: true,
       refreshing: false,
       selected: [],
       devices: window.__NET_DEVICES__ || [],
       filters: { type: "", manufacturer: "", location: "", status: "", criticality: "", model: "" },
+      init() {
+        this.watchPagerReset([
+          'q', 'filters.type', 'filters.manufacturer', 'filters.location',
+          'filters.status', 'filters.criticality', 'filters.model'
+        ]);
+      },
       get filtered() {
         var q = this.q.trim().toLowerCase();
         var f = this.filters;
@@ -253,7 +262,7 @@
         this.refreshing = true;
         setTimeout(() => { this.refreshing = false; location.reload(); }, 600);
       }
-    };
+    }, UITOP.createPager(10));
   }
 </script>
 {% endblock %}

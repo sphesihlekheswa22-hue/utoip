@@ -1,65 +1,125 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
 
 {% block title %}Settings{% endblock %}
 {% block page_title %}Settings{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}" />
+{% endblock %}
+
 {% block content %}
-{% call page_header("Settings", "Manage settings across Umzinyathi IT operations.", "{{ url_for('modules.page', module='settings', page='index') }}", "Add Setting", "fa-plus") %}{% endcall %}
+<div class="sw-page st-page">
+  <header class="sw-header">
+    <div>
+      <h1>Settings <span class="st-badge-admin">Admin only</span></h1>
+      <p>Control center for UITOP — security, email, monitoring, agents, backup, and system behaviour. Changes are written to Audit Logs.</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('audit.index', view='config') }}" class="btn btn-ghost"><i class="fas fa-clipboard-list"></i> Settings audit</a>
+    </div>
+  </header>
 
-<div class="kpi-grid">
-  {{ kpi_card("Total", "128", "+3%", "default", "fa-gear") }}
-  {{ kpi_card("Active", "110", "Healthy", "success", "fa-circle-check") }}
-  {{ kpi_card("Attention", "12", "Review", "warning", "fa-triangle-exclamation") }}
-  {{ kpi_card("Critical", "6", "Urgent", "danger", "fa-bolt") }}
-</div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
 
-{% call filter_bar("Search settings…") %}
-  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
-  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
-{% endcall %}
+  <div class="st-layout">
+    <nav class="st-side" aria-label="Settings categories">
+      {% for c in categories %}
+      <a href="{{ url_for('settings.index', view=c.id) }}" class="{% if view == c.id %}is-active{% endif %}">{{ c.label }}</a>
+      {% endfor %}
+    </nav>
 
-<section class="table-panel panel">
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Owner</th>
-          <th>Type</th>
-          <th>Updated</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Demo Setting 1</td>
-          <td>IT Ops</td>
-          <td>Standard</td>
-          <td>Today</td>
-          <td>{{ status_badge('Active') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='settings', page='index') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Setting 2</td>
-          <td>Infrastructure</td>
-          <td>{{ status_badge('Critical') }}</td>
-          <td>Yesterday</td>
-          <td>{{ status_badge('Warning') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='settings', page='index') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Setting 3</td>
-          <td>Help Desk</td>
-          <td>Standard</td>
-          <td>2 days ago</td>
-          <td>{{ status_badge('Online') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='settings', page='index') }}">View</a></td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="st-panel">
+      {% if view == 'audit' %}
+      <h2>Settings audit</h2>
+      <p class="st-lead">Every setting change automatically creates an audit log entry.</p>
+      <ul class="st-audit-list">
+        {% for a in payload.audit %}
+        <li><strong>{{ a.when_full }}</strong> — {{ a.summary }} <span class="st-muted">({{ a.rel }})</span></li>
+        {% else %}
+        <li class="st-muted">No settings changes recorded yet. Save a category to create the first entry.</li>
+        {% endfor %}
+      </ul>
+      <div class="st-actions">
+        <a href="{{ url_for('audit.index', view='config') }}" class="btn btn-primary btn-sm">Open Audit Logs</a>
+      </div>
+
+      {% elif view == 'system' %}
+      <h2>System</h2>
+      <p class="st-lead">Application health and environment.</p>
+      <div class="st-sys-grid">
+        <div class="st-sys-card"><span>Application Version</span><strong>{{ payload.system.app_version }}</strong></div>
+        <div class="st-sys-card"><span>Database Type</span><strong>{{ payload.system.database_type }}</strong></div>
+        <div class="st-sys-card"><span>Storage Usage</span><strong>{{ payload.system.storage_usage }}</strong></div>
+        <div class="st-sys-card"><span>Last Backup</span><strong>{{ payload.system.last_backup }}</strong></div>
+        <div class="st-sys-card"><span>System Health</span><strong>{{ payload.system.system_health }}</strong></div>
+      </div>
+
+      {% else %}
+      {% set title = categories | selectattr('id', 'equalto', view) | map(attribute='label') | first %}
+      {% set desc = categories | selectattr('id', 'equalto', view) | map(attribute='desc') | first %}
+      <h2>{{ title or view|title }}</h2>
+      <p class="st-lead">{{ desc or 'Platform configuration' }}</p>
+
+      <form method="post" action="{{ url_for('settings.save') }}">
+        <input type="hidden" name="view" value="{{ view }}" />
+        <div class="st-form-grid">
+          {% for key, val in settings.items() %}
+          <div class="st-field">
+            {% if val is sameas true or val is sameas false %}
+            <label class="st-check">
+              <input type="checkbox" name="{{ key }}" value="1" {% if val %}checked{% endif %} />
+              {{ key.replace('_', ' ')|title }}
+            </label>
+            {% elif val is number %}
+            <label for="f-{{ key }}">{{ key.replace('_', ' ')|title }}</label>
+            <input id="f-{{ key }}" type="number" name="{{ key }}" value="{{ val }}" />
+            {% else %}
+            <label for="f-{{ key }}">{{ key.replace('_', ' ')|title }}</label>
+            {% if key == 'timezone' %}
+            <select id="f-{{ key }}" name="{{ key }}">
+              <option value="Africa/Johannesburg" {% if val == 'Africa/Johannesburg' %}selected{% endif %}>Africa/Johannesburg</option>
+              <option value="UTC" {% if val == 'UTC' %}selected{% endif %}>UTC</option>
+            </select>
+            {% elif key == 'smtp_encryption' %}
+            <select id="f-{{ key }}" name="{{ key }}">
+              {% for opt in ['TLS', 'SSL', 'None'] %}
+              <option value="{{ opt }}" {% if val == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+            {% elif key == 'theme' %}
+            <select id="f-{{ key }}" name="{{ key }}">
+              <option value="light" {% if val == 'light' %}selected{% endif %}>Light</option>
+              <option value="dark" {% if val == 'dark' %}selected{% endif %}>Dark</option>
+            </select>
+            {% elif key == 'dashboard_layout' %}
+            <select id="f-{{ key }}" name="{{ key }}">
+              <option value="compact" {% if val == 'compact' %}selected{% endif %}>Compact</option>
+              <option value="expanded" {% if val == 'expanded' %}selected{% endif %}>Expanded</option>
+            </select>
+            {% else %}
+            <input id="f-{{ key }}" type="text" name="{{ key }}" value="{{ val }}" />
+            {% endif %}
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="st-actions">
+          {% if view == 'email' %}
+          <button type="submit" formaction="{{ url_for('settings.test_email') }}" formmethod="post" class="btn btn-ghost">Send Test Email</button>
+          {% endif %}
+          {% if view in ['general', 'organization'] %}
+          <button type="button" class="btn btn-ghost" onclick="alert('Logo upload stores against organization branding (coming next).')">Upload Logo</button>
+          {% endif %}
+          <button type="reset" class="btn btn-ghost">Discard</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
   </div>
-  {{ pagination(1, 4) }}
-</section>
+</div>
 {% endblock %}

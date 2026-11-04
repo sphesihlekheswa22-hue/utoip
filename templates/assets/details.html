@@ -131,7 +131,7 @@
   </section>
 
   <section class="device-panel" id="files">
-    <h2 class="chart-panel-title">Files</h2>
+    <h2 class="chart-panel-title">Attachments</h2>
     {% from "files/_entity_files.html" import entity_files_panel %}
     {{ entity_files_panel(linked_files or [], 'asset', item_id, url_for('assets.details', item_id=item_id) + '#files') }}
   </section>

@@ -4,100 +4,286 @@
 {% block page_title %}{{ user.full_name }}{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/users.css') }}" />
 {% endblock %}
 
 {% block breadcrumb %}
 <a href="{{ url_for('dashboard.index') }}">Home</a>
 <span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
-<a href="{{ url_for('users.index') }}">Users</a>
+<a href="{{ url_for('users.index', view='directory') }}">Users</a>
 <span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
 <span>{{ user.full_name }}</span>
 {% endblock %}
 
 {% block content %}
-<div class="comp-page">
-  <section class="device-hero">
-    <div class="device-hero-main">
-      <div class="device-hero-icon"><i class="fas fa-user"></i></div>
-      <div>
-        <h1>{{ user.full_name }}</h1>
-        <p class="device-hero-sub">{{ user.email }} · {{ user.role_label }}</p>
-        <div class="device-hero-badges">
-          <span class="badge {% if user.is_active %}badge-success{% else %}badge-danger{% endif %}">{{ user.status }}</span>
-          <span class="badge badge-muted">{{ user.department }}</span>
-        </div>
+<div class="sw-page us-page">
+  <div class="us-profile-hero">
+    <div>
+      <h1>{{ user.full_name }}</h1>
+      <p class="us-muted" style="margin:0;">{{ user.email }} · {{ user.role_label }}</p>
+      <div class="us-profile-meta">
+        <span class="sw-badge {% if user.is_active %}sw-badge--success{% else %}sw-badge--danger{% endif %}">{{ user.status }}</span>
+        <span class="sw-badge sw-badge--muted">{{ user.department }}</span>
+        {% if user.computer != '—' %}
+        <span class="sw-badge sw-badge--muted">{% if user.computer_url %}<a href="{{ user.computer_url }}">{{ user.computer }}</a>{% else %}{{ user.computer }}{% endif %}</span>
+        {% endif %}
+        <span class="sw-badge sw-badge--muted">Last login {{ user.last_login }}</span>
       </div>
     </div>
-    <div class="device-hero-actions">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <a href="{{ url_for('users.edit', item_id=item_id) }}" class="btn btn-secondary btn-sm">Edit</a>
-      <a href="{{ url_for('users.index') }}" class="btn btn-ghost btn-sm">All users</a>
+      <a href="{{ url_for('users.index', view='directory') }}" class="btn btn-ghost btn-sm">All users</a>
     </div>
-  </section>
+  </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}{% for cat, msg in messages %}<p>{{ msg }}</p>{% endfor %}{% endif %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
   {% endwith %}
 
-  <section class="device-panel">
-    <h2 class="chart-panel-title">Profile</h2>
-    <dl class="device-grid">
-      <div class="device-field"><dt>Name</dt><dd>{{ user.full_name }}</dd></div>
-      <div class="device-field"><dt>Email</dt><dd>{{ user.email }}</dd></div>
-      <div class="device-field"><dt>Role</dt><dd>{{ user.role_label }}</dd></div>
-      <div class="device-field"><dt>Roles</dt><dd>{{ user.roles|join(', ') if user.roles else '—' }}</dd></div>
-      <div class="device-field"><dt>Department</dt><dd>{{ user.department }}</dd></div>
-      <div class="device-field"><dt>Last login</dt><dd>{{ user.last_login }}</dd></div>
-      <div class="device-field"><dt>MFA</dt><dd>{{ 'Enabled' if user.mfa_enabled else 'Off' }}</dd></div>
-      <div class="device-field"><dt>Super admin</dt><dd>{{ 'Yes' if user.is_super_admin else 'No' }}</dd></div>
-    </dl>
-  </section>
+  <nav class="sw-subtabs us-nav" role="tablist">
+    {% for key, label in [
+      ('overview','Overview'),
+      ('assets','Assets'),
+      ('tickets','Tickets'),
+      ('software','Software'),
+      ('permissions','Permissions'),
+      ('sessions','Sessions'),
+      ('activity','Activity'),
+      ('documents','Documents'),
+      ('history','History')
+    ] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('users.details', item_id=item_id, view=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
 
-  <section class="device-panel" id="permissions">
-    <h2 class="chart-panel-title">Permissions</h2>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;">
-      {% for p in user.permissions %}
-      <span class="badge badge-muted"><code>{{ p }}</code></span>
-      {% else %}
-      <span>—</span>
+  {% if view == 'overview' %}
+  <dl class="us-overview-grid">
+    <div class="us-field"><dt>Name</dt><dd>{{ user.full_name }}</dd></div>
+    <div class="us-field"><dt>Department</dt><dd>{{ user.department }}</dd></div>
+    <div class="us-field"><dt>Position</dt><dd>{{ profile.overview.position }}</dd></div>
+    <div class="us-field"><dt>Email</dt><dd>{{ user.email }}</dd></div>
+    <div class="us-field"><dt>Phone</dt><dd>{{ profile.overview.phone }}</dd></div>
+    <div class="us-field"><dt>Manager</dt><dd>{{ profile.overview.manager }}</dd></div>
+    <div class="us-field"><dt>Status</dt><dd>{{ user.status }}</dd></div>
+    <div class="us-field"><dt>Computer</dt><dd>{% if user.computer_url %}<a href="{{ user.computer_url }}">{{ user.computer }}</a>{% else %}{{ user.computer }}{% endif %}</dd></div>
+    <div class="us-field"><dt>MFA</dt><dd>{{ 'Enabled' if user.mfa_enabled else 'Off' }}</dd></div>
+  </dl>
+  <div class="us-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">At a glance</h2>
+      <div class="us-card-grid">
+        <article class="us-card"><span class="us-muted">Assets</span><strong>{{ profile.assets|length }}</strong></article>
+        <article class="us-card"><span class="us-muted">Open tickets</span><strong>{{ profile.tickets.open }}</strong></article>
+        <article class="us-card"><span class="us-muted">Resolved</span><strong>{{ profile.tickets.resolved }}</strong></article>
+        <article class="us-card"><span class="us-muted">Sessions</span><strong>{{ profile.sessions|selectattr('active')|list|length }}</strong></article>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">AI insights</h2>
+      {% for tip in profile.ai_insights %}
+      <div class="us-ai us-ai--{{ tip.tone }}"><strong>{{ tip.title }}</strong><p class="us-muted">{{ tip.body }}</p></div>
       {% endfor %}
+    </section>
+  </div>
+
+  {% elif view == 'assets' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Assigned assets</h2>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Asset</th><th>Category</th><th>Linked device</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for a in profile.assets %}
+          <tr>
+            <td><strong>{{ a.asset_tag or a.name }}</strong><div class="us-muted">{{ a.name }}</div></td>
+            <td>{{ a.category or '—' }}</td>
+            <td>{% if a.linked %}<a href="{{ a.linked.url }}">{{ a.linked.label }}</a>{% else %}—{% endif %}</td>
+            <td>{{ a.status_label }}</td>
+            <td><a class="btn btn-ghost btn-sm" href="{{ a.url }}">Open</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">No assets assigned. Assign from the Assets module.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </section>
 
-  <section class="device-panel">
-    <h2 class="chart-panel-title">Assign roles</h2>
-    <form method="post" action="{{ url_for('users.assign_roles', item_id=item_id) }}">
-      <div class="uf-check-grid" style="margin-bottom:14px;">
-        {% for r in roles %}
-        <label class="uf-check">
-          <input type="checkbox" name="roles" value="{{ r.name }}" {% if r.name in user.roles %}checked{% endif %} />
-          <strong>{{ r.name.replace('_',' ').title() }}</strong>
-          <span>{{ r.description or 'Platform role' }}</span>
-        </label>
-        {% endfor %}
+  {% elif view == 'tickets' %}
+  <div class="sw-kpi-grid us-kpi-grid" style="margin-bottom:16px;">
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Open</p><p class="sw-kpi-value">{{ profile.tickets.open }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Resolved</p><p class="sw-kpi-value">{{ profile.tickets.resolved }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Avg resolution</p><p class="sw-kpi-value">{{ profile.tickets.avg_resolution }}</p></article>
+  </div>
+  <div class="us-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">As requester</h2>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Ticket</th><th>Status</th><th>Priority</th><th></th></tr></thead>
+          <tbody>
+            {% for t in profile.tickets.requested[:15] %}
+            <tr>
+              <td><strong>{{ t.subject or t.title }}</strong><div class="us-muted">{{ t.ticket_number }}</div></td>
+              <td>{{ t.status_label or t.status }}</td>
+              <td>{{ t.priority }}</td>
+              <td><a class="btn btn-ghost btn-sm" href="{{ url_for('helpdesk.details', item_id=t.id) }}">Open</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No requested tickets.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <button type="submit" class="btn btn-primary btn-sm">Save roles</button>
-    </form>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">As assignee</h2>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Ticket</th><th>Status</th><th>Priority</th><th></th></tr></thead>
+          <tbody>
+            {% for t in profile.tickets.assigned[:15] %}
+            <tr>
+              <td><strong>{{ t.subject or t.title }}</strong><div class="us-muted">{{ t.ticket_number }}</div></td>
+              <td>{{ t.status_label or t.status }}</td>
+              <td>{{ t.priority }}</td>
+              <td><a class="btn btn-ghost btn-sm" href="{{ url_for('helpdesk.details', item_id=t.id) }}">Open</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No assigned tickets.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  {% elif view == 'software' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Software available to this user</h2>
+    <div class="us-soft-list">
+      {% for s in profile.software %}
+      <span><strong>{{ s.name }}</strong> · {{ s.status }}</span>
+      {% endfor %}
+    </div>
+    <p class="us-muted" style="margin-top:12px;">Linked to Software &amp; Licenses modules — entitlement sync comes next.</p>
   </section>
 
-  <section class="device-panel" id="activity">
-    <h2 class="chart-panel-title">Recent activity</h2>
-    {% if activity %}
-    <table class="comp-table">
-      <thead><tr><th>Action</th><th>Resource</th><th>When</th></tr></thead>
-      <tbody>
-        {% for a in activity %}
-        <tr>
-          <td>{{ a.action }}</td>
-          <td>{{ a.resource_type or '—' }} {% if a.resource_id %}#{{ a.resource_id }}{% endif %}</td>
-          <td>{{ a.created_at or '—' }}</td>
-        </tr>
+  {% elif view == 'permissions' %}
+  <div class="us-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Role</h2>
+      <p><strong>{{ user.role_label }}</strong></p>
+      <p class="us-muted">{{ user.roles|join(', ') if user.roles else 'No roles assigned' }}</p>
+      <form method="post" action="{{ url_for('users.assign_roles', item_id=item_id) }}" style="margin-top:14px;">
+        <div class="uf-check-grid" style="margin-bottom:14px;">
+          {% for r in roles %}
+          <label class="uf-check">
+            <input type="checkbox" name="roles" value="{{ r.name }}" {% if r.name in user.roles %}checked{% endif %} />
+            <strong>{{ r.name.replace('_',' ').title() }}</strong>
+            <span>{{ r.description or 'Platform role' }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Save roles</button>
+      </form>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Effective permissions</h2>
+      <div class="us-perm-grid">
+        {% for g in profile.permissions %}
+        <div class="us-perm-block">
+          <h3>{{ g.module }}</h3>
+          <ul>{% for item in g.entries %}<li>{{ item }}</li>{% endfor %}</ul>
+        </div>
+        {% else %}
+        <p class="us-muted">No permissions resolved.</p>
         {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p class="chart-panel-subtitle">No audit events for this user yet.</p>
-    {% endif %}
+      </div>
+    </section>
+  </div>
+
+  {% elif view == 'sessions' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Sessions</h2>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Device</th><th>Client</th><th>IP</th><th>Started</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for s in profile.sessions %}
+          <tr>
+            <td>{{ s.device }}</td>
+            <td>{{ s.client }}</td>
+            <td>{{ s.ip }}</td>
+            <td>{{ s.created }}</td>
+            <td><span class="sw-badge {% if s.active %}sw-badge--success{% else %}sw-badge--muted{% endif %}">{{ s.status }}</span></td>
+            <td>
+              {% if s.active %}
+              <form method="post" action="{{ url_for('users.revoke_session', item_id=item_id, token_id=s.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-ghost btn-sm">Terminate</button>
+              </form>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">No refresh-token sessions recorded for this user.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </section>
+
+  {% elif view == 'activity' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Activity timeline</h2>
+    <ul class="us-timeline">
+      {% for a in profile.activity %}
+      <li>
+        <time>{{ (a.created_at or '')[:16].replace('T',' ') }}</time>
+        <div><strong>{{ a.action }}</strong><div class="us-muted">{{ a.resource_type or '' }} {% if a.resource_id %}#{{ a.resource_id }}{% endif %}</div></div>
+      </li>
+      {% else %}
+      <li><time>—</time><div>No activity yet.</div></li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  {% elif view == 'documents' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Linked documents</h2>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Document</th><th>Updated</th><th></th></tr></thead>
+        <tbody>
+          {% for d in profile.documents %}
+          <tr>
+            <td><strong>{{ d.name }}</strong></td>
+            <td>{{ d.updated }}</td>
+            <td><a class="btn btn-ghost btn-sm" href="{{ d.url }}">Open</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3">No owned documents. HR packs (NDA, training) can be linked from Documents.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% elif view == 'history' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Account history</h2>
+    <ul class="us-timeline">
+      {% for h in profile.history %}
+      <li>
+        <time>{{ h.when }}</time>
+        <div><strong>{{ h.title }}</strong><div class="us-muted">{{ h.detail }}</div></div>
+      </li>
+      {% else %}
+      <li><time>—</time><div>No history events.</div></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

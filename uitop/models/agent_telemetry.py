@@ -119,3 +119,38 @@ class AgentAlert(db.Model):
             "meta": self.meta,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class AgentCommand(db.Model):
+    """Queued remote action for an enrolled agent to execute."""
+
+    __tablename__ = "agent_commands"
+
+    id = db.Column(db.Integer, primary_key=True)
+    agent_id = db.Column(db.String(64), nullable=False, index=True)
+    computer_id = db.Column(db.Integer, db.ForeignKey("computers.id"), nullable=True, index=True)
+    command = db.Column(db.String(64), nullable=False, index=True)
+    status = db.Column(db.String(32), default="pending", nullable=False, index=True)
+    params = db.Column(db.JSON, nullable=True)
+    result = db.Column(db.Text, nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
+    sent_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    computer = db.relationship("Computer", backref=db.backref("agent_commands", lazy="dynamic"))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "agent_id": self.agent_id,
+            "computer_id": self.computer_id,
+            "command": self.command,
+            "status": self.status,
+            "params": self.params or {},
+            "result": self.result,
+            "created_by_id": self.created_by_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "sent_at": self.sent_at.isoformat() if self.sent_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+        }

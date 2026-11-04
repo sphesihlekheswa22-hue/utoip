@@ -1,0 +1,52 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ article.title }}{% endblock %}
+{% block page_title %}Knowledge{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/helpdesk.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('helpdesk.index', view='knowledge') }}">Knowledge Base</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ article.title }}</span>
+{% endblock %}
+
+{% block content %}
+<article class="hd-kb-detail">
+  <header class="sw-header">
+    <div>
+      <p class="hd-kb-cat">{{ article.category }}{% if not article.is_published %} · Draft{% endif %}</p>
+      <h1>{{ article.title }}</h1>
+      <p class="chart-panel-subtitle">
+        {{ article.summary or '' }}
+        {% if article.author %} · by {{ article.author }}{% endif %}
+        · {{ article.view_count }} views · {{ article.helpful_count }} found helpful
+      </p>
+    </div>
+    <div class="sw-header-actions">
+      {% if can('helpdesk:write') %}
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('helpdesk.knowledge_edit', article_id=article_id) }}">Edit</a>
+      <form method="post" action="{{ url_for('helpdesk.knowledge_delete', article_id=article_id) }}" onsubmit="return confirm('Delete this article?')">
+        <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
+      </form>
+      {% endif %}
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('helpdesk.index', view='knowledge') }}">Back</a>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <section class="sw-panel hd-kb-body">{{ article.body }}</section>
+
+  <form method="post" action="{{ url_for('helpdesk.knowledge_helpful', article_id=article_id) }}" class="hd-kb-helpful">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-thumbs-up"></i> This helped</button>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('helpdesk.create') }}">Still need a ticket</a>
+  </form>
+</article>
+{% endblock %}

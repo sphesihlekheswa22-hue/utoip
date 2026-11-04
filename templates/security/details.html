@@ -1,33 +1,6 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, status_badge, detail_row %}
-
-{% block title %}Security / Vault details{% endblock %}
-{% block page_title %}Security / Vault details{% endblock %}
-
+{% block title %}Security{% endblock %}
 {% block content %}
-{% call page_header("Security / Vault details", "Operational profile and related activity.", "{{ url_for('modules.page', module='security', page='index') }}", "Edit", "fa-pen") %}{% endcall %}
-
-<div class="detail-layout">
-  <section class="panel detail-card">
-    <header class="card-header">
-      <h2>Overview</h2>
-      {{ status_badge("Online") }}
-    </header>
-    <dl class="detail-list">
-      {{ detail_row("Name", "Demo Security / Vault 01") }}
-      {{ detail_row("Identifier", "UITOP-DEMO-001") }}
-      {{ detail_row("Owner", "IT Operations") }}
-      {{ detail_row("Department", "Corporate Services") }}
-      {{ detail_row("Last updated", "Today 09:42") }}
-    </dl>
-  </section>
-  <section class="panel detail-card">
-    <header class="card-header"><h2>Related</h2></header>
-    <ul class="related-list">
-      <li><a href="{{ url_for('modules.page', module='security', page='index') }}">Back to Security / Vault</a></li>
-      <li><a href="{{ url_for('monitoring.index') }}">Open monitoring</a></li>
-      <li><a href="{{ url_for('ai.index') }}">Ask AI about this record</a></li>
-    </ul>
-  </section>
-</div>
+<script>location.replace("{{ url_for('security.index') }}");</script>
+<p><a href="{{ url_for('security.index') }}">Open Security</a></p>
 {% endblock %}

@@ -305,6 +305,29 @@ def upsert_inventory(client: ApiClient, payload: dict) -> dict:
 
     ensure_asset_for_computer(computer, actor_client_id=client.client_id)
     db.session.commit()
+
+    # Link to UITOP user when agent reports Windows login
+    try:
+        from uitop.services.device_detection import (
+            _normalize_login,
+            ensure_user_owns_computer,
+            inventory_login,
+            user_login_aliases,
+        )
+        from uitop.models.user import User
+
+        login = inventory_login(computer) or _normalize_login(
+            str((inventory or {}).get("logged_in_user") or (inventory or {}).get("windows_user") or "")
+        )
+        if login:
+            for user in User.query.filter_by(is_active=True).all():
+                if login in user_login_aliases(user):
+                    ensure_user_owns_computer(user, computer, source="agent login")
+                    db.session.commit()
+                    break
+    except Exception:
+        pass
+
     log_audit(
         "agents.inventory",
         actor_client_id=client.client_id,

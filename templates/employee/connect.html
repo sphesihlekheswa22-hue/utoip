@@ -1,0 +1,88 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Connect my PC{% endblock %}
+{% block page_title %}Connect my PC{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/employee.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('employee.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Connect my PC</span>
+{% endblock %}
+
+{% block content %}
+<section class="emp-hero">
+  <div>
+    <p class="emp-eyebrow">No Python · No commands</p>
+    <h1>Connect this PC</h1>
+    <p class="emp-lede">Three simple steps. Download one file, get a code, click Connect. Your PC will then show under My Devices.</p>
+  </div>
+</section>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for cat, msg in messages %}
+    <div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="emp-connect-steps">
+  <article class="emp-connect-card">
+    <span class="emp-connect-num">1</span>
+    <h2>Download the app</h2>
+    <p>Save this file on <strong>this computer</strong>. You do not need Python or PowerShell.</p>
+    {% if agent_built %}
+    <a class="btn btn-primary btn-lg" href="{{ url_for('computers.download_agent_exe') }}">
+      <i class="fas fa-download"></i> Download UITOP-Agent.exe
+    </a>
+    {% else %}
+    <p class="emp-connect-warn">The installer is not ready yet. Ask IT to build it once (tools → build agent), then refresh this page.</p>
+    {% endif %}
+  </article>
+
+  <article class="emp-connect-card">
+    <span class="emp-connect-num">2</span>
+    <h2>Get your code</h2>
+    <p>Click below to create a one-time code. It expires in <strong>15 minutes</strong>.</p>
+    <form method="post" action="{{ url_for('employee.connect_pair') }}">
+      <button type="submit" class="btn btn-primary"><i class="fas fa-key"></i> Get my code</button>
+    </form>
+    {% if pairing and pairing.code %}
+    <div class="emp-connect-code-box">
+      <span class="emp-connect-code-label">Your code</span>
+      <strong class="emp-connect-code" id="pairCode">{{ pairing.code }}</strong>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('{{ pairing.code }}')">Copy code</button>
+    </div>
+    {% endif %}
+  </article>
+
+  <article class="emp-connect-card">
+    <span class="emp-connect-num">3</span>
+    <h2>Open the app &amp; connect</h2>
+    <ol class="emp-connect-ol">
+      <li>Double-click <strong>UITOP-Agent.exe</strong></li>
+      <li>Paste this address into the first box:</li>
+    </ol>
+    <div class="emp-connect-code-box">
+      <span class="emp-connect-code-label">UITOP address</span>
+      <code class="emp-connect-server" id="serverUrl">{{ server_url }}</code>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('serverUrl').innerText)">Copy address</button>
+    </div>
+    <ol class="emp-connect-ol" start="3">
+      <li>Type your <strong>6-digit code</strong></li>
+      <li>Click <strong>Connect</strong></li>
+      <li>Allow it to start with Windows when asked</li>
+    </ol>
+    <a class="btn btn-secondary" href="{{ url_for('employee.devices') }}"><i class="fas fa-desktop"></i> Then open My Devices</a>
+  </article>
+</div>
+
+<section class="emp-panel" style="margin-top:1.25rem">
+  <header class="emp-panel-head"><h2>Need help?</h2></header>
+  <p class="emp-empty">If Connect fails, ask IT to confirm UITOP is running and that this PC can open <code>{{ server_url }}</code> in a browser. Or <a href="{{ url_for('helpdesk.create', subject='Help connecting my PC to UITOP') }}">create a ticket</a>.</p>
+</section>
+{% endblock %}

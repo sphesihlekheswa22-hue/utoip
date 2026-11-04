@@ -262,7 +262,7 @@
   </section>
 
   <section class="device-panel" x-show="tab === 'files'">
-    <h2 class="chart-panel-title">Files</h2>
+    <h2 class="chart-panel-title">Attachments</h2>
     {% from "files/_entity_files.html" import entity_files_panel %}
     {{ entity_files_panel(linked_files or [], 'server', item_id, url_for('servers.details', item_id=item_id, tab='files')) }}
   </section>
@@ -331,7 +331,7 @@ function serverConsole(initial) {
       { id: "security", label: "Security" },
       { id: "logs", label: "Logs" },
       { id: "backups", label: "Backups" },
-      { id: "files", label: "Files" },
+      { id: "files", label: "Attachments" },
       { id: "vms", label: "Virtual Machines" },
       { id: "timeline", label: "Activity Timeline" },
       { id: "remote", label: "Remote Actions" }

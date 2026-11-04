@@ -1,65 +1,277 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
 
 {% block title %}Documents{% endblock %}
 {% block page_title %}Documents{% endblock %}
 
-{% block content %}
-{% call page_header("Documents", "Manage documents across Umzinyathi IT operations.", "{{ url_for('modules.page', module='documents', page='create') }}", "Add Document", "fa-plus") %}{% endcall %}
+{% from "components/pager_macros.html" import alpine_pager %}
 
-<div class="kpi-grid">
-  {{ kpi_card("Total", "128", "+3%", "default", "fa-folder-open") }}
-  {{ kpi_card("Active", "110", "Healthy", "success", "fa-circle-check") }}
-  {{ kpi_card("Attention", "12", "Review", "warning", "fa-triangle-exclamation") }}
-  {{ kpi_card("Critical", "6", "Urgent", "danger", "fa-bolt") }}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/documents.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page fr-page doc-page" x-data="documentsHub()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>Documents</h1>
+      <p>Municipal document libraries — policies, SOPs, contracts, and department files. Personal files live in <a href="{{ url_for('workspace.index') }}">My Workspace</a>; machine backups live in <a href="{{ url_for('backup.index') }}">Backup Center</a>.</p>
+    </div>
+    <div class="sw-header-actions">
+      <button type="button" class="btn btn-primary" @click="showUpload = true"><i class="fas fa-upload"></i> Upload document</button>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <nav class="sw-subtabs" role="tablist">
+    {% for key, label in [
+      ('dashboard','Dashboard'),
+      ('library','Library'),
+      ('pending','Pending Approval'),
+      ('expired','Expired'),
+      ('shared','Shared'),
+      ('archive','Archive'),
+      ('attachments','Attachments')
+    ] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('documents.index', view=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="sw-kpi-grid fr-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Total documents</p><p class="sw-kpi-value">{{ kpis.total }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Recent uploads</p><p class="sw-kpi-value">{{ kpis.recent_uploads }}</p></article>
+    <a class="sw-kpi is-warning" href="{{ url_for('documents.index', view='pending') }}" style="text-decoration:none;color:inherit;">
+      <p class="sw-kpi-label">Pending approval</p><p class="sw-kpi-value">{{ kpis.pending_approval }}</p>
+    </a>
+    <a class="sw-kpi is-danger" href="{{ url_for('documents.index', view='expired') }}" style="text-decoration:none;color:inherit;">
+      <p class="sw-kpi-label">Expired</p><p class="sw-kpi-value">{{ kpis.expired }}</p>
+    </a>
+    <a class="sw-kpi" href="{{ url_for('documents.index', view='shared') }}" style="text-decoration:none;color:inherit;">
+      <p class="sw-kpi-label">Shared</p><p class="sw-kpi-value">{{ kpis.shared }}</p>
+    </a>
+    <article class="sw-kpi"><p class="sw-kpi-label">Storage used</p><p class="sw-kpi-value">{{ kpis.storage_label }}</p></article>
+  </div>
+
+  <div class="fr-layout">
+    <aside class="sw-panel fr-cats">
+      <p class="sw-kpi-label fr-cats-label">{% if view == 'attachments' %}Attachment types{% else %}Categories{% endif %}</p>
+      <button type="button" class="sw-tab fr-cat" :class="{ 'is-active': !cat }" @click="setCat('')">
+        <span>All</span>
+        <em x-text="data.files.length"></em>
+      </button>
+      <template x-for="c in data.category_counts" :key="c.name">
+        <button type="button" class="sw-tab fr-cat" :class="{ 'is-active': cat === c.name }" @click="setCat(c.name)">
+          <span><i class="fas" :class="c.icon"></i> <span x-text="c.name"></span></span>
+          <em x-text="c.count"></em>
+        </button>
+      </template>
+    </aside>
+
+    <section class="sw-panel">
+      <div class="sw-toolbar">
+        <div class="sw-search">
+          <i class="fas fa-magnifying-glass"></i>
+          <input type="search" placeholder="Search title, owner, tags, linked asset…" x-model="q" @keydown.enter.prevent="applySearch()" />
+        </div>
+        <select x-model="statusFilter" x-show="{{ 'true' if view != 'attachments' else 'false' }}">
+          <option value="">All statuses</option>
+          <option value="draft">Draft</option>
+          <option value="review">Review</option>
+          <option value="approved">Approved</option>
+          <option value="published">Published</option>
+          <option value="archived">Archived</option>
+        </select>
+        <select x-model="typeFilter">
+          <option value="">All types</option>
+          <option value="PDF">PDF</option>
+          <option value="DOCX">Word</option>
+          <option value="XLSX">Excel</option>
+          <option value="TXT">Text</option>
+          <option value="PNG">Image</option>
+        </select>
+      </div>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Linked To</th>
+              <th>Owner</th>
+              <th>Version</th>
+              <th>Status</th>
+              <th>Updated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="f in pagedItems(filtered)" :key="f.id">
+              <tr>
+                <td>
+                  <div class="sw-name">
+                    <span class="sw-name-icon"><i class="fas" :class="f.kind === 'attachment' ? 'fa-paperclip' : 'fa-file-lines'"></i></span>
+                    <div>
+                      <strong><a :href="'/documents/' + f.id" x-text="f.name"></a></strong>
+                      <span x-text="f.type"></span>
+                    </div>
+                  </div>
+                </td>
+                <td x-text="f.category"></td>
+                <td x-text="f.linked_label || '—'"></td>
+                <td x-text="f.owner || f.uploaded_by"></td>
+                <td x-text="f.version_label || ('v' + f.version)"></td>
+                <td>
+                  <span class="sw-badge" :class="{
+                    'sw-badge--warning': f.status === 'draft' || f.status === 'review',
+                    'sw-badge--success': f.status === 'approved' || f.status === 'published',
+                    'sw-badge--muted': f.status === 'archived',
+                    'sw-badge--danger': f.expired
+                  }" x-text="f.expired ? 'Expired' : f.status_label"></span>
+                </td>
+                <td x-text="f.updated || f.uploaded"></td>
+                <td>
+                  <a class="btn btn-ghost btn-sm" :href="'/files/' + f.id + '/download'" title="Download"><i class="fas fa-download"></i></a>
+                  <a class="btn btn-ghost btn-sm" :href="'/documents/' + f.id">Open</a>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <p class="sw-empty" x-show="filtered.length === 0">No documents match. Upload a policy, procedure, or contract to get started.</p>
+        {{ alpine_pager('filtered') }}
+      </div>
+    </section>
+  </div>
+
+  <div x-show="showUpload" x-cloak class="fr-modal" @click.self="showUpload=false" id="upload">
+    <form method="post" action="{{ url_for('documents.upload') }}" enctype="multipart/form-data" class="uf-card fr-upload">
+      <input type="hidden" name="kind" value="{{ 'attachment' if view == 'attachments' else 'document' }}" />
+      <section class="uf-section">
+        <div class="uf-section-head">
+          <span class="uf-section-num"><i class="fas fa-upload"></i></span>
+          <div>
+            <h2>{% if view == 'attachments' %}Upload attachment{% else %}Upload document{% endif %}</h2>
+            <p>{% if view == 'attachments' %}Supporting file for a record — logs, photos, configs.{% else %}Managed documentation with category, owner, and approval workflow.{% endif %}</p>
+          </div>
+        </div>
+        <div class="uf-section-body">
+          <div class="uf-field">
+            <span class="uf-field-label">File</span>
+            <input type="file" name="file" required />
+          </div>
+          <div class="uf-grid-2">
+            <div class="uf-field">
+              <span class="uf-field-label">Category</span>
+              <select name="category" required>
+                {% for c in payload.categories %}<option>{{ c }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="uf-field">
+              <span class="uf-field-label">Owner / team</span>
+              <input name="owner_name" placeholder="e.g. Network Team" />
+            </div>
+          </div>
+          {% if view != 'attachments' %}
+          <div class="uf-grid-2">
+            <div class="uf-field">
+              <span class="uf-field-label">Initial status</span>
+              <select name="status">
+                <option value="draft">Draft</option>
+                <option value="review">Submit for review</option>
+                <option value="published">Publish immediately</option>
+              </select>
+            </div>
+            <div class="uf-field">
+              <span class="uf-field-label">Tags</span>
+              <input name="tags" placeholder="POPIA, Critical, VPN" />
+            </div>
+          </div>
+          {% else %}
+          <div class="uf-field">
+            <span class="uf-field-label">Tags</span>
+            <input name="tags" placeholder="screenshot, log" />
+          </div>
+          {% endif %}
+          <div class="uf-grid-2">
+            <div class="uf-field">
+              <span class="uf-field-label">Link to</span>
+              <select name="link_type">
+                <option value="">— Optional —</option>
+                <option value="computer">Computer</option>
+                <option value="server">Server</option>
+                <option value="asset">Asset</option>
+                <option value="vendor">Vendor</option>
+                <option value="software">Software</option>
+                <option value="network_device">Network device</option>
+                <option value="maintenance">Maintenance WO</option>
+                <option value="ticket">Help Desk ticket</option>
+                <option value="license">License</option>
+              </select>
+            </div>
+            <div class="uf-field">
+              <span class="uf-field-label">Object ID</span>
+              <input name="link_id" type="number" min="1" placeholder="e.g. 1" />
+            </div>
+          </div>
+          <div class="uf-field">
+            <span class="uf-field-label">Description</span>
+            <textarea name="description" rows="2" placeholder="What this document covers"></textarea>
+          </div>
+          <label class="checkbox"><input type="checkbox" name="shared" value="1" /> Shared across UITOP</label>
+        </div>
+      </section>
+      <div class="uf-actions">
+        <button type="button" class="btn btn-secondary" @click="showUpload=false">Cancel</button>
+        <button type="submit" class="btn btn-primary">Upload</button>
+      </div>
+    </form>
+  </div>
 </div>
 
-{% call filter_bar("Search documents…") %}
-  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
-  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
-{% endcall %}
-
-<section class="table-panel panel">
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Owner</th>
-          <th>Type</th>
-          <th>Updated</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Demo Document 1</td>
-          <td>IT Ops</td>
-          <td>Standard</td>
-          <td>Today</td>
-          <td>{{ status_badge('Active') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='documents', page='details') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Document 2</td>
-          <td>Infrastructure</td>
-          <td>{{ status_badge('Critical') }}</td>
-          <td>Yesterday</td>
-          <td>{{ status_badge('Warning') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='documents', page='details') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Document 3</td>
-          <td>Help Desk</td>
-          <td>Standard</td>
-          <td>2 days ago</td>
-          <td>{{ status_badge('Online') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='documents', page='details') }}">View</a></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  {{ pagination(1, 4) }}
-</section>
+<script>
+window.__DOCS__ = {{ payload | tojson }};
+function documentsHub() {
+  return Object.assign({
+    data: window.__DOCS__ || {},
+    q: {{ q | tojson }},
+    cat: {{ category | tojson }},
+    typeFilter: "",
+    statusFilter: "",
+    showUpload: location.hash === '#upload',
+    init() { this.watchPagerReset(['q', 'cat', 'typeFilter', 'statusFilter']); },
+    setCat(name) {
+      this.cat = name;
+      var url = new URL(window.location.href);
+      if (name) url.searchParams.set("category", name);
+      else url.searchParams.delete("category");
+      history.replaceState({}, "", url);
+    },
+    applySearch() {
+      var url = new URL(window.location.href);
+      if (this.q) url.searchParams.set("q", this.q);
+      else url.searchParams.delete("q");
+      window.location = url.toString();
+    },
+    get filtered() {
+      var q = (this.q || "").trim().toLowerCase();
+      var cat = this.cat;
+      var ty = this.typeFilter;
+      var st = this.statusFilter;
+      return (this.data.files || []).filter(function (f) {
+        if (cat && f.category !== cat) return false;
+        if (ty && f.type !== ty) return false;
+        if (st && f.status !== st) return false;
+        if (!q) return true;
+        var hay = [f.name, f.category, f.owner, f.uploaded_by, f.linked_label, (f.tags || []).join(" ")].join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+  }, UITOP.createPager(10));
+}
+</script>
 {% endblock %}

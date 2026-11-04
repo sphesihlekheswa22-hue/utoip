@@ -1,0 +1,150 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}My Devices{% endblock %}
+{% block page_title %}My Devices{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/employee.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('employee.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>My Devices</span>
+{% endblock %}
+
+{% block content %}
+<section class="emp-hero emp-hero--compact">
+  <div>
+    <p class="emp-eyebrow">Detected from UITOP Agent</p>
+    <h1>My Devices</h1>
+    <p class="emp-lede">Live computers reporting from your PC — not demo inventory. Install the agent if nothing appears.</p>
+  </div>
+  <div class="emp-hero-actions">
+    <a href="{{ url_for('employee.connect') }}" class="btn btn-secondary"><i class="fas fa-plug"></i> Connect my PC</a>
+    <a href="{{ url_for('helpdesk.create') }}" class="btn btn-primary"><i class="fas fa-triangle-exclamation"></i> Report a problem</a>
+  </div>
+</section>
+
+{% if devices.detected %}
+<p class="emp-detect-banner">
+  <i class="fas fa-satellite-dish" aria-hidden="true"></i>
+  Detected:
+  {% for d in devices.detected %}
+    <strong>{{ d.hostname }}</strong> <span>({{ d.source }})</span>{% if not loop.last %}, {% endif %}
+  {% endfor %}
+</p>
+{% endif %}
+
+<section class="emp-panel">
+  <header class="emp-panel-head"><h2>My computers</h2></header>
+  {% if devices.computers %}
+  <div class="emp-table-wrap">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Hostname</th>
+          <th>IP</th>
+          <th>OS</th>
+          <th>Status</th>
+          <th>Last seen</th>
+          <th>Detected</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in devices.computers %}
+        <tr>
+          <td>
+            <strong>{{ c.hostname or c.name }}</strong>
+            {% if c.agent_id %}<div class="emp-meta">Agent {{ c.agent_version or 'connected' }}</div>{% endif %}
+          </td>
+          <td>{{ c.ip or c.ip_address or '—' }}</td>
+          <td>{{ c.os_name or '—' }}</td>
+          <td><span class="emp-status emp-status--{{ c.status }}">{{ c.status }}</span></td>
+          <td>{{ c.last_seen or '—' }}</td>
+          <td>{{ c.detection_source or 'assigned' }}</td>
+          <td>
+            <a class="btn btn-secondary btn-sm" href="{{ url_for('helpdesk.create', subject='Computer problem: '~(c.hostname or c.name)) }}">Report</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="emp-empty-card">
+    <h3>No live PC detected yet</h3>
+    <p>Connect this computer with a simple download — <strong>no Python</strong> and no commands.</p>
+    <a class="btn btn-primary" href="{{ url_for('employee.connect') }}"><i class="fas fa-plug"></i> Connect my PC</a>
+    <p class="emp-meta" style="margin-top:0.85rem">After you connect, refresh this page — your PC name will appear automatically.</p>
+  </div>
+  {% endif %}
+</section>
+
+{% if devices.assets %}
+<section class="emp-panel">
+  <header class="emp-panel-head"><h2>Linked assets</h2></header>
+  <div class="emp-table-wrap">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Tag</th>
+          <th>Name</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in devices.assets %}
+        <tr>
+          <td>{{ a.asset_tag }}</td>
+          <td><strong>{{ a.name }}</strong></td>
+          <td>{{ a.status|replace('_',' ') }}</td>
+          <td>
+            <form method="post" action="{{ url_for('employee.report_device', asset_id=a.id) }}">
+              <button type="submit" class="btn btn-secondary btn-sm">Report problem</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="emp-panel">
+  <header class="emp-panel-head"><h2>Office printers nearby</h2></header>
+  {% if devices.printers %}
+  <div class="emp-table-wrap">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Model</th>
+          <th>Location / IP</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in devices.printers %}
+        <tr>
+          <td><strong>{{ p.name }}</strong></td>
+          <td>{{ p.model or '—' }}</td>
+          <td>{{ p.location or p.ip_address or '—' }}</td>
+          <td><span class="emp-status emp-status--{{ p.status }}">{{ p.status }}</span></td>
+          <td>
+            <a class="btn btn-secondary btn-sm" href="{{ url_for('helpdesk.create', subject='Printer problem: '~p.name) }}">Report</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="emp-empty">No live printers detected near your PC yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

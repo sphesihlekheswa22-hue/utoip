@@ -1,0 +1,85 @@
+/* UITOP Documents DMS */
+
+.doc-page .fr-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.doc-approval-flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.doc-approval-flow li {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-muted);
+  box-shadow: var(--shadow-xs);
+}
+
+.doc-approval-flow li.is-current {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.doc-approval-flow li:not(:last-child)::after {
+  content: "→";
+  margin-left: 8px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.doc-page .sw-subtabs {
+  margin-bottom: 2px;
+}
+
+.doc-page .fr-layout {
+  gap: 18px;
+}
+
+.doc-page .fr-cats {
+  padding: 14px;
+  position: sticky;
+  top: calc(var(--topbar-height, 64px) + 12px);
+}
+
+.doc-page .fr-cat {
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.doc-page .fr-cat.is-active {
+  background: var(--bg-elevated);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Phase 7 — Documents & Knowledge Base */
+.doc-page .sw-header { align-items: flex-start; }
+.doc-page .sw-header p { max-width: 860px; }
+.doc-page .sw-kpi { min-height: 88px; }
+.doc-page .sw-kpi-label { letter-spacing: .01em; }
+.doc-page .sw-toolbar { gap: 10px; }
+.doc-page .sw-search { min-width: 260px; }
+.doc-page .sw-table tbody tr { transition: background .16s ease, transform .16s ease; }
+.doc-page .sw-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 4%, var(--bg-elevated)); }
+.doc-page .sw-name strong a { color: var(--text-strong); text-decoration: none; }
+.doc-page .sw-name strong a:hover { color: var(--accent-text); text-decoration: underline; }
+.doc-page .fr-version-rail { padding-top: 4px; }
+.doc-page .fr-preview-frame { box-shadow: var(--shadow-xs); }
+.doc-page .fr-preview-img { box-shadow: var(--shadow-xs); }
+.doc-page .doc-approval-flow { margin: 8px 0 4px; }
+@media (max-width: 700px) {
+  .doc-page .sw-search { min-width: 0; width: 100%; }
+  .doc-page .sw-toolbar { align-items: stretch; }
+  .doc-page .sw-toolbar select { width: 100%; }
+}

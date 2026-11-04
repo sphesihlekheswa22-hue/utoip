@@ -1,69 +1,435 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
 
 {% block title %}Monitoring{% endblock %}
 {% block page_title %}Monitoring{% endblock %}
 
-{% block content %}
-{% call page_header("Monitoring", "Manage monitoring across Umzinyathi IT operations.", "{{ url_for('monitoring.index') }}", "Add Monitor", "fa-plus") %}{% endcall %}
+{% from "components/pager_macros.html" import alpine_pager %}
 
-<div class="kpi-grid">
-  {{ kpi_card("Uptime", "99.94%", "30 days", "success", "fa-signal") }}
-  {{ kpi_card("Active alerts", "8", "2 critical", "danger", "fa-bell") }}
-  {{ kpi_card("Agents", "214", "Reporting", "default", "fa-satellite-dish") }}
-  {{ kpi_card("Latency", "18ms", "Core LAN", "success", "fa-gauge-high") }}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/monitoring.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page mon-page" x-data="monitoringHub()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>Infrastructure Monitoring</h1>
+      <p>Operational center of UITOP — live health, alerts, and agent telemetry across the municipal estate.</p>
+    </div>
+    <div class="sw-header-actions">
+      <span class="mon-pulse"><i></i> Live · refresh {{ payload.refresh_seconds }}s</span>
+      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-secondary btn-sm"><i class="fas fa-satellite-dish"></i> Agents</a>
+    </div>
+  </header>
+
+  <nav class="sw-subtabs mon-nav" role="tablist">
+    {% for key, label in [
+      ('overview','Overview'),
+      ('health','Infrastructure Health'),
+      ('live','Live Devices'),
+      ('performance','Performance'),
+      ('network','Network'),
+      ('servers','Servers'),
+      ('computers','Computers'),
+      ('services','Services'),
+      ('processes','Processes'),
+      ('alerts','Alerts'),
+      ('events','Events'),
+      ('reports','Reports')
+    ] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('monitoring.index', view=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="sw-kpi-grid mon-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Infrastructure health</p><p class="sw-kpi-value">{{ kpis.health }}%</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Online devices</p><p class="sw-kpi-value">{{ kpis.online }}</p></article>
+    <article class="sw-kpi is-danger"><p class="sw-kpi-label">Offline devices</p><p class="sw-kpi-value">{{ kpis.offline }}</p></article>
+    <a class="sw-kpi is-danger" href="{{ url_for('monitoring.index', view='alerts') }}" style="text-decoration:none;color:inherit;">
+      <p class="sw-kpi-label">Critical alerts</p><p class="sw-kpi-value">{{ kpis.critical_alerts }}</p>
+    </a>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Warnings</p><p class="sw-kpi-value">{{ kpis.warnings }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">CPU average</p><p class="sw-kpi-value">{{ kpis.cpu_avg }}%</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Memory average</p><p class="sw-kpi-value">{{ kpis.ram_avg }}%</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Storage used</p><p class="sw-kpi-value">{{ kpis.disk_avg }}%</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Network health</p><p class="sw-kpi-value">{{ kpis.network_health }}%</p></article>
+  </div>
+
+  {% if view == 'overview' %}
+  <section class="mon-command-strip" aria-label="Infrastructure status summary">
+    <div class="mon-command-heading">
+      <div>
+        <span class="mon-eyebrow">OPERATIONS STATUS</span>
+        <h2>Infrastructure at a glance</h2>
+        <p>Live service posture across the monitored municipal estate.</p>
+      </div>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('monitoring.index', view='health') }}"><i class="fas fa-heart-pulse"></i> Health details</a>
+    </div>
+    <div class="mon-status-grid">
+      <a class="mon-status-card is-success" href="{{ url_for('monitoring.index', view='servers') }}">
+        <span class="mon-status-icon"><i class="fas fa-server"></i></span>
+        <span class="mon-status-copy"><strong>Servers</strong><small>{{ kpis.servers_online }} online</small></span>
+        <span class="mon-status-dot" aria-label="Servers status"></span>
+      </a>
+      <a class="mon-status-card is-success" href="{{ url_for('monitoring.index', view='computers') }}">
+        <span class="mon-status-icon"><i class="fas fa-desktop"></i></span>
+        <span class="mon-status-copy"><strong>Endpoints</strong><small>{{ kpis.computers_online }} online</small></span>
+        <span class="mon-status-dot" aria-label="Endpoint status"></span>
+      </a>
+      <a class="mon-status-card {% if kpis.network_health < 90 %}is-warning{% else %}is-success{% endif %}" href="{{ url_for('monitoring.index', view='network') }}">
+        <span class="mon-status-icon"><i class="fas fa-network-wired"></i></span>
+        <span class="mon-status-copy"><strong>Network</strong><small>{{ kpis.network_health }}% health</small></span>
+        <span class="mon-status-dot" aria-label="Network status"></span>
+      </a>
+      <a class="mon-status-card {% if kpis.critical_alerts > 0 %}is-danger{% elif kpis.warnings > 0 %}is-warning{% else %}is-success{% endif %}" href="{{ url_for('monitoring.index', view='alerts') }}">
+        <span class="mon-status-icon"><i class="fas fa-bell"></i></span>
+        <span class="mon-status-copy"><strong>Alerts</strong><small>{{ kpis.critical_alerts }} critical · {{ kpis.warnings }} warnings</small></span>
+        <span class="mon-status-dot" aria-label="Alert status"></span>
+      </a>
+    </div>
+  </section>
+
+  <div class="mon-type-row" style="margin-bottom:16px;">
+    <a href="{{ url_for('monitoring.index', view='servers') }}"><strong>{{ kpis.servers_online }}</strong><span>Servers online</span></a>
+    <a href="{{ url_for('monitoring.index', view='computers') }}"><strong>{{ kpis.computers_online }}</strong><span>Computers online</span></a>
+    <a href="{{ url_for('printers.index') }}"><strong>{{ kpis.printers_online }}</strong><span>Printers online</span></a>
+    <a href="{{ url_for('monitoring.index', view='network') }}"><strong>{{ kpis.network_online }}</strong><span>Network devices online</span></a>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,0.8fr);gap:16px;align-items:start;">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Estate performance</h2>
+      <div class="mon-chart-grid" x-init="$nextTick(() => initCharts())">
+        <div class="mon-chart-card"><h3>CPU</h3><canvas id="monCpu"></canvas></div>
+        <div class="mon-chart-card"><h3>Memory</h3><canvas id="monMem"></canvas></div>
+        <div class="mon-chart-card"><h3>Disk</h3><canvas id="monDisk"></canvas></div>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">AI Insights</h2>
+      <p class="chart-panel-subtitle">Trend analysis ready for the UITOP AI engine.</p>
+      <div class="mon-ai-grid" style="grid-template-columns:1fr;">
+        {% for tip in payload.ai_insights[:3] %}
+        <article class="mon-ai-card is-{{ tip.tone }}">
+          <h3>{{ tip.title }}</h3>
+          <div><p class="label">Detected</p><p>{{ tip.finding }}</p></div>
+          <div><p class="label">Possible cause</p><p>{{ tip.cause }}</p></div>
+          <div><p class="label">Recommendation</p><p>{{ tip.recommendation }}</p></div>
+          {% if tip.url %}<a class="btn btn-ghost btn-sm" href="{{ tip.url }}">Open device</a>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <section class="sw-panel" style="margin-top:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <h2 class="chart-panel-title" style="margin:0;">Critical alerts</h2>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('monitoring.index', view='alerts') }}">All alerts</a>
+    </div>
+    {% for a in payload.alerts[:4] %}
+    <article class="mon-alert {% if a.severity in ['critical','error'] %}is-critical{% endif %}">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <strong>{{ a.title }}</strong>
+        <span class="sw-badge {% if a.severity in ['critical','error'] %}sw-badge--danger{% else %}sw-badge--warning{% endif %}">{{ a.severity }}</span>
+      </div>
+      <p style="margin:0;color:#64748b;font-size:13px;">{{ a.host }} · {{ a.when }} — {{ a.message }}</p>
+      <div class="mon-alert-actions">
+        {% for act in a.actions %}
+        <button type="button" class="btn btn-ghost btn-sm" @click="toast('{{ act.label }} queued')"><i class="fas {{ act.icon }}"></i> {{ act.label }}</button>
+        {% endfor %}
+        <a class="btn btn-secondary btn-sm" href="{{ a.url }}">Open</a>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+
+  {% elif view == 'health' %}
+  <section class="mon-health-card" style="--score: {{ kpis.health }}; margin-bottom:16px;">
+    <div class="mon-health-ring">{{ kpis.health }}%</div>
+    <div>
+      <h2>Infrastructure Health · {{ kpis.health_label }}</h2>
+      <p>Score from offline devices, high CPU, disk pressure, failed services, and open alerts across the monitored estate.</p>
+    </div>
+  </section>
+  <div class="sw-kpi-grid">
+    <article class="sw-kpi"><p class="sw-kpi-label">Offline weight</p><p class="sw-kpi-value">{{ kpis.offline }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Critical alerts</p><p class="sw-kpi-value">{{ kpis.critical_alerts }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">CPU pressure</p><p class="sw-kpi-value">{{ kpis.cpu_avg }}%</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Disk pressure</p><p class="sw-kpi-value">{{ kpis.disk_avg }}%</p></article>
+  </div>
+  <section class="sw-panel" style="margin-top:16px;">
+    <h2 class="chart-panel-title">AI Insights</h2>
+    <div class="mon-ai-grid">
+      {% for tip in payload.ai_insights %}
+      <article class="mon-ai-card is-{{ tip.tone }}">
+        <h3>{{ tip.title }}</h3>
+        <p>{{ tip.finding }}</p>
+        <p><strong>Cause:</strong> {{ tip.cause }}</p>
+        <p><strong>Do this:</strong> {{ tip.recommendation }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% elif view in ['live','performance','servers','computers'] %}
+  <div class="sw-toolbar">
+    <div class="sw-search">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="search" placeholder="Search devices…" x-model="q" />
+    </div>
+    <select x-model="statusFilter">
+      <option value="">All statuses</option>
+      <option value="Online">Online</option>
+      <option value="Warning">Warning</option>
+      <option value="Critical">Critical</option>
+      <option value="Offline">Offline</option>
+    </select>
+    <select x-model="typeFilter" x-show="view === 'live' || view === 'performance'">
+      <option value="">All types</option>
+      <option value="Computer">Computers</option>
+      <option value="Server">Servers</option>
+      <option value="Printer">Printers</option>
+      <option value="Switch">Network</option>
+    </select>
+  </div>
+  <section class="sw-panel">
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Device</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Last seen</th>
+            <th>CPU</th>
+            <th>RAM</th>
+            <th>Network</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="d in pagedItems(filteredDevices)" :key="d.kind + '-' + d.id">
+            <tr>
+              <td><strong x-text="d.name"></strong></td>
+              <td x-text="d.type"></td>
+              <td><span class="sw-badge" :class="badgeFor(d.status)" x-text="d.status"></span></td>
+              <td x-text="d.last_seen"></td>
+              <td x-text="d.cpu + '%'"></td>
+              <td x-text="d.ram + '%'"></td>
+              <td x-text="d.network ? (d.network + ' KB/s') : '—'"></td>
+              <td>
+                <a class="btn btn-ghost btn-sm" :href="d.monitor_url">Monitor</a>
+                <a class="btn btn-ghost btn-sm" :href="d.url">Open</a>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <p class="sw-empty" x-show="filteredDevices.length === 0">No devices match.</p>
+      {{ alpine_pager('filteredDevices') }}
+    </div>
+  </section>
+
+  {% elif view == 'network' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Network monitoring</h2>
+    <p class="chart-panel-subtitle">Routers, switches, firewalls, and access points — bandwidth, latency, packet loss, availability.</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Device</th><th>Role</th><th>Status</th><th>Bandwidth</th><th>Latency</th><th>Packet loss</th><th>Ports</th></tr></thead>
+        <tbody>
+          {% for n in payload.network_devices %}
+          <tr>
+            <td><strong>{{ n.name }}</strong></td>
+            <td>{{ n.role }}</td>
+            <td><span class="sw-badge {% if n.status == 'Online' %}sw-badge--success{% else %}sw-badge--warning{% endif %}">{{ n.status }}</span></td>
+            <td>{{ n.bandwidth }}</td>
+            <td>{{ n.latency }}</td>
+            <td>{{ n.loss }}</td>
+            <td>{{ n.ports_up }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% elif view == 'services' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Windows services</h2>
+    <p class="chart-panel-subtitle">Reported by UITOP Agent — restart remotely from device Remote Actions.</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Service</th><th>Host</th><th>Type</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for s in payload.services %}
+          <tr>
+            <td><strong>{{ s.name }}</strong></td>
+            <td>{{ s.host }}</td>
+            <td>{{ s.type }}</td>
+            <td><span class="sw-badge {% if s.status == 'Running' %}sw-badge--success{% else %}sw-badge--danger{% endif %}">{{ s.status }}</span></td>
+            <td><button type="button" class="btn btn-ghost btn-sm" @click="toast('Restart queued for {{ s.name }}')">Restart</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% elif view == 'processes' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Running processes</h2>
+    <p class="chart-panel-subtitle">Top consumers across the monitored estate. Kill process is a future agent action.</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Process</th><th>Host</th><th>CPU</th><th>RAM</th><th>User</th><th></th></tr></thead>
+        <tbody>
+          {% for p in payload.processes %}
+          <tr>
+            <td><code>{{ p.name }}</code></td>
+            <td>{{ p.host }}</td>
+            <td>{{ p.cpu }}%</td>
+            <td>{{ p.ram }}%</td>
+            <td>{{ p.user }}</td>
+            <td><button type="button" class="btn btn-ghost btn-sm" @click="toast('Kill process reserved for agent (future)')">Kill</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% elif view == 'alerts' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Alerts</h2>
+    {% for a in payload.alerts %}
+    <article class="mon-alert {% if a.severity in ['critical','error'] %}is-critical{% endif %}">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div>
+          <strong>{{ a.title }}</strong>
+          <div style="font-size:12.5px;color:#64748b;">{{ a.host }} · {{ a.when }} · {{ a.code }}</div>
+        </div>
+        <span class="sw-badge {% if a.severity in ['critical','error'] %}sw-badge--danger{% else %}sw-badge--warning{% endif %}">{{ a.severity }}</span>
+      </div>
+      <p style="margin:0;color:#475569;font-size:13px;">{{ a.message }}</p>
+      <div class="mon-alert-actions">
+        {% for act in a.actions %}
+        <button type="button" class="btn btn-ghost btn-sm" @click="toast('{{ act.label }}')"><i class="fas {{ act.icon }}"></i> {{ act.label }}</button>
+        {% endfor %}
+        <a class="btn btn-secondary btn-sm" href="{{ a.url }}">Open device</a>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+
+  {% elif view == 'events' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Event timeline</h2>
+    {% for e in payload.events %}
+    <div class="mon-event">
+      <time>{{ e.when }}</time>
+      <strong>{{ e.message }}</strong>
+      <span style="font-size:12px;color:#64748b;">{{ e.host }} · {{ e.source }} · {{ e.severity }}</span>
+    </div>
+    {% endfor %}
+  </section>
+
+  {% elif view == 'reports' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Monitoring reports</h2>
+    <p class="chart-panel-subtitle">Generate performance, availability, downtime, and usage reports (PDF / Excel).</p>
+    <div class="mon-report-grid">
+      {% for r in payload.reports %}
+      <article>
+        <h3>{{ r.name }}</h3>
+        <p>{{ r.desc }}</p>
+        <button type="button" class="btn btn-secondary btn-sm" @click="toast('{{ r.format }} export queued for {{ r.name }}')">Export {{ r.format }}</button>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </div>
 
-{% call filter_bar("Search monitoring…") %}
-  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
-  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
-{% endcall %}
-
-<section class="table-panel panel">
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Host</th>
-          <th>Metric</th>
-          <th>Value</th>
-          <th>Threshold</th>
-          <th>Status</th>
-          <th>Updated</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>DC-AD-01</td>
-          <td>CPU</td>
-          <td>22%</td>
-          <td>85%</td>
-          <td>{{ status_badge('Healthy') }}</td>
-          <td>1 min</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('monitoring.details', item_id=1) }}">View</a></td>
-        </tr>
-        <tr>
-          <td>APP-ERP-02</td>
-          <td>Memory</td>
-          <td>91%</td>
-          <td>90%</td>
-          <td>{{ status_badge('Critical') }}</td>
-          <td>1 min</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('monitoring.details', item_id=1) }}">View</a></td>
-        </tr>
-        <tr>
-          <td>FW-EDGE-01</td>
-          <td>Sessions</td>
-          <td>4.2k</td>
-          <td>8k</td>
-          <td>{{ status_badge('Healthy') }}</td>
-          <td>30 sec</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('monitoring.details', item_id=1) }}">View</a></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  {{ pagination(1, 4) }}
-</section>
+<script>
+window.__MON__ = {{ payload | tojson }};
+window.__MON_VIEW__ = {{ view | tojson }};
+function monitoringHub() {
+  return Object.assign({
+    data: window.__MON__ || {},
+    view: window.__MON_VIEW__ || "overview",
+    q: "",
+    statusFilter: "",
+    typeFilter: {% if view == 'servers' %}"Server"{% elif view == 'computers' %}"Computer"{% else %}""{% endif %},
+    chartsReady: false,
+    init() { this.watchPagerReset(['q', 'statusFilter', 'typeFilter']); },
+    get filteredDevices() {
+      var q = this.q.trim().toLowerCase();
+      var st = this.statusFilter;
+      var ty = this.typeFilter;
+      var view = this.view;
+      return (this.data.devices || []).filter(function (d) {
+        if (view === "servers" && d.kind !== "server") return false;
+        if (view === "computers" && d.kind !== "computer") return false;
+        if (st && d.status !== st) return false;
+        if (ty === "Computer" && d.kind !== "computer") return false;
+        if (ty === "Server" && d.kind !== "server") return false;
+        if (ty === "Printer" && d.kind !== "printer") return false;
+        if (ty === "Switch" && d.kind !== "network") return false;
+        if (!q) return true;
+        return [d.name, d.type, d.status].join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    },
+    badgeFor(status) {
+      if (status === "Online") return "sw-badge--success";
+      if (status === "Warning") return "sw-badge--warning";
+      if (status === "Critical" || status === "Offline") return "sw-badge--danger";
+      return "sw-badge--muted";
+    },
+    toast(msg) {
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, "success");
+      else alert(msg);
+    },
+    initCharts() {
+      if (this.chartsReady || typeof Chart === "undefined") return;
+      var series = (this.data && this.data.series) || {};
+      var labels = series.labels || [];
+      var mk = function (id, data, color) {
+        var el = document.getElementById(id);
+        if (!el || el._chart) return;
+        el._chart = new Chart(el, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data || [],
+              borderColor: color,
+              backgroundColor: color + "22",
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2,
+              pointRadius: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: false }, y: { beginAtZero: true, max: 100, ticks: { font: { size: 10 } } } }
+          }
+        });
+      };
+      mk("monCpu", series.cpu, "#0d9488");
+      mk("monMem", series.mem, "#3b82f6");
+      mk("monDisk", series.disk, "#f59e0b");
+      this.chartsReady = true;
+    }
+  }, UITOP.createPager(10));
+}
+</script>
 {% endblock %}

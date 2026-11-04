@@ -3,6 +3,8 @@
 {% block title %}Servers{% endblock %}
 {% block page_title %}Servers{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/servers.css') }}" />
@@ -148,7 +150,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="s in filtered" :key="s.id">
+          <template x-for="s in pagedItems(filtered)" :key="s.id">
             <tr @click="openServer(s.id)">
               <td @click.stop>
                 <input type="checkbox" :value="s.id" x-model="selected" />
@@ -197,6 +199,7 @@
         </tbody>
       </table>
     </div>
+    {{ alpine_pager('filtered') }}
   </section>
   {% endif %}
 </div>
@@ -204,7 +207,7 @@
 <script>
   window.__SERVERS__ = {{ servers | tojson }};
   function serversDashboard() {
-    return {
+    return Object.assign({
       q: "",
       showFilters: true,
       refreshing: false,
@@ -213,6 +216,12 @@
       filters: {
         status: "", os_family: "", virt: "", department: "",
         location: "", criticality: "", agent: ""
+      },
+      init() {
+        this.watchPagerReset([
+          'q', 'filters.status', 'filters.os_family', 'filters.virt', 'filters.department',
+          'filters.location', 'filters.criticality', 'filters.agent'
+        ]);
       },
       get filtered() {
         var q = this.q.trim().toLowerCase();
@@ -254,7 +263,7 @@
         this.refreshing = true;
         setTimeout(() => { this.refreshing = false; location.reload(); }, 600);
       }
-    };
+    }, UITOP.createPager(10));
   }
 </script>
 {% endblock %}

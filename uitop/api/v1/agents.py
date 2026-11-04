@@ -59,6 +59,20 @@ def register():
     return created(result)
 
 
+@bp.post("/pair")
+def pair():
+    """Public enrollment — 6-digit pairing code from Computers → Add device."""
+    from uitop.services import pairing as pairing_svc
+
+    payload = request.get_json(silent=True) or {}
+    result = pairing_svc.pair_with_code(
+        payload.get("code") or payload.get("pairing_code"),
+        hostname=payload.get("hostname"),
+        agent_version=payload.get("agent_version"),
+    )
+    return created(result)
+
+
 @bp.post("/token")
 def token():
     """Exchange agent client credentials for a JWT access token."""
@@ -108,3 +122,28 @@ def alerts():
     payload = request.get_json(silent=True) or {}
     result = agents_service.ingest_alerts(g.agent_client, payload)
     return success(result)
+
+
+@bp.get("/commands")
+@agent_scope_required(AGENTS_HEARTBEAT)
+def list_pending_commands():
+    """Agent polls for queued remote actions."""
+    from uitop.services import agent_commands as cmd_svc
+
+    rows = cmd_svc.claim_pending_commands(g.agent_client.agent_id)
+    return success([r.to_dict() for r in rows], meta={"count": len(rows)})
+
+
+@bp.post("/commands/<int:command_id>/result")
+@agent_scope_required(AGENTS_HEARTBEAT)
+def command_result(command_id: int):
+    from uitop.services import agent_commands as cmd_svc
+
+    payload = request.get_json(silent=True) or {}
+    row = cmd_svc.complete_command(
+        command_id,
+        agent_id=g.agent_client.agent_id,
+        status=payload.get("status") or "completed",
+        result=payload.get("result"),
+    )
+    return success(row.to_dict())

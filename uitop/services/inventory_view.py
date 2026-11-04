@@ -131,7 +131,6 @@ def network_kpis(rows: list[dict]) -> dict:
 
 def serialize_printer(printer: Printer) -> dict:
     status = _status_label(printer.status, printer.last_seen_at)
-    # Map DB statuses into printer-centric labels when needed
     raw = (printer.status or "").lower()
     if "toner" in raw:
         status = "Low Toner"
@@ -146,22 +145,38 @@ def serialize_printer(printer: Printer) -> dict:
     model = printer.model or "—"
     manufacturer = model.split()[0] if model and model != "—" else "—"
 
-    toner = 62
-    paper = 70
-    queue = 0
-    if status == "Low Toner":
-        toner = 12
-    elif status == "Out of Paper":
-        paper = 0
-        queue = 3
-    elif status == "Paper Jam":
-        paper = 20
-        queue = 2
-    elif status == "Offline":
-        toner = 0
-        paper = 0
-    elif status == "Warning":
-        toner = 25
+    toner = printer.toner_percent
+    paper = printer.paper_percent
+    queue = printer.queue_depth if printer.queue_depth is not None else 0
+
+    # Fallback only when never polled
+    if toner is None and paper is None and not printer.last_snmp_at:
+        toner = 62
+        paper = 70
+        if status == "Low Toner":
+            toner = 12
+        elif status == "Out of Paper":
+            paper = 0
+            queue = max(queue, 3)
+        elif status == "Paper Jam":
+            paper = 20
+            queue = max(queue, 2)
+        elif status == "Offline":
+            toner = 0
+            paper = 0
+        elif status == "Warning":
+            toner = 25
+    else:
+        if toner is None:
+            toner = 0 if status == "Offline" else 50
+        if paper is None:
+            paper = 0 if status == "Out of Paper" else 50
+
+    payload = printer.snmp_payload if isinstance(printer.snmp_payload, dict) else {}
+    supplies = payload.get("supplies") if isinstance(payload.get("supplies"), list) else []
+    trays = payload.get("trays") if isinstance(payload.get("trays"), list) else []
+    ports = payload.get("ports") if isinstance(payload.get("ports"), dict) else {}
+    snmp_ok = bool(printer.last_snmp_at) and "snmp_error" not in payload
 
     return {
         "id": printer.id,
@@ -175,6 +190,14 @@ def serialize_printer(printer: Printer) -> dict:
         "paper": paper,
         "queue": queue,
         "last_seen": relative_time(printer.last_seen_at),
+        "last_snmp": relative_time(printer.last_snmp_at) if printer.last_snmp_at else "Never",
+        "snmp_sys_descr": printer.snmp_sys_descr or "—",
+        "snmp_profile_id": printer.snmp_profile_id,
+        "supplies": supplies,
+        "trays": trays,
+        "ports": ports,
+        "snmp_ok": snmp_ok,
+        "polled": bool(printer.last_snmp_at),
         "manufacturer": manufacturer,
         "type": "MFP" if "mfp" in model.lower() else "Network Printer",
         "color": True,

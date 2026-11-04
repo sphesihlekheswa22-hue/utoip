@@ -1,7 +1,7 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Backup & Restore{% endblock %}
-{% block page_title %}Backup & Restore{% endblock %}
+{% block title %}Backup Center{% endblock %}
+{% block page_title %}Backup Center{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
@@ -12,8 +12,8 @@
 <div class="sw-page" x-data="backupHub()" x-cloak>
   <header class="sw-header">
     <div>
-      <h1>Backup &amp; Restore</h1>
-      <p>Protect managed devices with jobs, schedules, recovery points, and restore workflows — agent-driven later.</p>
+      <h1>Backup Center</h1>
+      <p>Protect computers, servers, and databases — restore points and schedules. Not for municipal policies (use Documents) or personal files (use My Workspace).</p>
     </div>
     <div class="sw-header-actions">
       <a href="{{ url_for('backup.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> New backup job</a>
@@ -108,7 +108,9 @@
 
   {# Restore #}
   <section class="sw-panel" x-show="tab === 'restore'" x-cloak>
-    <p class="sw-note">Choose a device and recovery point, then queue a restore. Agent execution is future work.</p>
+    <p class="sw-note">Employee restore requests go through the <a href="{{ url_for('workflows.restore_request') }}">Workflow Engine</a> (review → execute → audit). Direct ops restores can still be queued below.</p>
+    <p style="margin:0 0 12px;"><a class="btn btn-primary btn-sm" href="{{ url_for('workflows.restore_request') }}"><i class="fas fa-diagram-project"></i> New restore workflow</a>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('workflows.index') }}">Open restore queue</a></p>
     <form method="post" action="{{ url_for('backup.start_restore') }}" class="uf-section-body" style="padding:16px;display:grid;gap:12px;max-width:560px;">
       <div class="uf-field">
         <span class="uf-field-label">Device</span>

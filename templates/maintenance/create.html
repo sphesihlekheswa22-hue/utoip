@@ -1,47 +1,128 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import form_field %}
 
-{% block title %}New Maintenance{% endblock %}
-{% block page_title %}New Maintenance{% endblock %}
+{% block title %}New work order{% endblock %}
+{% block page_title %}New work order{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/maintenance.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('maintenance.index') }}">Maintenance</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>New work order</span>
+{% endblock %}
 
 {% block content %}
-<div class="uf-page uf-page--single">
-  <header class="uf-hero">
-    <div class="uf-hero-inner">
-      <div>
-        <p class="uf-eyebrow"><i class="fas fa-wrench"></i> Maintenance window</p>
-        <h1>New Maintenance</h1>
-        <p>Capture clear details so operations stays accurate and searchable.</p>
-      </div>
-      <div class="uf-hero-meta">
-        <span class="uf-chip"><i class="fas fa-pen-to-square"></i> Guided form</span>
-      </div>
+<div class="sw-page mt-page" style="max-width:880px;">
+  <header class="sw-header">
+    <div>
+      <h1>New work order</h1>
+      <p>Link an asset, assign a technician, and define the checklist before work starts.</p>
     </div>
   </header>
 
-  <form class="uf-card" method="post" data-validate>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <form method="post" class="uf-card" style="padding:0;">
     <section class="uf-section">
       <div class="uf-section-head">
         <span class="uf-section-num">1</span>
-        <div>
-          <h2>Details</h2>
-          <p>Required fields first — extras when you have them.</p>
-        </div>
+        <div><h2>Work order</h2><p>Type, priority, and schedule.</p></div>
       </div>
-      <div class="uf-section-body">
-        <div class="form-grid uf-form-grid">
-          {{ form_field("name", "Name", required=True, placeholder="Maintenance name") }}
-          {{ form_field("code", "Code / Tag", placeholder="Auto or manual") }}
-          {{ form_field("owner", "Owner / Assignee") }}
-          {{ form_field("location", "Location") }}
-          {{ form_field("notes", "Notes", type="textarea", placeholder="Optional notes") }}
-        </div>
+      <div class="uf-section-body uf-grid-2">
+        <label class="uf-field uf-span-2"><span class="uf-field-label">Title</span><input name="title" required placeholder="e.g. Server inspection — primary app host" /></label>
+        <label class="uf-field"><span class="uf-field-label">Type</span>
+          <select name="maintenance_type">
+            {% for t in types %}<option value="{{ t }}">{{ t|title }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Priority</span>
+          <select name="priority">
+            {% for p in priorities %}<option value="{{ p }}" {% if p == 'medium' %}selected{% endif %}>{{ p|title }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Scheduled</span><input type="datetime-local" name="scheduled_at" /></label>
+        <label class="uf-field"><span class="uf-field-label">Due</span><input type="datetime-local" name="due_at" /></label>
+        <label class="uf-field uf-span-2"><span class="uf-field-label">Description</span><textarea name="description" rows="3" placeholder="What needs to be done…"></textarea></label>
       </div>
     </section>
-    <div class="uf-actions">
-      <a href="{{ url_for('modules.maintenance_index') }}" class="btn btn-secondary">Cancel</a>
-      <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Save Maintenance</button>
+
+    <section class="uf-section">
+      <div class="uf-section-head">
+        <span class="uf-section-num">2</span>
+        <div><h2>Asset &amp; assignment</h2><p>Link infrastructure and assign a technician.</p></div>
+      </div>
+      <div class="uf-section-body uf-grid-2">
+        <label class="uf-field"><span class="uf-field-label">Object type</span>
+          <select name="linked_type" id="linked_type">
+            {% for t in link_types %}<option value="{{ t }}">{{ t|replace('_',' ')|title }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Object</span>
+          <select name="linked_id" id="linked_id">
+            <option value="">— Select —</option>
+            {% for s in inventory.servers %}<option value="{{ s.id }}" data-type="server">{{ s.hostname }}</option>{% endfor %}
+            {% for c in inventory.computers %}<option value="{{ c.id }}" data-type="computer">{{ c.hostname }}</option>{% endfor %}
+            {% for p in inventory.printers %}<option value="{{ p.id }}" data-type="printer">{{ p.name }}</option>{% endfor %}
+            {% for n in inventory.network %}<option value="{{ n.id }}" data-type="network_device">{{ n.hostname }}</option>{% endfor %}
+            {% for a in inventory.assets %}<option value="{{ a.id }}" data-type="asset">{{ a.asset_tag }} — {{ a.name }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Technician</span>
+          <select name="technician_user_id">
+            <option value="">Unassigned</option>
+            {% for u in users %}<option value="{{ u.id }}">{{ u.full_name }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Location</span><input name="location" placeholder="Server Room / wing" /></label>
+        <label class="uf-field uf-span-2"><span class="uf-field-label">From plan (optional)</span>
+          <select name="plan_id">
+            <option value="">None</option>
+            {% for p in plans %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="uf-section">
+      <div class="uf-section-head">
+        <span class="uf-section-num">3</span>
+        <div><h2>Checklist</h2><p>One item per line.</p></div>
+      </div>
+      <div class="uf-section-body">
+        <label class="uf-field"><span class="uf-field-label">Tasks</span>
+          <textarea name="checklist" rows="6" placeholder="Dust cleaned&#10;Firmware updated&#10;Disk health checked&#10;Backup verified"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <div class="uf-form-actions">
+      <a href="{{ url_for('maintenance.index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Create work order</button>
     </div>
   </form>
 </div>
+<script>
+(function () {
+  const typeSel = document.getElementById('linked_type');
+  const idSel = document.getElementById('linked_id');
+  function filter() {
+    const t = typeSel.value;
+    Array.from(idSel.options).forEach((o, i) => {
+      if (i === 0) { o.hidden = false; return; }
+      const show = o.dataset.type === t;
+      o.hidden = !show;
+      if (!show && o.selected) idSel.value = '';
+    });
+  }
+  typeSel.addEventListener('change', filter);
+  filter();
+})();
+</script>
 {% endblock %}

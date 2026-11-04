@@ -1,0 +1,155 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}My Dashboard{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/employee.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('employee.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Dashboard</span>
+{% endblock %}
+
+{% block content %}
+<section class="emp-hero">
+  <div>
+    <p class="emp-eyebrow">Employee self-service</p>
+    <h1>Hello{% if home.user %}, {{ home.user.full_name.split(' ')[0] }}{% endif %}</h1>
+    <p class="emp-lede">Request IT support, check your devices, and find answers — without needing the full IT console.</p>
+  </div>
+  <div class="emp-hero-actions">
+    <a href="{{ url_for('ai.index') }}" class="btn btn-primary"><i class="fas fa-robot"></i> Ask AI Assistant</a>
+    <a href="{{ url_for('helpdesk.create') }}" class="btn btn-secondary"><i class="fas fa-ticket"></i> Create ticket</a>
+  </div>
+</section>
+
+<div class="emp-kpi-row">
+  <div class="emp-kpi emp-kpi--accent">
+    <span class="emp-kpi-label">My devices</span>
+    <strong>{{ home.device_count }}</strong>
+  </div>
+  <div class="emp-kpi emp-kpi--blue">
+    <span class="emp-kpi-label">Office printers</span>
+    <strong>{{ home.printer_count }}</strong>
+  </div>
+  <div class="emp-kpi emp-kpi--warning">
+    <span class="emp-kpi-label">Open tickets</span>
+    <strong>{{ home.tickets_open_count }}</strong>
+  </div>
+  <div class="emp-kpi emp-kpi--info">
+    <span class="emp-kpi-label">Notifications</span>
+    <strong>{{ home.unread_notifications }}</strong>
+  </div>
+</div>
+
+<section class="emp-service-strip" aria-label="IT service status">
+  <div class="emp-service-intro">
+    <span class="emp-service-dot"></span>
+    <div>
+      <strong>IT services</strong>
+      <span>Quick access to the services you use most</span>
+    </div>
+  </div>
+  <a href="{{ url_for('employee.devices') }}" class="emp-service-link">
+    <i class="fas fa-desktop"></i><span>My devices</span><b>{{ home.device_count }}</b>
+  </a>
+  <a href="{{ url_for('employee.tickets') }}" class="emp-service-link">
+    <i class="fas fa-ticket"></i><span>My tickets</span><b>{{ home.tickets_total }}</b>
+  </a>
+  <a href="{{ url_for('notifications.index') }}" class="emp-service-link">
+    <i class="fas fa-bell"></i><span>Notifications</span><b>{{ home.unread_notifications }}</b>
+  </a>
+</section>
+
+<div class="emp-grid">
+  <section class="emp-panel">
+    <header class="emp-panel-head">
+      <h2>Announcements</h2>
+    </header>
+    <ul class="emp-announce">
+      {% for a in home.announcements %}
+      <li>
+        <strong>{{ a.title }}</strong>
+        <p>{{ a.body }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="emp-panel">
+    <header class="emp-panel-head">
+      <h2>My open tickets</h2>
+      <a href="{{ url_for('employee.tickets') }}">View all</a>
+    </header>
+    {% if home.tickets_open %}
+    <ul class="emp-ticket-list">
+      {% for t in home.tickets_open %}
+      <li>
+        <a href="{{ url_for('helpdesk.details', item_id=t.id) }}">
+          <span class="emp-ticket-num">{{ t.ticket_number }}</span>
+          <span class="emp-ticket-sub">{{ t.subject }}</span>
+          <span class="emp-status emp-status--{{ t.status }}">{{ t.status|replace('_',' ') }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="emp-empty">No open tickets. Need help? <a href="{{ url_for('helpdesk.create') }}">Create a ticket</a> or ask the AI Assistant.</p>
+    {% endif %}
+  </section>
+
+  <section class="emp-panel emp-panel--wide emp-service-panel">
+    <header class="emp-panel-head">
+      <div>
+        <span class="emp-section-kicker">Self-service</span>
+        <h2>Get IT help without the IT console</h2>
+      </div>
+      <a href="{{ url_for('helpdesk.index') }}">IT Service Desk</a>
+    </header>
+    <div class="emp-help-cards">
+      <a href="{{ url_for('helpdesk.create') }}" class="emp-help-card">
+        <span class="emp-help-icon"><i class="fas fa-headset"></i></span>
+        <span><strong>Report a problem</strong><small>Open a support ticket for IT assistance.</small></span>
+        <i class="fas fa-arrow-right"></i>
+      </a>
+      <a href="{{ url_for('employee.devices') }}" class="emp-help-card">
+        <span class="emp-help-icon"><i class="fas fa-laptop"></i></span>
+        <span><strong>Check my devices</strong><small>View devices currently associated with you.</small></span>
+        <i class="fas fa-arrow-right"></i>
+      </a>
+      <a href="{{ url_for('helpdesk.index', view='knowledge') }}" class="emp-help-card">
+        <span class="emp-help-icon"><i class="fas fa-book-open"></i></span>
+        <span><strong>Find an answer</strong><small>Browse the IT knowledge base before opening a ticket.</small></span>
+        <i class="fas fa-arrow-right"></i>
+      </a>
+    </div>
+  </section>
+
+  <section class="emp-panel emp-panel--wide">
+    <header class="emp-panel-head">
+      <div>
+        <span class="emp-section-kicker">Shortcuts</span>
+        <h2>Quick actions</h2>
+      </div>
+    </header>
+    <div class="emp-actions">
+      <a href="{{ url_for('employee.connect') }}" class="emp-action"><i class="fas fa-plug"></i> Connect my PC</a>
+      <a href="{{ url_for('employee.devices') }}" class="emp-action"><i class="fas fa-desktop"></i> My Devices</a>
+      <a href="{{ url_for('helpdesk.create') }}" class="emp-action"><i class="fas fa-plus"></i> Create Ticket</a>
+      <a href="{{ url_for('catalog.index') }}" class="emp-action"><i class="fas fa-store"></i> Request Catalog</a>
+      <a href="{{ url_for('workflows.restore_request') }}" class="emp-action"><i class="fas fa-rotate-left"></i> Request Restore</a>
+      <a href="{{ url_for('workflows.index') }}" class="emp-action"><i class="fas fa-diagram-project"></i> My Requests</a>
+      <a href="{{ url_for('employee.tickets') }}" class="emp-action"><i class="fas fa-ticket"></i> My Tickets</a>
+      <a href="{{ url_for('workspace.index') }}" class="emp-action"><i class="fas fa-cloud"></i> My Workspace</a>
+      <a href="{{ url_for('documents.index', view='library') }}" class="emp-action"><i class="fas fa-building-columns"></i> Documents</a>
+      <a href="{{ url_for('helpdesk.index', view='knowledge') }}" class="emp-action"><i class="fas fa-book-open"></i> Knowledge Base</a>
+      <a href="{{ url_for('ai.index') }}" class="emp-action"><i class="fas fa-robot"></i> AI Assistant</a>
+      <a href="{{ url_for('notifications.index') }}" class="emp-action"><i class="fas fa-bell"></i> Notifications</a>
+      <a href="{{ url_for('profile.index') }}" class="emp-action"><i class="fas fa-user"></i> Profile</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

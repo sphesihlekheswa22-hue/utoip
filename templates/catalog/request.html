@@ -1,0 +1,69 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ item.name }}{% endblock %}
+{% block page_title %}{{ item.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workflow.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('catalog.index') }}">Request Catalog</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ item.name }}</span>
+{% endblock %}
+
+{% block content %}
+<section class="wf-form-card">
+  <header>
+    <p class="wf-eyebrow">{{ item.category }} · Service request</p>
+    <h1>{{ item.name }}</h1>
+    <p>{{ item.description }}</p>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <ol class="wf-steps-preview">
+    {% if item.workflow_key == 'software_install' %}
+    <li class="is-active">You submit</li>
+    <li>Helpdesk reviews</li>
+    <li>IT approves</li>
+    <li>Installed</li>
+    {% else %}
+    <li class="is-active">You submit</li>
+    <li>IT reviews</li>
+    <li>Fulfilled</li>
+    <li>Done</li>
+    {% endif %}
+  </ol>
+
+  <form method="post" class="wf-form">
+    {% for field in item.fields %}
+    <label>
+      <span>{{ field.label }}{% if field.required %} *{% endif %}</span>
+      {% if field.type == 'textarea' %}
+      <textarea name="{{ field.name }}" rows="4" {% if field.required %}required{% endif %}></textarea>
+      {% else %}
+      <input type="text" name="{{ field.name }}" {% if field.required %}required{% endif %} />
+      {% endif %}
+    </label>
+    {% endfor %}
+    <label>
+      <span>Priority</span>
+      <select name="priority">
+        <option value="low">Low</option>
+        <option value="medium" {% if item.default_priority == 'medium' %}selected{% endif %}>Medium</option>
+        <option value="high" {% if item.default_priority == 'high' %}selected{% endif %}>High</option>
+        <option value="critical">Critical</option>
+      </select>
+    </label>
+    <footer>
+      <a class="btn btn-secondary" href="{{ url_for('catalog.index') }}">Cancel</a>
+      <button type="submit" class="btn btn-primary">Submit request</button>
+    </footer>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+/* UITOP Knowledge Base — Phase 7 shared documentation polish */
+.kpi-grid { margin-bottom: 18px; }
+.table-panel { overflow: hidden; }
+.table-panel .table-scroll { overflow-x: auto; }
+.knowledge-intro { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:center; margin-bottom:18px; }
+.knowledge-intro__copy { color:var(--text-muted); max-width:760px; }
+.knowledge-intro__copy p { margin:4px 0 0; }
+.knowledge-status-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:18px; }
+.knowledge-status { padding:12px 14px; border:1px solid var(--border-default); border-radius:var(--radius-md); background:var(--bg-elevated); display:flex; align-items:center; gap:10px; }
+.knowledge-status i { color:var(--accent-text); }
+.knowledge-status strong { display:block; font-size:14px; }
+.knowledge-status span { display:block; font-size:12px; color:var(--text-muted); margin-top:2px; }
+.knowledge-status.is-warning i { color:var(--warning); }
+.knowledge-status.is-danger i { color:var(--danger); }
+.knowledge-status.is-success i { color:var(--success); }
+@media (max-width:900px){ .knowledge-intro{grid-template-columns:1fr}.knowledge-status-strip{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media (max-width:560px){ .knowledge-status-strip{grid-template-columns:1fr;} }

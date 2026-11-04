@@ -1,33 +1,44 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, status_badge, detail_row %}
 
-{% block title %}Calendar details{% endblock %}
-{% block page_title %}Calendar details{% endblock %}
+{% block title %}{{ event.title }}{% endblock %}
+{% block page_title %}Event{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/calendar.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('calendar.index') }}">Calendar</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ event.title }}</span>
+{% endblock %}
 
 {% block content %}
-{% call page_header("Calendar details", "Operational profile and related activity.", "{{ url_for('modules.page', module='calendar', page='index') }}", "Edit", "fa-pen") %}{% endcall %}
-
-<div class="detail-layout">
-  <section class="panel detail-card">
-    <header class="card-header">
-      <h2>Overview</h2>
-      {{ status_badge("Online") }}
-    </header>
-    <dl class="detail-list">
-      {{ detail_row("Name", "Demo Calendar 01") }}
-      {{ detail_row("Identifier", "UITOP-DEMO-001") }}
-      {{ detail_row("Owner", "IT Operations") }}
-      {{ detail_row("Department", "Corporate Services") }}
-      {{ detail_row("Last updated", "Today 09:42") }}
-    </dl>
+<div class="sw-page cal-page" style="max-width:720px;">
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon" style="background:{{ event.color }}22;color:{{ event.color }}"><i class="fas {{ event.icon }}"></i></div>
+      <div>
+        <h1>{{ event.title }}</h1>
+        <p class="sw-hero-sub">{{ event.type_label }} · {{ event.date_label }} {{ event.time_label }}</p>
+      </div>
+    </div>
+    <div class="sw-hero-actions">
+      {% if event.url %}<a href="{{ event.url }}" class="btn btn-primary btn-sm">Open in module</a>{% endif %}
+      <a href="{{ url_for('calendar.index') }}" class="btn btn-ghost btn-sm">Back</a>
+    </div>
   </section>
-  <section class="panel detail-card">
-    <header class="card-header"><h2>Related</h2></header>
-    <ul class="related-list">
-      <li><a href="{{ url_for('modules.page', module='calendar', page='index') }}">Back to Calendar</a></li>
-      <li><a href="{{ url_for('monitoring.index') }}">Open monitoring</a></li>
-      <li><a href="{{ url_for('ai.index') }}">Ask AI about this record</a></li>
-    </ul>
-  </section>
+  <dl class="sw-stat-row">
+    <div class="sw-stat"><dt>Device / target</dt><dd>{{ event.device }}</dd></div>
+    <div class="sw-stat"><dt>Assignee</dt><dd>{{ event.assignee }}</dd></div>
+    <div class="sw-stat"><dt>Source</dt><dd>{{ event.source_module }}</dd></div>
+  </dl>
+  <p>{{ event.description or 'Aggregated from UITOP operations data.' }}</p>
+  {% if event.meta and event.meta.suppress_monitoring %}
+  <p class="cal-ai cal-ai--warning"><strong>Monitoring suppressed</strong><br>Alerts are muted for this window so operators are not flooded with expected downtime noise.</p>
+  {% endif %}
 </div>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Install Agent{% endblock %}
-{% block page_title %}Install Agent{% endblock %}
+{% block title %}Add Device{% endblock %}
+{% block page_title %}Add Device{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
@@ -13,17 +13,17 @@
 <span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
 <a href="{{ url_for('computers.index') }}">Computers</a>
 <span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
-<span>Install Agent</span>
+<span>Add device</span>
 {% endblock %}
 
 {% block content %}
-<div class="comp-page" x-data="installAgent()" x-cloak>
+<div class="comp-page" x-data="addDevice()" x-cloak>
   <header class="comp-header">
     <div>
-      <h1>Install UITOP Agent</h1>
-      <p>Generate a real enrollment token, then register agents against the UITOP API. Devices appear on Computers after heartbeat/inventory.</p>
+      <h1>Add a computer</h1>
+      <p>No commands or Python needed on the other PC — just download the agent, enter a short code, and connect.</p>
     </div>
-    <a href="{{ url_for('computers.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Computers</a>
+    <a href="{{ url_for('computers.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
   </header>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -36,125 +36,115 @@
     {% endif %}
   {% endwith %}
 
-  <div class="agent-token">
-    <div style="flex:1;min-width:0;">
-      <div class="comp-kpi-label">Enrollment token {% if raw_token %}(copy now — shown once){% else %}(generate to reveal){% endif %}</div>
-      <code x-text="token" style="word-break:break-all;"></code>
-    </div>
-    <button type="button" class="btn btn-secondary btn-sm" @click="copy(token)" :disabled="!token || token === '—'"><i class="fas fa-copy"></i> Copy token</button>
-    <form method="post" action="{{ url_for('computers.create_enrollment_token') }}" style="display:inline;">
-      <input type="hidden" name="label" value="Install Agent UI" />
-      <button type="submit" class="btn btn-ghost btn-sm"><i class="fas fa-key"></i> Generate New Token</button>
-    </form>
-  </div>
-
-  {% if enrollment_tokens %}
-  <section class="device-panel">
-    <h2 class="chart-panel-title">Recent enrollment tokens</h2>
-    <div class="table-scroll">
-      <table class="comp-table">
-        <thead><tr><th>Label</th><th>Prefix</th><th>Uses</th><th>Expires</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for t in enrollment_tokens %}
-          <tr>
-            <td>{{ t.label }}</td>
-            <td><code>{{ t.token_prefix }}…</code></td>
-            <td>{{ t.use_count }}{% if t.max_uses %} / {{ t.max_uses }}{% endif %}</td>
-            <td>{{ t.expires_at or 'Never' }}</td>
-            <td>
-              {% if t.is_active %}
-              <span class="badge badge-success">Active</span>
-              {% else %}
-              <span class="badge badge-danger">Inactive</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
-  {% endif %}
-
-  <div class="agent-grid">
-    <article class="agent-card">
-      <h3><i class="fab fa-windows"></i> Windows Agent</h3>
-      <p>Binary coming soon. Until then, register via API using the enrollment token below.</p>
-      <button type="button" class="btn btn-secondary" disabled><i class="fas fa-download"></i> Download (soon)</button>
+  <div class="agent-grid" style="margin-bottom:24px">
+    <article class="agent-card" style="grid-column: span 2">
+      <h3><i class="fas fa-key"></i> Step 1 — Pairing code (on this PC)</h3>
+      <p>Generate a code and tell the person on the other computer. It expires in <strong>15 minutes</strong>.</p>
+      <div class="agent-token" style="margin:12px 0">
+        <div style="flex:1">
+          <div class="comp-kpi-label">Current code</div>
+          <code style="font-size:2rem;letter-spacing:.35em;font-weight:700" x-text="codeDisplay"></code>
+          <p class="chart-panel-subtitle" x-text="expiresText"></p>
+        </div>
+        <form method="post" action="{{ url_for('computers.create_pairing_code') }}">
+          <button type="submit" class="btn btn-primary"><i class="fas fa-sync"></i> Generate new code</button>
+        </form>
+      </div>
+      <p class="chart-panel-subtitle">UITOP server for other PCs: <code>{{ server_url }}</code></p>
     </article>
+
     <article class="agent-card">
-      <h3><i class="fas fa-plug"></i> API registration</h3>
-      <p>POST <code>/api/v1/agents/register</code> with your enrollment token to receive client credentials.</p>
-      <a href="{{ url_for('computers.index') }}" class="btn btn-primary"><i class="fas fa-desktop"></i> View Computers</a>
+      <h3><i class="fas fa-download"></i> Step 2 — Download agent</h3>
+      <p>On the <strong>other PC</strong>, download and run this file once.</p>
+      {% if agent_built %}
+      <a class="btn btn-primary" href="{{ url_for('computers.download_agent_exe') }}">
+        <i class="fas fa-download"></i> Download UITOP-Agent.exe
+      </a>
+      {% else %}
+      <p class="chart-panel-subtitle" style="color:#b45309">
+        Agent .exe not built on this machine yet. An admin can run:
+        <code>powershell -File tools\build_agent.ps1</code>
+      </p>
+      <p class="chart-panel-subtitle">Until then, IT staff can use the advanced script install below.</p>
+      {% endif %}
     </article>
+
     <article class="agent-card">
-      <h3><i class="fas fa-heart-pulse"></i> Heartbeat</h3>
-      <p>After token exchange, agents call heartbeat / inventory / performance endpoints with their JWT.</p>
-      <button type="button" class="btn btn-secondary btn-sm" @click="copy(curlRegister)"><i class="fas fa-copy"></i> Copy register curl</button>
+      <h3><i class="fas fa-plug"></i> Step 3 — Connect</h3>
+      <ol class="agent-steps" style="margin:0;padding-left:1.2rem">
+        <li>Open <strong>UITOP-Agent.exe</strong></li>
+        <li>Server: <code>{{ server_url }}</code></li>
+        <li>Enter the <strong>6-digit code</strong> above</li>
+        <li>Click <strong>Connect</strong></li>
+        <li>Refresh <a href="{{ url_for('computers.index') }}">Computers</a></li>
+      </ol>
     </article>
   </div>
 
-  <section class="device-panel">
-    <h2 class="chart-panel-title">Register agent (curl)</h2>
-    <p class="chart-panel-subtitle">Server: {{ server_url }}</p>
-    <div class="agent-cmd">
-      <pre x-text="curlRegister"></pre>
-      <button type="button" class="btn btn-secondary btn-sm" @click="copy(curlRegister)"><i class="fas fa-copy"></i> Copy</button>
+  <details class="device-panel">
+    <summary class="chart-panel-title" style="cursor:pointer">Advanced — IT / developer install</summary>
+    <p class="chart-panel-subtitle">Long enrollment tokens, PowerShell, or Python script.</p>
+
+    <div class="agent-token" style="margin-top:12px">
+      <div style="flex:1;min-width:0">
+        <div class="comp-kpi-label">Enrollment token {% if raw_token %}(copy now){% endif %}</div>
+        <code x-text="token" style="word-break:break-all"></code>
+      </div>
+      <form method="post" action="{{ url_for('computers.create_enrollment_token') }}" style="display:inline">
+        <input type="hidden" name="label" value="Advanced enroll" />
+        <button type="submit" class="btn btn-ghost btn-sm"><i class="fas fa-key"></i> Generate token</button>
+      </form>
     </div>
 
-    <h2 class="chart-panel-title">Exchange credentials for JWT</h2>
-    <div class="agent-cmd">
-      <pre x-text="curlToken"></pre>
-      <button type="button" class="btn btn-secondary btn-sm" @click="copy(curlToken)"><i class="fas fa-copy"></i> Copy</button>
-    </div>
-
-    <h2 class="chart-panel-title">PowerShell install (placeholder)</h2>
-    <p class="chart-panel-subtitle">Ready for the future Windows agent package.</p>
-    <div class="agent-cmd">
+    <div class="agent-cmd" style="margin-top:12px">
       <pre x-text="psCmd"></pre>
-      <button type="button" class="btn btn-secondary btn-sm" @click="copy(psCmd)"><i class="fas fa-copy"></i> Copy</button>
+      <button type="button" class="btn btn-secondary btn-sm" @click="copy(psCmd)">Copy PowerShell</button>
     </div>
-  </section>
 
-  <section class="device-panel">
-    <h2 class="chart-panel-title">Enrollment flow</h2>
-    <ol class="agent-steps">
-      <li>Generate an enrollment token on this page (shown once).</li>
-      <li>Call <code>POST /api/v1/agents/register</code> with that token and a hostname.</li>
-      <li>Store the returned <code>client_id</code> / <code>client_secret</code> securely on the device.</li>
-      <li>Exchange credentials at <code>POST /api/v1/agents/token</code> for an agent JWT.</li>
-      <li>Send heartbeat and inventory — the device appears on Computers within seconds.</li>
-    </ol>
-  </section>
+    <p style="margin-top:12px">
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('computers.download_agent_script') }}">Download local_agent.py</a>
+    </p>
+  </details>
 </div>
 
 <script>
-function installAgent() {
-  var initial = {{ (raw_token or '') | tojson }};
+function addDevice() {
+  var pairing = {{ pairing | tojson }};
   var server = {{ server_url | tojson }};
+  var initialToken = {{ (raw_token or '') | tojson }};
+
   return {
-    token: initial || "—",
+    code: (pairing && pairing.code) || "",
+    expiresAt: (pairing && pairing.expires_at) || "",
+    token: initialToken || "—",
     server: server,
-    get curlRegister() {
-      var tok = this.token === "—" ? "<ENROLLMENT_TOKEN>" : this.token;
-      return "curl -X POST " + this.server + "/api/v1/agents/register \\\n"
-        + "  -H \"Content-Type: application/json\" \\\n"
-        + "  -d \"{\\\"enrollment_token\\\":\\\"" + tok + "\\\",\\\"hostname\\\":\\\"PC-EXAMPLE\\\"}\"";
+    get codeDisplay() {
+      return this.code || "——— ———";
     },
-    get curlToken() {
-      return "curl -X POST " + this.server + "/api/v1/agents/token \\\n"
-        + "  -H \"Content-Type: application/json\" \\\n"
-        + "  -d \"{\\\"client_id\\\":\\\"<CLIENT_ID>\\\",\\\"client_secret\\\":\\\"<CLIENT_SECRET>\\\"}\"";
+    get expiresText() {
+      if (!this.code) return "Click Generate new code to start.";
+      if (!this.expiresAt) return "Valid for 15 minutes.";
+      var end = new Date(this.expiresAt).getTime();
+      var left = Math.max(0, Math.floor((end - Date.now()) / 1000));
+      if (left <= 0) return "Code expired — generate a new one.";
+      var m = Math.floor(left / 60);
+      var s = left % 60;
+      return "Expires in " + m + "m " + s + "s";
     },
     get psCmd() {
-      var tok = this.token === "—" ? "<ENROLLMENT_TOKEN>" : this.token;
-      return "# Placeholder until Windows MSI ships\n"
-        + "Install-UitopAgent -Token '" + tok + "' -Server '" + this.server + "' -Silent";
+      var tok = this.token === "—" ? "<TOKEN>" : this.token;
+      return "$s='" + this.server + "'; $t='" + tok + "'\nirm \"$s/computers/agent/install.ps1\" | iex\nInstall-UitopAgent -Token $t -Server $s";
     },
     copy(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast("Copied to clipboard", "success");
+      navigator.clipboard.writeText(text).then(function () {
+        if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast("Copied", "success");
       });
+    },
+    init() {
+      var self = this;
+      setInterval(function () {
+        self.expiresAt = self.expiresAt;
+      }, 1000);
     }
   };
 }

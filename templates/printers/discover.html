@@ -6,6 +6,7 @@
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/printers.css') }}" />
+<script src="{{ url_for('static', filename='js/network-scan.js') }}"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 {% endblock %}
 
@@ -18,13 +19,20 @@
 {% endblock %}
 
 {% block content %}
-<div class="comp-page" x-data="printerDiscover()" x-cloak>
+<div class="comp-page" x-data="printerDiscover()" x-init="init()" x-cloak>
   <header class="comp-header">
     <div>
       <h1>Discover Printers</h1>
-      <p>Network discovery · SNMP · Windows Print Server sync. Printers enroll automatically.</p>
+      <p>Live LAN probe for JetDirect / IPP / LPD printer ports. Import unmanaged printers into UITOP.</p>
     </div>
     <div class="comp-toolbar-actions">
+      <label class="chart-panel-subtitle" style="display:flex;align-items:center;gap:.5rem;margin:0">
+        Subnet
+        <input type="text" class="form-control" style="width:11rem" x-model="cidr" list="cidr-suggestions" placeholder="192.168.1.0/24" :disabled="scanning" />
+      </label>
+      <datalist id="cidr-suggestions">
+        <template x-for="c in suggested" :key="c"><option :value="c"></option></template>
+      </datalist>
       <button type="button" class="btn btn-primary" @click="start()" :disabled="scanning">
         <i class="fas" :class="scanning ? 'fa-spinner fa-spin' : 'fa-satellite-dish'"></i>
         <span x-text="scanning ? 'Discovering…' : 'Start Discovery'"></span>
@@ -60,7 +68,14 @@
       <div class="scan-result">
         <div class="scan-result-main">
           <strong x-text="r.name"></strong>
-          <span><span x-text="r.model"></span> · <code x-text="r.ip"></code> · <span x-text="r.source"></span></span>
+          <span>
+            <span x-text="r.model"></span> ·
+            <code x-text="r.ip"></code> ·
+            <span x-text="r.source"></span>
+            <template x-if="r.ports && r.ports.length">
+              <span> · ports <span x-text="r.ports.join(', ')"></span></span>
+            </template>
+          </span>
         </div>
         <div class="comp-toolbar-actions">
           <span class="badge" :class="r.managed ? 'badge-success' : 'badge-warning'" x-text="r.managed ? 'Managed' : 'Unmanaged'"></span>
@@ -76,45 +91,27 @@
 
 <script>
 function printerDiscover() {
-  return {
-    scanning: false, done: false, progress: 0,
-    statusText: "Sources: SNMP printers · ICMP · Windows Print Server (HQ-PRINT-01).",
-    t: { discovered: 0, managed: 0, offline: 0, unknown: 0 },
-    results: [],
-    start() {
-      if (this.scanning) return;
-      var self = this;
-      this.scanning = true; this.done = false; this.progress = 0; this.results = [];
-      var steps = [
-        { p: 20, msg: "Querying Windows Print Server queues…" },
-        { p: 45, msg: "SNMP printer MIB walk…" },
-        { p: 70, msg: "Matching existing UITOP inventory…" },
-        { p: 100, msg: "Discovery complete." }
-      ];
-      var i = 0;
-      var timer = setInterval(function () {
-        var s = steps[i++];
-        self.progress = s.p; self.statusText = s.msg;
-        if (s.p >= 70) self.t = { discovered: 12, managed: 8, offline: 1, unknown: 3 };
-        if (s.p === 100) {
-          clearInterval(timer);
-          self.scanning = false; self.done = true;
-          self.results = [
-            { name: "Finance MFP 01", model: "HP MFP M528", ip: "10.12.4.20", source: "Print Server", managed: true, status: "Online" },
-            { name: "HR DeskJet", model: "Canon C3520i", ip: "10.12.5.22", source: "SNMP", managed: true, status: "Online" },
-            { name: "Store Room Laser", model: "Brother HL-L5200", ip: "10.12.4.55", source: "Network", managed: false, status: "Online" },
-            { name: "UNK-10.12.9.99", model: "Unknown", ip: "10.12.9.99", source: "ICMP", managed: false, status: "Offline" },
-            { name: "Reception Color", model: "Xerox C405", ip: "10.12.1.33", source: "SNMP", managed: false, status: "Online" }
-          ];
-        }
-      }, 650);
+  return UITOP.createNetworkScanner({
+    filter: "printers",
+    preferType: "Printer",
+    readyText: "Probing printer ports (9100, 631, 515) on your LAN.",
+    mapResults: function (hosts) {
+      return hosts.map(function (h) {
+        return Object.assign({}, h, {
+          name: h.name || h.hostname || h.ip,
+          model: h.model || "Unknown",
+          source: h.source || "Network",
+          managed: !!h.managed,
+        });
+      });
     },
-    enroll(r) {
-      r.managed = true;
-      this.t.managed += 1;
-      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(r.name + " enrolled", "success");
+    mapTotals: function (totals, hosts) {
+      return Object.assign({}, totals, {
+        discovered: hosts.length,
+        unknown: hosts.filter(function (h) { return !h.managed; }).length,
+      });
     }
-  };
+  });
 }
 </script>
 {% endblock %}

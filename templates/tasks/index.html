@@ -1,0 +1,87 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Tasks{% endblock %}
+{% block page_title %}Tasks{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workflow.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="sw-page">
+  <header class="sw-header">
+    <div>
+      <h1>Tasks</h1>
+      <p>Work items from workflows and operations — assign, prioritize, complete.</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('workflows.index') }}" class="btn btn-secondary">Workflows</a>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="wf-ops-strip" aria-label="Task operations summary">
+    <div class="wf-ops-chip"><i class="fas fa-list-check"></i><div><strong>{{ tasks|length }}</strong><span>Tasks in view</span></div></div>
+    <div class="wf-ops-chip"><i class="fas fa-user-check"></i><div><strong>Assigned</strong><span>Work requiring action</span></div></div>
+    <div class="wf-ops-chip"><i class="fas fa-clock"></i><div><strong>Due dates</strong><span>Keep work on schedule</span></div></div>
+    <a class="wf-ops-chip" href="{{ url_for('workflows.index') }}" style="text-decoration:none;color:inherit"><i class="fas fa-diagram-project"></i><div><strong>Workflows</strong><span>Open operational flows</span></div></a>
+  </div>
+
+  <nav class="sw-subtabs">
+    <a class="sw-subtab {% if view == 'mine' %}is-active{% endif %}" href="{{ url_for('tasks.index', view='mine') }}">Assigned to me</a>
+    {% if not is_employee %}
+    <a class="sw-subtab {% if view == 'queue' %}is-active{% endif %}" href="{{ url_for('tasks.index', view='queue') }}">Open queue</a>
+    <a class="sw-subtab {% if view == 'all' %}is-active{% endif %}" href="{{ url_for('tasks.index', view='all') }}">All</a>
+    {% endif %}
+  </nav>
+
+  <section class="sw-panel">
+    {% if tasks %}
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Assignee</th>
+            <th>Due</th>
+            <th>Workflow</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tasks %}
+          <tr>
+            <td>
+              <strong>{{ t.title }}</strong>
+              {% if t.link_url %}<div class="wf-meta-line"><a href="{{ t.link_url }}">Open linked item</a></div>{% endif %}
+            </td>
+            <td>{{ t.priority }}</td>
+            <td><span class="wf-pill wf-pill--{{ t.status }}">{{ t.status|replace('_',' ') }}</span></td>
+            <td>{{ t.assignee or '—' }}</td>
+            <td>{{ (t.due_at or '')[:10] or '—' }}</td>
+            <td>{% if t.workflow_instance_id %}<a href="{{ url_for('workflows.details', item_id=t.workflow_instance_id) }}">{{ t.workflow_number or t.workflow_instance_id }}</a>{% else %}—{% endif %}</td>
+            <td>
+              {% if t.status in ['open','in_progress'] %}
+              <form method="post" action="{{ url_for('tasks.update', item_id=t.id) }}" style="display:inline;">
+                <input type="hidden" name="status" value="done" />
+                <button type="submit" class="btn btn-secondary btn-sm">Done</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="wf-empty">No tasks in this view.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

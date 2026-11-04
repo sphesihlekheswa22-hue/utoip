@@ -1,7 +1,7 @@
 """API v1 blueprint registration."""
 from flask import Blueprint, Flask
 
-from uitop.api.v1 import agents, audit, auth, departments, inventory, roles, users
+from uitop.api.v1 import agents, audit, auth, connectors, departments, inventory, roles, users
 
 
 def register_api_v1(app: Flask) -> None:
@@ -12,6 +12,7 @@ def register_api_v1(app: Flask) -> None:
     api.register_blueprint(departments.bp)
     api.register_blueprint(audit.bp)
     api.register_blueprint(agents.bp)
+    api.register_blueprint(connectors.bp)
     api.register_blueprint(inventory.bp)
     app.register_blueprint(api)
 

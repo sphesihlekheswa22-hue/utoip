@@ -11,14 +11,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
+def _normalize_database_url(raw: str | None) -> str | None:
+    """Render/Heroku often provide postgres:// — SQLAlchemy needs postgresql+psycopg2://."""
+    url = (raw or "").strip()
+    if not url:
+        return None
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+psycopg2://", 1)
+    if url.startswith("postgresql://") and "+psycopg2" not in url and "+psycopg" not in url:
+        return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    return url
+
+
+def _default_sqlite_uri() -> str:
+    return f"sqlite:///{BASE_DIR / 'instance' / 'uitop.db'}"
+
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "uitop-dev-secret-change-in-production")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
 
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        f"sqlite:///{BASE_DIR / 'instance' / 'uitop.db'}",
-    )
+    SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.getenv("DATABASE_URL")) or _default_sqlite_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 

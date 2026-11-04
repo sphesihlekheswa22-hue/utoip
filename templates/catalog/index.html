@@ -1,0 +1,54 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Request Catalog{% endblock %}
+{% block page_title %}Request Catalog{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workflow.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="sw-page wf-page">
+  <header class="sw-header">
+    <div>
+      <h1>Request Catalog</h1>
+      <p>Choose a service — IT reviews and fulfills through the workflow queue.</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('workflows.index') }}" class="btn btn-secondary"><i class="fas fa-diagram-project"></i> {% if is_employee %}My Requests{% else %}Workflows{% endif %}</a>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <form class="cat-filters" method="get" action="{{ url_for('catalog.index') }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search services…" />
+    <select name="category" onchange="this.form.submit()">
+      <option value="">All categories</option>
+      {% for c in categories %}
+      <option value="{{ c }}" {% if category == c %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-secondary">Filter</button>
+  </form>
+
+  {% if items %}
+  <div class="cat-grid">
+    {% for item in items %}
+    <a class="cat-card" href="{{ url_for('catalog.request_item', key=item.key) }}">
+      <span class="cat-card-icon" aria-hidden="true"><i class="fas fa-{{ item.icon }}"></i></span>
+      <span class="cat-card-cat">{{ item.category }}</span>
+      <strong class="cat-card-name">{{ item.name }}</strong>
+      <span class="cat-card-sum">{{ item.summary }}</span>
+      <span class="cat-card-cta">Request <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="wf-empty">No catalog items match your filter.</p>
+  {% endif %}
+</div>
+{% endblock %}

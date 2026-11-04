@@ -9,104 +9,237 @@
   </div>
 
   <nav class="uitop-nav" aria-label="Primary">
+    {% if is_employee %}
+    <p class="uitop-nav-label">My UITOP</p>
+    <a href="{{ url_for('employee.index') }}" class="sidebar-link {% if nav_active == 'employee' or nav_active == 'dashboard' %}is-active{% endif %}">
+      <i class="fas fa-grid-2" aria-hidden="true"></i> Dashboard
+    </a>
+    <a href="{{ url_for('employee.devices') }}" class="sidebar-link {% if nav_active == 'my-devices' %}is-active{% endif %}">
+      <i class="fas fa-desktop" aria-hidden="true"></i> My Devices
+    </a>
+    <a href="{{ url_for('employee.connect') }}" class="sidebar-link {% if nav_active == 'connect-pc' %}is-active{% endif %}">
+      <i class="fas fa-plug" aria-hidden="true"></i> Connect my PC
+    </a>
+
+    <p class="uitop-nav-label">Help Desk</p>
+    <a href="{{ url_for('helpdesk.create') }}" class="sidebar-link {% if request.endpoint == 'helpdesk.create' %}is-active{% endif %}">
+      <i class="fas fa-plus" aria-hidden="true"></i> Create Ticket
+    </a>
+    <a href="{{ url_for('employee.tickets') }}" class="sidebar-link {% if nav_active == 'my-tickets' %}is-active{% endif %}">
+      <i class="fas fa-ticket" aria-hidden="true"></i> My Tickets
+    </a>
+    <a href="{{ url_for('catalog.index') }}" class="sidebar-link {% if nav_active == 'catalog' %}is-active{% endif %}">
+      <i class="fas fa-store" aria-hidden="true"></i> Request Catalog
+    </a>
+    <a href="{{ url_for('workflows.index') }}" class="sidebar-link {% if nav_active == 'workflows' %}is-active{% endif %}">
+      <i class="fas fa-diagram-project" aria-hidden="true"></i> My Requests
+    </a>
+
+    <p class="uitop-nav-label">Self-service</p>
+    {% if can('files:read') %}
+    <a href="{{ url_for('workspace.index') }}" class="sidebar-link {% if nav_active == 'workspace' %}is-active{% endif %}">
+      <i class="fas fa-cloud" aria-hidden="true"></i> My Workspace
+    </a>
+    <a href="{{ url_for('documents.index', view='library') }}" class="sidebar-link {% if nav_active == 'documents' %}is-active{% endif %}">
+      <i class="fas fa-building-columns" aria-hidden="true"></i> Documents
+    </a>
+    {% endif %}
+    {% if can('helpdesk:read') %}
+    <a href="{{ url_for('helpdesk.index', view='knowledge') }}" class="sidebar-link {% if nav_active == 'knowledge' or request.args.get('view') == 'knowledge' %}is-active{% endif %}">
+      <i class="fas fa-book-open" aria-hidden="true"></i> Knowledge Base
+    </a>
+    {% endif %}
+    <a href="{{ url_for('ai.index') }}" class="sidebar-link {% if nav_active == 'ai' %}is-active{% endif %}">
+      <i class="fas fa-robot" aria-hidden="true"></i> AI Assistant
+    </a>
+    <a href="{{ url_for('notifications.index') }}" class="sidebar-link {% if nav_active == 'notifications' %}is-active{% endif %}">
+      <i class="fas fa-bell" aria-hidden="true"></i> Notifications
+    </a>
+    <a href="{{ url_for('profile.index') }}" class="sidebar-link {% if nav_active == 'profile' %}is-active{% endif %}">
+      <i class="fas fa-user" aria-hidden="true"></i> Profile
+    </a>
+
+    {% else %}
+
+    {% if can('dashboard:read') or can('monitoring:read') %}
     <p class="uitop-nav-label">Overview</p>
+    {% if can('monitoring:read') %}
+    <a href="{{ url_for('monitoring.index') }}" class="sidebar-link {% if nav_active == 'monitoring' %}is-active{% endif %}">
+      <i class="fas fa-chart-line" aria-hidden="true"></i> Monitoring
+    </a>
+    {% endif %}
+    {% if can('dashboard:read') %}
     <a href="{{ url_for('dashboard.index') }}" class="sidebar-link {% if nav_active == 'dashboard' %}is-active{% endif %}">
       <i class="fas fa-grid-2" aria-hidden="true"></i> Dashboard
     </a>
+    <a href="{{ url_for('ai.index') }}" class="sidebar-link {% if nav_active == 'ai' %}is-active{% endif %}">
+      <i class="fas fa-robot" aria-hidden="true"></i> IT Copilot
+    </a>
+    {% endif %}
+    {% endif %}
 
+    {% if can('computers:read') or can('servers:read') or can('network:read') or can('printers:read') %}
     <p class="uitop-nav-label">Infrastructure</p>
+    {% if can('computers:read') %}
     <a href="{{ url_for('computers.index') }}" class="sidebar-link {% if nav_active == 'computers' %}is-active{% endif %}">
       <i class="fas fa-desktop" aria-hidden="true"></i> Computers
     </a>
+    {% endif %}
+    {% if can('servers:read') %}
     <a href="{{ url_for('servers.index') }}" class="sidebar-link {% if nav_active == 'servers' %}is-active{% endif %}">
       <i class="fas fa-server" aria-hidden="true"></i> Servers
     </a>
+    {% endif %}
+    {% if can('network:read') %}
     <a href="{{ url_for('network.index') }}" class="sidebar-link {% if nav_active == 'network' %}is-active{% endif %}">
       <i class="fas fa-network-wired" aria-hidden="true"></i> Network
     </a>
+    {% if can('connectors:manage') or can('agents:manage') or can('network:write') %}
+    <a href="{{ url_for('network.site_connector') }}" class="sidebar-link {% if nav_active == 'site-connector' %}is-active{% endif %}">
+      <i class="fas fa-satellite-dish" aria-hidden="true"></i> Site Connector
+    </a>
+    {% endif %}
+    {% endif %}
+    {% if can('printers:read') %}
     <a href="{{ url_for('printers.index') }}" class="sidebar-link {% if nav_active == 'printers' %}is-active{% endif %}">
       <i class="fas fa-print" aria-hidden="true"></i> Printers
     </a>
+    {% endif %}
+    {% endif %}
 
+    {% if can('assets:read') or can('software:read') or can('licenses:read') or can('vendors:read') %}
     <p class="uitop-nav-label">Assets</p>
+    {% if can('assets:read') %}
     <a href="{{ url_for('assets.index') }}" class="sidebar-link {% if nav_active == 'assets' %}is-active{% endif %}">
       <i class="fas fa-box" aria-hidden="true"></i> Assets
     </a>
+    {% endif %}
+    {% if can('software:read') %}
     <a href="/software/" class="sidebar-link {% if nav_active == 'software' %}is-active{% endif %}">
       <i class="fas fa-cubes" aria-hidden="true"></i> Software
     </a>
+    {% endif %}
+    {% if can('licenses:read') %}
     <a href="/licenses/" class="sidebar-link {% if nav_active == 'licenses' %}is-active{% endif %}">
       <i class="fas fa-key" aria-hidden="true"></i> Licenses
     </a>
+    {% endif %}
+    {% if can('vendors:read') %}
     <a href="/vendors/" class="sidebar-link {% if nav_active == 'vendors' %}is-active{% endif %}">
       <i class="fas fa-handshake" aria-hidden="true"></i> Vendors
     </a>
+    {% endif %}
+    {% endif %}
 
-    <p class="uitop-nav-label">Backup &amp; Recovery</p>
+    {% if can('backup:read') or can('files:read') %}
+    <p class="uitop-nav-label">Data &amp; files</p>
+    {% if can('backup:read') %}
     <a href="{{ url_for('backup.index') }}" class="sidebar-link {% if nav_active == 'backup' or nav_active == 'restore' %}is-active{% endif %}">
-      <i class="fas fa-hard-drive" aria-hidden="true"></i> Backup &amp; Restore
+      <i class="fas fa-hard-drive" aria-hidden="true"></i> Backup Center
     </a>
-    <a href="{{ url_for('files.index') }}" class="sidebar-link {% if nav_active == 'files' %}is-active{% endif %}">
-      <i class="fas fa-folder" aria-hidden="true"></i> Files
+    {% endif %}
+    {% if can('files:read') %}
+    <a href="{{ url_for('documents.index') }}" class="sidebar-link {% if nav_active == 'documents' or nav_active == 'files' %}is-active{% endif %}">
+      <i class="fas fa-building-columns" aria-hidden="true"></i> Documents
     </a>
+    <a href="{{ url_for('workspace.index') }}" class="sidebar-link {% if nav_active == 'workspace' %}is-active{% endif %}">
+      <i class="fas fa-cloud" aria-hidden="true"></i> My Workspace
+    </a>
+    {% endif %}
+    {% endif %}
 
+    {% if can('helpdesk:read') %}
     <p class="uitop-nav-label">Support</p>
     <a href="{{ url_for('helpdesk.index') }}" class="sidebar-link {% if nav_active == 'helpdesk' %}is-active{% endif %}">
       <i class="fas fa-life-ring" aria-hidden="true"></i> Help Desk
     </a>
-    <a href="/knowledge/" class="sidebar-link {% if nav_active == 'knowledge' %}is-active{% endif %}">
+    <a href="{{ url_for('helpdesk.index', view='knowledge') }}" class="sidebar-link {% if nav_active == 'knowledge' %}is-active{% endif %}">
       <i class="fas fa-book-open" aria-hidden="true"></i> Knowledge
     </a>
-
-    <p class="uitop-nav-label">Monitoring</p>
-    <a href="{{ url_for('monitoring.index') }}" class="sidebar-link {% if nav_active == 'monitoring' %}is-active{% endif %}">
-      <i class="fas fa-chart-line" aria-hidden="true"></i> Monitoring
+    <a href="{{ url_for('catalog.index') }}" class="sidebar-link {% if nav_active == 'catalog' %}is-active{% endif %}">
+      <i class="fas fa-store" aria-hidden="true"></i> Request Catalog
     </a>
-    <a href="/alerts/" class="sidebar-link {% if nav_active == 'alerts' %}is-active{% endif %}">
+    <a href="{{ url_for('workflows.index') }}" class="sidebar-link {% if nav_active == 'workflows' %}is-active{% endif %}">
+      <i class="fas fa-diagram-project" aria-hidden="true"></i> Workflows
+    </a>
+    <a href="{{ url_for('tasks.index', view='queue') }}" class="sidebar-link {% if nav_active == 'tasks' %}is-active{% endif %}">
+      <i class="fas fa-list-check" aria-hidden="true"></i> Tasks
+    </a>
+    {% endif %}
+
+    {% if can('monitoring:read') %}
+    <p class="uitop-nav-label">Monitoring</p>
+    <a href="{{ url_for('monitoring.index', view='alerts') }}" class="sidebar-link {% if nav_active == 'alerts' %}is-active{% endif %}">
       <i class="fas fa-bell" aria-hidden="true"></i> Alerts
     </a>
+    <a href="{{ url_for('monitoring.index', view='events') }}" class="sidebar-link {% if nav_active == 'events' %}is-active{% endif %}">
+      <i class="fas fa-timeline" aria-hidden="true"></i> Events
+    </a>
+    {% endif %}
 
+    {% if can('maintenance:read') or can('calendar:read') or can('security:read') %}
     <p class="uitop-nav-label">Operations</p>
-    <a href="/maintenance/" class="sidebar-link {% if nav_active == 'maintenance' %}is-active{% endif %}">
+    {% if can('maintenance:read') %}
+    <a href="{{ url_for('maintenance.index') }}" class="sidebar-link {% if nav_active == 'maintenance' %}is-active{% endif %}">
       <i class="fas fa-wrench" aria-hidden="true"></i> Maintenance
     </a>
-    <a href="/documents/" class="sidebar-link {% if nav_active == 'documents' %}is-active{% endif %}">
-      <i class="fas fa-folder-open" aria-hidden="true"></i> Documents
-    </a>
-    <a href="/calendar/" class="sidebar-link {% if nav_active == 'calendar' %}is-active{% endif %}">
+    {% endif %}
+    {% if can('calendar:read') %}
+    <a href="{{ url_for('calendar.index') }}" class="sidebar-link {% if nav_active == 'calendar' %}is-active{% endif %}">
       <i class="fas fa-calendar-days" aria-hidden="true"></i> Calendar
     </a>
-    <a href="/security/" class="sidebar-link {% if nav_active == 'security' %}is-active{% endif %}">
+    {% endif %}
+    {% if can('security:read') %}
+    <a href="{{ url_for('security.index') }}" class="sidebar-link {% if nav_active == 'security' %}is-active{% endif %}">
       <i class="fas fa-vault" aria-hidden="true"></i> Security
     </a>
+    {% endif %}
+    {% endif %}
 
+    {% if can('analysis:read') or can('reports:read') %}
     <p class="uitop-nav-label">Insights</p>
-    <a href="{{ url_for('analytics.index') }}" class="sidebar-link {% if nav_active == 'analytics' %}is-active{% endif %}">
-      <i class="fas fa-chart-column" aria-hidden="true"></i> Analytics
+    {% if can('analysis:read') %}
+    <a href="{{ url_for('analysis.index') }}" class="sidebar-link {% if nav_active == 'analysis' or nav_active == 'analytics' %}is-active{% endif %}">
+      <i class="fas fa-chart-column" aria-hidden="true"></i> Analysis
     </a>
+    {% endif %}
+    {% if can('reports:read') %}
     <a href="{{ url_for('reports.index') }}" class="sidebar-link {% if nav_active == 'reports' %}is-active{% endif %}">
       <i class="fas fa-file-lines" aria-hidden="true"></i> Reports
     </a>
-    <a href="{{ url_for('ai.index') }}" class="sidebar-link {% if nav_active == 'ai' %}is-active{% endif %}">
-      <i class="fas fa-sparkles" aria-hidden="true"></i> AI Assistant
-    </a>
+    {% endif %}
+    {% endif %}
 
+    {% if can('users:manage') or can('roles:manage') or can('departments:manage') or can('audit:read') or can('settings:manage') %}
     <p class="uitop-nav-label">Administration</p>
-    <a href="{{ url_for('users.index') }}" class="sidebar-link {% if nav_active == 'users' %}is-active{% endif %}">
+    {% if can('users:manage') %}
+    <a href="{{ url_for('users.index') }}" class="sidebar-link {% if nav_active == 'users' or nav_active == 'roles' or nav_active == 'departments' %}is-active{% endif %}">
       <i class="fas fa-users" aria-hidden="true"></i> Users
     </a>
-    <a href="/roles/" class="sidebar-link {% if nav_active == 'roles' %}is-active{% endif %}">
+    {% endif %}
+    {% if can('roles:manage') or can('users:manage') %}
+    <a href="{{ url_for('users.index', view='roles') }}" class="sidebar-link {% if request.args.get('view') == 'roles' %}is-active{% endif %}">
       <i class="fas fa-shield-halved" aria-hidden="true"></i> Roles
     </a>
-    <a href="/departments/" class="sidebar-link {% if nav_active == 'departments' %}is-active{% endif %}">
+    {% endif %}
+    {% if can('departments:manage') or can('users:manage') %}
+    <a href="{{ url_for('users.index', view='departments') }}" class="sidebar-link {% if request.args.get('view') == 'departments' %}is-active{% endif %}">
       <i class="fas fa-building" aria-hidden="true"></i> Departments
     </a>
-    <a href="/audit/" class="sidebar-link {% if nav_active == 'audit' %}is-active{% endif %}">
+    {% endif %}
+    {% if can('audit:read') %}
+    <a href="{{ url_for('audit.index') }}" class="sidebar-link {% if nav_active == 'audit' %}is-active{% endif %}">
       <i class="fas fa-clipboard-list" aria-hidden="true"></i> Audit
     </a>
+    {% endif %}
+    {% if can('settings:manage') %}
     <a href="{{ url_for('settings.index') }}" class="sidebar-link {% if nav_active == 'settings' %}is-active{% endif %}">
       <i class="fas fa-gear" aria-hidden="true"></i> Settings
     </a>
+    {% endif %}
+    {% endif %}
+
+    {% endif %}
   </nav>
 
   <div class="uitop-sidebar-foot">

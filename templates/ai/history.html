@@ -1,34 +1,34 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, status_badge %}
 
-{% block title %}Session · History{% endblock %}
-{% block page_title %}Session · History{% endblock %}
+{% block title %}Conversation · IT Copilot{% endblock %}
+{% block page_title %}IT Copilot{% endblock %}
 
 {% block content %}
-{% call page_header("Session · History", "History insights for this session.", "{{ url_for('ai.index') }}", "Back to list", "fa-arrow-left") %}{% endcall %}
+<header class="page-header">
+  <div>
+    <h1 class="page-title">{{ copilot_session.title or 'Conversation' }}</h1>
+    <p class="page-subtitle">Saved IT Copilot conversation</p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('ai.index') }}"><i class="fas fa-arrow-left"></i> Back to Copilot</a>
+  </div>
+</header>
 
-<section class="panel detail-card">
-  <header class="card-header">
-    <h2>Session · History</h2>
-    {{ status_badge("Active") }}
-  </header>
-  <div class="subpage-body">
-    <p class="page-subtitle">Live and historical history data for operations teams.</p>
-    <div class="kpi-grid compact">
-      <article class="kpi-card"><div class="kpi-body"><p class="kpi-label">Samples</p><p class="kpi-value">12</p></div></article>
-      <article class="kpi-card"><div class="kpi-body"><p class="kpi-label">Healthy</p><p class="kpi-value">9</p></div></article>
-      <article class="kpi-card"><div class="kpi-body"><p class="kpi-label">Attention</p><p class="kpi-value">3</p></div></article>
+<section class="panel copilot-history-panel">
+  <div class="copilot-messages">
+    {% for m in copilot_session.messages %}
+    <div class="copilot-msg copilot-msg--{{ m.role }}">
+      {% if m.role == 'assistant' %}
+      <span class="copilot-avatar-sm"><i class="fas fa-robot"></i></span>
+      <div class="copilot-bubble">{{ m.content | e | replace('\n', '<br>') | safe }}</div>
+      {% else %}
+      <div class="copilot-bubble copilot-bubble--user">{{ m.content | e }}</div>
+      <span class="copilot-avatar-sm copilot-avatar-sm--user"><i class="fas fa-user"></i></span>
+      {% endif %}
     </div>
-    <div class="table-scroll" style="margin-top:1rem;">
-      <table class="data-table">
-        <thead><tr><th>Item</th><th>Detail</th><th>Status</th><th>Updated</th></tr></thead>
-        <tbody>
-          <tr><td>Sample metric A</td><td>Within range</td><td>{{ status_badge("Healthy") }}</td><td>2 min ago</td></tr>
-          <tr><td>Sample metric B</td><td>Needs review</td><td>{{ status_badge("Warning") }}</td><td>8 min ago</td></tr>
-          <tr><td>Sample metric C</td><td>Nominal</td><td>{{ status_badge("Online") }}</td><td>Just now</td></tr>
-        </tbody>
-      </table>
-    </div>
+    {% else %}
+    <p class="page-subtitle">No messages in this session.</p>
+    {% endfor %}
   </div>
 </section>
 {% endblock %}

@@ -35,7 +35,7 @@
     </div>
     <div class="device-hero-actions">
       <button type="button" class="btn btn-secondary btn-sm" @click="setTab('remote')"><i class="fas fa-bolt"></i> Actions</button>
-      <button type="button" class="btn btn-ghost btn-sm" @click="toast('Status refreshed')"><i class="fas fa-rotate"></i> Refresh</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="runAction('refresh_status')" :disabled="busy"><i class="fas fa-rotate" :class="busy && 'fa-spin'"></i> Refresh</button>
       <a href="{{ url_for('printers.index') }}" class="btn btn-ghost btn-sm">Fleet</a>
     </div>
   </section>
@@ -66,40 +66,28 @@
 
   <section class="device-panel" x-show="tab === 'supplies'">
     <h2 class="chart-panel-title">Supplies</h2>
+    <p class="chart-panel-subtitle">{% if printer.polled %}From last SNMP poll · {{ printer.last_snmp }}{% else %}Not polled yet — use Refresh or Remote Actions → Refresh Status{% endif %}</p>
     <div class="prt-supply">
+      {% if printer.supplies %}
+        {% for s in printer.supplies %}
+        {% set pct = s.percent if s.percent is not none else 0 %}
+        <div class="prt-supply-card">
+          <h4><span class="prt-swatch black"></span> {{ s.description or 'Supply' }}</h4>
+          <div class="comp-usage {% if pct <= 15 %}is-crit{% elif pct <= 30 %}is-warn{% endif %}">
+            <div class="comp-usage-bar"><span style="width:{{ pct }}%"></span></div>
+            <span>{% if s.percent is not none %}{{ pct }}%{% else %}n/a{% endif %}</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
       <div class="prt-supply-card">
-        <h4><span class="prt-swatch black"></span> Black Toner</h4>
+        <h4><span class="prt-swatch black"></span> Toner (summary)</h4>
         <div class="comp-usage {% if printer.toner <= 15 %}is-crit{% elif printer.toner <= 30 %}is-warn{% endif %}">
           <div class="comp-usage-bar"><span style="width:{{ printer.toner }}%"></span></div>
           <span>{{ printer.toner }}%</span>
         </div>
       </div>
-      {% if printer.color %}
-      <div class="prt-supply-card">
-        <h4><span class="prt-swatch cyan"></span> Cyan</h4>
-        <div class="comp-usage"><div class="comp-usage-bar"><span style="width:54%"></span></div><span>54%</span></div>
-      </div>
-      <div class="prt-supply-card">
-        <h4><span class="prt-swatch magenta"></span> Magenta</h4>
-        <div class="comp-usage is-warn"><div class="comp-usage-bar"><span style="width:28%"></span></div><span>28%</span></div>
-      </div>
-      <div class="prt-supply-card">
-        <h4><span class="prt-swatch yellow"></span> Yellow</h4>
-        <div class="comp-usage"><div class="comp-usage-bar"><span style="width:61%"></span></div><span>61%</span></div>
-      </div>
       {% endif %}
-      <div class="prt-supply-card">
-        <h4><span class="prt-swatch waste"></span> Waste Toner</h4>
-        <div class="comp-usage"><div class="comp-usage-bar"><span style="width:35%"></span></div><span>35% full</span></div>
-      </div>
-      <div class="prt-supply-card">
-        <h4><span class="prt-swatch drum"></span> Drum</h4>
-        <div class="comp-usage"><div class="comp-usage-bar"><span style="width:72%"></span></div><span>72% life</span></div>
-      </div>
-      <div class="prt-supply-card">
-        <h4><span class="prt-swatch fuser"></span> Fuser</h4>
-        <div class="comp-usage is-warn"><div class="comp-usage-bar"><span style="width:22%"></span></div><span>22% life</span></div>
-      </div>
     </div>
   </section>
 
@@ -107,12 +95,26 @@
     <h2 class="chart-panel-title">Paper Trays</h2>
     <div class="table-scroll">
       <table class="comp-table">
-        <thead><tr><th>Tray</th><th>Capacity</th><th>Remaining Paper</th><th>Paper Size</th><th>Status</th></tr></thead>
+        <thead><tr><th>Tray</th><th>Capacity</th><th>Remaining</th><th>Status</th></tr></thead>
         <tbody>
-          <tr><td>Tray 1</td><td>500</td><td>{{ printer.paper }}%</td><td>A4</td><td><span class="badge {% if printer.paper == 0 %}badge-danger{% elif printer.paper < 20 %}badge-warning{% else %}badge-success{% endif %}">{% if printer.paper == 0 %}Empty{% elif printer.paper < 20 %}Low{% else %}OK{% endif %}</span></td></tr>
-          <tr><td>Tray 2</td><td>500</td><td>64%</td><td>A4</td><td><span class="badge badge-success">OK</span></td></tr>
-          <tr><td>Tray 3</td><td>250</td><td>40%</td><td>A3</td><td><span class="badge badge-success">OK</span></td></tr>
-          <tr><td>Bypass</td><td>100</td><td>80%</td><td>Custom</td><td><span class="badge badge-success">OK</span></td></tr>
+          {% if printer.trays %}
+            {% for t in printer.trays %}
+            {% set pct = t.percent if t.percent is not none else 0 %}
+            <tr>
+              <td>Tray {{ loop.index }}</td>
+              <td>{{ t.max if t.max is not none else '—' }}</td>
+              <td>{% if t.percent is not none %}{{ pct }}%{% else %}{{ t.level if t.level is not none else '—' }}{% endif %}</td>
+              <td><span class="badge {% if t.percent is none %}badge-muted{% elif pct == 0 %}badge-danger{% elif pct < 20 %}badge-warning{% else %}badge-success{% endif %}">{% if t.percent is none %}Unknown{% elif pct == 0 %}Empty{% elif pct < 20 %}Low{% else %}OK{% endif %}</span></td>
+            </tr>
+            {% endfor %}
+          {% else %}
+          <tr>
+            <td>Primary</td>
+            <td>—</td>
+            <td>{{ printer.paper }}%</td>
+            <td><span class="badge {% if printer.paper == 0 %}badge-danger{% elif printer.paper < 20 %}badge-warning{% else %}badge-success{% endif %}">{% if printer.paper == 0 %}Empty{% elif printer.paper < 20 %}Low{% else %}OK{% endif %}</span></td>
+          </tr>
+          {% endif %}
         </tbody>
       </table>
     </div>
@@ -120,22 +122,9 @@
 
   <section class="device-panel" x-show="tab === 'queue'">
     <h2 class="chart-panel-title">Print Queue</h2>
+    <p class="chart-panel-subtitle">Depth from SNMP / last poll. Individual Windows spooler jobs need a print-server agent (not SNMP).</p>
     <div class="prt-usage-grid">
       <article class="comp-kpi is-warning"><p class="comp-kpi-label">Queued Jobs</p><p class="comp-kpi-value">{{ printer.queue }}</p></article>
-      <article class="comp-kpi is-danger"><p class="comp-kpi-label">Failed Jobs</p><p class="comp-kpi-value">1</p></article>
-      <article class="comp-kpi"><p class="comp-kpi-label">Paused Jobs</p><p class="comp-kpi-value">0</p></article>
-      <article class="comp-kpi is-success"><p class="comp-kpi-label">Completed Jobs</p><p class="comp-kpi-value">128</p></article>
-    </div>
-    <div class="table-scroll">
-      <table class="comp-table">
-        <thead><tr><th>Job</th><th>User</th><th>Document</th><th>Pages</th><th>Status</th></tr></thead>
-        <tbody>
-          <tr><td>#4821</td><td>S. Dlamini</td><td>Budget_Q3.pdf</td><td>12</td><td><span class="badge badge-warning">Queued</span></td></tr>
-          <tr><td>#4820</td><td>L. Mokoena</td><td>Leave_Form.docx</td><td>2</td><td><span class="badge badge-warning">Queued</span></td></tr>
-          <tr><td>#4818</td><td>J. Naidoo</td><td>Site_Plan.pdf</td><td>1</td><td><span class="badge badge-danger">Failed</span></td></tr>
-          <tr><td>#4815</td><td>T. Nkosi</td><td>Policy.pdf</td><td>8</td><td><span class="badge badge-success">Completed</span></td></tr>
-        </tbody>
-      </table>
     </div>
   </section>
 
@@ -170,11 +159,10 @@
     <h2 class="chart-panel-title">Network</h2>
     <dl class="device-grid">
       <div class="device-field"><dt>IP Address</dt><dd>{{ printer.ip }}</dd></div>
-      <div class="device-field"><dt>MAC Address</dt><dd>00:17:C8:A{{ printer.id }}:B1:C2</dd></div>
-      <div class="device-field"><dt>Hostname</dt><dd>PRT-{{ printer.name.replace(' ', '-').upper()[:12] }}</dd></div>
-      <div class="device-field"><dt>Firmware</dt><dd>2405A · {{ printer.manufacturer }}</dd></div>
-      <div class="device-field"><dt>Serial Number</dt><dd>SN{{ printer.id }}7842KUMZ</dd></div>
-      <div class="device-field"><dt>SNMP Status</dt><dd><span class="badge badge-success">Responding</span></dd></div>
+      <div class="device-field"><dt>JetDirect 9100</dt><dd>{% if printer.ports.get('9100') %}<span class="badge badge-success">Open</span>{% elif printer.polled %}<span class="badge badge-muted">Closed</span>{% else %}—{% endif %}</dd></div>
+      <div class="device-field"><dt>IPP 631</dt><dd>{% if printer.ports.get('631') %}<span class="badge badge-success">Open</span>{% elif printer.polled %}<span class="badge badge-muted">Closed</span>{% else %}—{% endif %}</dd></div>
+      <div class="device-field"><dt>HTTP 80</dt><dd>{% if printer.ports.get('80') %}<span class="badge badge-success">Open</span>{% elif printer.polled %}<span class="badge badge-muted">Closed</span>{% else %}—{% endif %}</dd></div>
+      <div class="device-field"><dt>SNMP Status</dt><dd>{% if printer.snmp_ok %}<span class="badge badge-success">Responding</span>{% elif printer.polled %}<span class="badge badge-warning">Failed / never</span>{% else %}<span class="badge badge-muted">Not polled</span>{% endif %}</dd></div>
     </dl>
   </section>
 
@@ -182,12 +170,28 @@
     <h2 class="chart-panel-title">SNMP</h2>
     <dl class="device-grid">
       <div class="device-field"><dt>sysName</dt><dd>{{ printer.name }}</dd></div>
-      <div class="device-field"><dt>sysDescr</dt><dd>{{ printer.model }}</dd></div>
-      <div class="device-field"><dt>Profile</dt><dd>HQ Read-Only (v2c)</dd></div>
-      <div class="device-field"><dt>Last poll</dt><dd>{{ printer.last_seen }}</dd></div>
-      <div class="device-field"><dt>Printer MIB</dt><dd>Host Resources + Printer-MIB</dd></div>
-      <div class="device-field"><dt>Alerts via trap</dt><dd>Enabled</dd></div>
+      <div class="device-field"><dt>sysDescr</dt><dd>{{ printer.snmp_sys_descr }}</dd></div>
+      <div class="device-field"><dt>Last SNMP poll</dt><dd>{{ printer.last_snmp }}</dd></div>
+      <div class="device-field"><dt>Toner (polled)</dt><dd>{{ printer.toner }}%</dd></div>
+      <div class="device-field"><dt>Paper (polled)</dt><dd>{{ printer.paper }}%</dd></div>
+      <div class="device-field"><dt>IP</dt><dd>{{ printer.ip }}</dd></div>
     </dl>
+    <form method="post" action="{{ url_for('printers.assign_snmp_profile', item_id=item_id) }}" class="form-grid" style="margin-top:1rem">
+      <div class="field">
+        <label>SNMP profile</label>
+        <select name="snmp_profile_id">
+          <option value="">Auto (try active profiles)</option>
+          {% for p in snmp_profiles %}
+          <option value="{{ p.id }}" {% if printer.snmp_profile_id == p.id %}selected{% endif %}>{{ p.name }} ({{ p.version }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Save profile</button>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('network.snmp') }}">Manage profiles</a>
+        <button type="button" class="btn btn-secondary btn-sm" @click="runAction('refresh_status')" :disabled="busy">Poll now</button>
+      </div>
+    </form>
   </section>
 
   <section class="device-panel" x-show="tab === 'timeline'">
@@ -217,22 +221,26 @@
 
   <section class="device-panel" x-show="tab === 'remote'">
     <h2 class="chart-panel-title">Remote Actions</h2>
+    <p class="chart-panel-subtitle" x-text="statusMsg || 'SNMP poll · JetDirect test page · Printer-MIB reset when write community is configured.'"></p>
     <div class="remote-grid">
-      <button type="button" class="remote-btn" @click="toast('Restart queued')"><i class="fas fa-power-off"></i><strong>Restart Printer</strong><span>Soft reboot</span></button>
-      <button type="button" class="remote-btn" @click="toast('Queue cleared')"><i class="fas fa-broom"></i><strong>Clear Queue</strong><span>Remove pending jobs</span></button>
-      <button type="button" class="remote-btn" @click="toast('Test page sent')"><i class="fas fa-file"></i><strong>Print Test Page</strong><span>Diagnostics sheet</span></button>
-      <button type="button" class="remote-btn" @click="toast('Status refreshed')"><i class="fas fa-rotate"></i><strong>Refresh Status</strong><span>SNMP / queue poll</span></button>
-      <button type="button" class="remote-btn" @click="toast('Diagnostics started')"><i class="fas fa-stethoscope"></i><strong>Run Diagnostics</strong><span>Self-test bundle</span></button>
-      <button type="button" class="remote-btn" @click="toast('Opening web UI')"><i class="fas fa-globe"></i><strong>Open Web Interface</strong><span>http://{{ printer.ip }}</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runAction('restart')"><i class="fas fa-power-off"></i><strong>Restart Printer</strong><span>SNMP prtGeneralReset</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runAction('clear_queue')"><i class="fas fa-broom"></i><strong>Clear Queue</strong><span>Needs write community</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runAction('print_test_page')"><i class="fas fa-file"></i><strong>Print Test Page</strong><span>JetDirect TCP 9100</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runAction('refresh_status')"><i class="fas fa-rotate"></i><strong>Refresh Status</strong><span>SNMP poll now</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runAction('run_diagnostics')"><i class="fas fa-stethoscope"></i><strong>Run Diagnostics</strong><span>SNMP + port checks</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runAction('open_web')"><i class="fas fa-globe"></i><strong>Open Web Interface</strong><span>http://{{ printer.ip }}</span></button>
     </div>
   </section>
 </div>
 
 <script>
+window.__PRINTER_ID__ = {{ item_id | tojson }};
 function printerConsole(initial) {
   return {
     tab: initial || "overview",
     chartsReady: false,
+    busy: false,
+    statusMsg: "",
     tabs: [
       { id: "overview", label: "Overview" },
       { id: "supplies", label: "Supplies" },
@@ -256,8 +264,42 @@ function printerConsole(initial) {
         this.$nextTick(function () { self.initChart(); });
       }
     },
-    toast(msg) {
-      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, "success");
+    toast(msg, kind) {
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, kind || "success");
+      else alert(msg);
+    },
+    async runAction(action) {
+      if (this.busy) return;
+      var confirms = {
+        restart: "Send SNMP restart to this printer?",
+        clear_queue: "Attempt SNMP queue/reset clear?",
+        print_test_page: "Send a test page via JetDirect (port 9100)?"
+      };
+      if (confirms[action] && !confirm(confirms[action])) return;
+      this.busy = true;
+      this.statusMsg = "Working…";
+      try {
+        var res = await fetch("/printers/" + window.__PRINTER_ID__ + "/remote/" + encodeURIComponent(action), {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        });
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok) throw new Error(data.error || "Action failed");
+        this.statusMsg = data.message || "Done";
+        this.toast(data.message || "Done", "success");
+        if (action === "open_web" && data.url) {
+          window.open(data.url, "_blank", "noopener");
+        }
+        if (action === "refresh_status" || action === "run_diagnostics") {
+          setTimeout(function () { window.location.reload(); }, 800);
+        }
+      } catch (err) {
+        this.statusMsg = err.message || "Failed";
+        this.toast(err.message || "Failed", "error");
+      } finally {
+        this.busy = false;
+      }
     },
     initChart() {
       if (!window.UITOP || !UITOP.charts || this.chartsReady) return;

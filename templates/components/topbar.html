@@ -4,11 +4,11 @@
       <button type="button" class="uitop-menu-btn" id="uitop-menu-btn" aria-label="Toggle navigation" aria-controls="uitop-sidebar" aria-expanded="false">
         <i class="fas fa-bars-staggered" aria-hidden="true"></i>
       </button>
-      <a href="{{ url_for('dashboard.index') }}" class="uitop-brand" aria-label="UITOP home">
-        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="" class="uitop-brand-logo" width="34" height="34" />
-        <span class="uitop-brand-text">
-          <span class="uitop-brand-name">UITOP</span>
-          <span class="uitop-brand-sub">Umzinyathi IT Ops</span>
+      <a href="{{ url_for('employee.index' if is_employee else 'dashboard.index') }}" class="uitop-brand" aria-label="UITOP home">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="UITOP — Umzinyathi IT Operations Platform" class="uitop-brand-logo" />
+        <span class="uitop-brand-text" aria-hidden="true">
+          <span class="uitop-brand-name">IT Operations Platform</span>
+          <span class="uitop-brand-sub">People · Technology · Service Delivery</span>
         </span>
       </a>
     </div>
@@ -24,17 +24,19 @@
         <i class="fas fa-sun is-hidden" id="theme-icon-sun" aria-hidden="true"></i>
       </button>
 
-      <a href="{{ url_for('ai.index') }}" class="uitop-btn-ai" aria-label="Open AI Assistant">
-        <i class="fas fa-sparkles" aria-hidden="true"></i>
-        <span>Ask AI</span>
+      <a href="{{ url_for('ai.index') }}" class="uitop-btn-ai" aria-label="Open IT Copilot">
+        <i class="fas fa-robot" aria-hidden="true"></i>
+        <span>IT Copilot</span>
       </a>
 
-      <a href="/notifications/" class="uitop-icon-btn" title="Notifications" aria-label="Notifications">
+      <a href="{{ url_for('notifications.index') }}" class="uitop-icon-btn" title="Notifications" aria-label="Notifications">
         <i class="fas fa-bell" aria-hidden="true"></i>
-        <span class="uitop-badge">3</span>
+        {% if unread_notifications %}
+        <span class="uitop-badge">{{ unread_notifications if unread_notifications < 100 else '99+' }}</span>
+        {% endif %}
       </a>
 
-      <a href="/profile/" class="uitop-user-chip" title="Profile" aria-label="User profile">
+      <a href="{{ url_for('profile.index') }}" class="uitop-user-chip" title="My Profile" aria-label="My profile">
         <span class="uitop-avatar">{{ demo_user.initials }}</span>
         <span class="uitop-user-name">{{ demo_user.name.split(' ')[0] }}</span>
       </a>

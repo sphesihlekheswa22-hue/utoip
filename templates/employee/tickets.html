@@ -1,0 +1,68 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}My Tickets{% endblock %}
+{% block page_title %}My Tickets{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/employee.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('employee.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>My Tickets</span>
+{% endblock %}
+
+{% block content %}
+<section class="emp-hero emp-hero--compact">
+  <div>
+    <p class="emp-eyebrow">Help Desk</p>
+    <h1>My Tickets</h1>
+    <p class="emp-lede">Track support requests you opened. Add comments or close tickets when the issue is fixed.</p>
+  </div>
+  <a href="{{ url_for('helpdesk.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Create ticket</a>
+</section>
+
+<form method="get" class="emp-filters">
+  <label>
+    Status
+    <select name="status" onchange="this.form.submit()">
+      <option value="">All</option>
+      {% for s in ['open','in_progress','pending','resolved','closed'] %}
+      <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s|replace('_',' ')|title }}</option>
+      {% endfor %}
+    </select>
+  </label>
+</form>
+
+<section class="emp-panel">
+  {% if tickets %}
+  <div class="emp-table-wrap">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Ticket</th>
+          <th>Subject</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+          <td><a href="{{ url_for('helpdesk.details', item_id=t.id) }}">{{ t.ticket_number }}</a></td>
+          <td>{{ t.subject }}</td>
+          <td>{{ t.priority }}</td>
+          <td><span class="emp-status emp-status--{{ t.status }}">{{ t.status|replace('_',' ') }}</span></td>
+          <td>{{ (t.updated_at or '')[:16]|replace('T',' ') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="emp-empty">You have no tickets yet. <a href="{{ url_for('helpdesk.create') }}">Create your first ticket</a>.</p>
+  {% endif %}
+</section>
+{% endblock %}

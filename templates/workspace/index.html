@@ -1,0 +1,164 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}My Workspace{% endblock %}
+{% block page_title %}My Workspace{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/documents.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('employee.index' if is_employee else 'dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>My Workspace</span>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page fr-page ws-page" x-data="workspaceHub()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>My Workspace</h1>
+      <p>Your personal files — private by default. Separate from municipal Documents and Backup Center.</p>
+    </div>
+    <div class="sw-header-actions">
+      <button type="button" class="btn btn-primary" @click="showUpload = true"><i class="fas fa-upload"></i> Upload</button>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <nav class="sw-subtabs" role="tablist">
+    {% for key, label in [
+      ('mine','My Files'),
+      ('shared','Shared with me'),
+      ('shared_by_me','Shared by me'),
+      ('recent','Recent'),
+      ('trash','Recycle Bin')
+    ] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('workspace.index', view=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="sw-kpi-grid fr-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">My files</p><p class="sw-kpi-value">{{ kpis.total }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Storage used</p><p class="sw-kpi-value">{{ kpis.storage_label }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Quota</p><p class="sw-kpi-value">{{ kpis.quota_label }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Quota used</p><p class="sw-kpi-value">{{ kpis.quota_pct }}%</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Shared by me</p><p class="sw-kpi-value">{{ kpis.shared }}</p></article>
+  </div>
+
+  <div class="ws-quota-bar" aria-hidden="true">
+    <span style="width: {{ kpis.quota_pct }}%"></span>
+  </div>
+
+  <div class="fr-layout">
+    <aside class="sw-panel fr-cats">
+      <p class="sw-kpi-label fr-cats-label">Folders</p>
+      <a class="sw-tab fr-cat {% if not category %}is-active{% endif %}" href="{{ url_for('workspace.index', view=view) }}">
+        <span>All</span>
+      </a>
+      {% for c in payload.category_counts %}
+      <a class="sw-tab fr-cat {% if category == c.name %}is-active{% endif %}" href="{{ url_for('workspace.index', view=view, category=c.name) }}">
+        <span><i class="fas {{ c.icon }}"></i> {{ c.name }}</span>
+        <em>{{ c.count }}</em>
+      </a>
+      {% endfor %}
+    </aside>
+
+    <section class="sw-panel">
+      <form class="sw-toolbar" method="get">
+        <input type="hidden" name="view" value="{{ view }}" />
+        {% if category %}<input type="hidden" name="category" value="{{ category }}" />{% endif %}
+        <div class="sw-search">
+          <i class="fas fa-magnifying-glass"></i>
+          <input type="search" name="q" value="{{ q }}" placeholder="Search my files…" />
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+      </form>
+
+      {% if payload.files %}
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Folder</th>
+              <th>Size</th>
+              <th>Updated</th>
+              <th>Sharing</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in payload.files %}
+            <tr>
+              <td>
+                <a href="{{ url_for('workspace.details', item_id=f.id) }}"><strong>{{ f.name }}</strong></a>
+                <div class="ws-meta">{{ f.file_type }} · v{{ f.version_label or f.version }}</div>
+              </td>
+              <td>{{ f.category }}</td>
+              <td>{{ f.size_label }}</td>
+              <td>{{ f.updated or f.uploaded }}</td>
+              <td>{% if f.shared %}<span class="emp-status emp-status--online">Shared</span>{% else %}Private{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="ws-empty">
+        <h3>No files here yet</h3>
+        <p>Upload presentations, notes, and personal work files. Machine backups belong in Backup Center; municipal policies belong in Documents.</p>
+        <button type="button" class="btn btn-primary" @click="showUpload = true">Upload your first file</button>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="uf-modal" x-show="showUpload" x-cloak @keydown.escape.window="showUpload = false">
+    <div class="uf-modal-backdrop" @click="showUpload = false"></div>
+    <div class="uf-modal-card" role="dialog" aria-modal="true">
+      <header>
+        <h2>Upload to My Workspace</h2>
+        <button type="button" class="btn btn-ghost btn-sm" @click="showUpload = false"><i class="fas fa-xmark"></i></button>
+      </header>
+      <form method="post" action="{{ url_for('workspace.upload') }}" enctype="multipart/form-data">
+        <label class="uf-field">
+          <span>File</span>
+          <input type="file" name="file" required />
+        </label>
+        <label class="uf-field">
+          <span>Folder</span>
+          <select name="category">
+            {% for c in payload.categories %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="uf-field">
+          <span>Notes</span>
+          <textarea name="description" rows="2" placeholder="Optional"></textarea>
+        </label>
+        <label class="uf-check"><input type="checkbox" name="shared" value="1" /> Share with colleagues who have the link</label>
+        <footer>
+          <button type="button" class="btn btn-secondary" @click="showUpload = false">Cancel</button>
+          <button type="submit" class="btn btn-primary">Upload</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function workspaceHub() {
+  return { showUpload: location.hash === '#upload' };
+}
+</script>
+{% endblock %}

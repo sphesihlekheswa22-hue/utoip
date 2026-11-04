@@ -1,33 +1,233 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, status_badge, detail_row %}
+{% from "files/_entity_files.html" import entity_files_panel %}
 
-{% block title %}Maintenance details{% endblock %}
-{% block page_title %}Maintenance details{% endblock %}
+{% block title %}{{ work_order.work_order_number }}{% endblock %}
+{% block page_title %}{{ work_order.work_order_number }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/maintenance.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('maintenance.index') }}">Maintenance</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ work_order.work_order_number }}</span>
+{% endblock %}
 
 {% block content %}
-{% call page_header("Maintenance details", "Operational profile and related activity.", "{{ url_for('modules.page', module='maintenance', page='edit') }}", "Edit", "fa-pen") %}{% endcall %}
+<div class="sw-page mt-page" x-data="{ view: {{ view | tojson }} }" x-cloak>
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon"><i class="fas fa-wrench"></i></div>
+      <div>
+        <h1>{{ work_order.title }}</h1>
+        <p class="sw-hero-sub">{{ work_order.work_order_number }} · {{ work_order.type_label }} · Updated {{ work_order.updated }}</p>
+        <div class="sw-hero-badges">
+          <span class="sw-badge {% if work_order.status == 'completed' %}sw-badge--success{% elif work_order.status == 'in_progress' %}sw-badge--accent{% else %}sw-badge--warning{% endif %}">{{ work_order.status_label }}</span>
+          <span class="sw-badge {% if work_order.priority in ['critical','high'] %}sw-badge--danger{% else %}sw-badge--muted{% endif %}">{{ work_order.priority_label }}</span>
+          {% if work_order.overdue %}<span class="sw-badge sw-badge--danger">Overdue</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="sw-hero-actions">
+      <a href="{{ url_for('maintenance.edit', item_id=item_id) }}" class="btn btn-ghost btn-sm">Edit</a>
+      <a href="{{ url_for('maintenance.index', view='work_orders') }}" class="btn btn-ghost btn-sm">Queue</a>
+    </div>
+  </section>
 
-<div class="detail-layout">
-  <section class="panel detail-card">
-    <header class="card-header">
-      <h2>Overview</h2>
-      {{ status_badge("Online") }}
-    </header>
-    <dl class="detail-list">
-      {{ detail_row("Name", "Demo Maintenance 01") }}
-      {{ detail_row("Identifier", "UITOP-DEMO-001") }}
-      {{ detail_row("Owner", "IT Operations") }}
-      {{ detail_row("Department", "Corporate Services") }}
-      {{ detail_row("Last updated", "Today 09:42") }}
-    </dl>
-  </section>
-  <section class="panel detail-card">
-    <header class="card-header"><h2>Related</h2></header>
-    <ul class="related-list">
-      <li><a href="{{ url_for('modules.page', module='maintenance', page='index') }}">Back to Maintenance</a></li>
-      <li><a href="{{ url_for('monitoring.index') }}">Open monitoring</a></li>
-      <li><a href="{{ url_for('ai.index') }}">Ask AI about this record</a></li>
-    </ul>
-  </section>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <nav class="sw-subtabs">
+    {% for key, label in [
+      ('overview','Overview'),
+      ('asset','Asset'),
+      ('checklist','Checklist'),
+      ('parts','Parts Used'),
+      ('files','Attachments'),
+      ('timeline','Timeline'),
+      ('costs','Costs')
+    ] %}
+    <button type="button" class="sw-subtab" :class="{ 'is-active': view === '{{ key }}' }" @click="view = '{{ key }}'">{{ label }}</button>
+    {% endfor %}
+  </nav>
+
+  <div class="sw-detail-body">
+    <div x-show="view === 'overview'">
+      <dl class="sw-stat-row">
+        <div class="sw-stat"><dt>Work Order</dt><dd>{{ work_order.work_order_number }}</dd></div>
+        <div class="sw-stat"><dt>Asset</dt><dd>{% if work_order.asset_url %}<a href="{{ work_order.asset_url }}">{{ work_order.asset_label }}</a>{% else %}{{ work_order.asset_label or '—' }}{% endif %}</dd></div>
+        <div class="sw-stat"><dt>Technician</dt><dd>{{ work_order.technician }}</dd></div>
+        <div class="sw-stat"><dt>Priority</dt><dd>{{ work_order.priority_label }}</dd></div>
+        <div class="sw-stat"><dt>Status</dt><dd>{{ work_order.status_label }}</dd></div>
+        <div class="sw-stat"><dt>Scheduled</dt><dd>{{ work_order.scheduled }}</dd></div>
+        <div class="sw-stat"><dt>Due</dt><dd>{{ work_order.due }}</dd></div>
+        <div class="sw-stat"><dt>Completed</dt><dd>{{ work_order.completed }}</dd></div>
+      </dl>
+      {% if work_order.description %}
+      <p class="mt-desc">{{ work_order.description }}</p>
+      {% endif %}
+
+      <div class="mt-actions-grid">
+        <form method="post" action="{{ url_for('maintenance.set_status', item_id=item_id) }}" class="uf-card" style="padding:0;">
+          <section class="uf-section">
+            <div class="uf-section-head">
+              <span class="uf-section-num"><i class="fas fa-flag"></i></span>
+              <div><h2>Update status</h2><p>Move the job through the workflow.</p></div>
+            </div>
+            <div class="uf-section-body">
+              <div class="uf-field">
+                <span class="uf-field-label">Status</span>
+                <select name="status">
+                  {% for s in statuses %}
+                  <option value="{{ s }}" {% if work_order.status == s %}selected{% endif %}>{{ s|replace('_',' ')|title }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <input type="hidden" name="next_view" value="overview" />
+              <button type="submit" class="btn btn-primary btn-sm">Save status</button>
+            </div>
+          </section>
+        </form>
+        <div class="uf-card" style="padding:0;">
+          <section class="uf-section">
+            <div class="uf-section-head">
+              <span class="uf-section-num"><i class="fas fa-list-check"></i></span>
+              <div><h2>Checklist progress</h2><p>{{ work_order.checklist_done }} / {{ work_order.checklist_total }} items done</p></div>
+            </div>
+            <div class="uf-section-body">
+              <div class="mt-progress">
+                {% set pct = (100 * work_order.checklist_done / work_order.checklist_total) if work_order.checklist_total else 0 %}
+                <div class="mt-progress-bar" style="width:{{ pct }}%"></div>
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" @click="view = 'checklist'">Open checklist</button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {% if detail.ai_insights %}
+      <section class="sw-panel mt-ai" style="margin-top:16px;">
+        <h2 class="chart-panel-title">AI insight</h2>
+        {% for tip in detail.ai_insights %}
+        <div class="mt-ai-card mt-ai-card--{{ tip.tone }}">
+          <strong>{{ tip.title }}</strong>
+          <p>{{ tip.body }}</p>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+    </div>
+
+    <div x-show="view === 'asset'">
+      {% if detail.asset %}
+      <div class="mt-asset-card">
+        <div class="mt-asset-chain">
+          <div><span class="mt-asset-k">Type</span><strong>{{ detail.asset.type }}</strong></div>
+          <i class="fas fa-arrow-down"></i>
+          <div><span class="mt-asset-k">Asset</span><strong>{% if detail.asset.url %}<a href="{{ detail.asset.url }}">{{ detail.asset.label }}</a>{% else %}{{ detail.asset.label }}{% endif %}</strong></div>
+          <i class="fas fa-arrow-down"></i>
+          <div><span class="mt-asset-k">Detail</span><strong>{{ detail.asset.meta }}</strong></div>
+          <i class="fas fa-arrow-down"></i>
+          <div><span class="mt-asset-k">Status</span><strong>{{ detail.asset.status }}</strong></div>
+          <i class="fas fa-arrow-down"></i>
+          <div><span class="mt-asset-k">Location</span><strong>{{ detail.asset.location }}</strong></div>
+        </div>
+        {% if detail.asset.ip %}
+        <p class="mt-desc">IP: {{ detail.asset.ip }}</p>
+        {% endif %}
+      </div>
+      {% else %}
+      <p>No linked asset on this work order.</p>
+      {% endif %}
+    </div>
+
+    <div x-show="view === 'checklist'">
+      <ul class="mt-checklist">
+        {% for c in detail.checklist %}
+        <li class="{% if c.is_done %}is-done{% endif %}">
+          <form method="post" action="{{ url_for('maintenance.toggle_check', item_id=item_id, check_id=c.id) }}">
+            <button type="submit" class="mt-check-btn" title="Toggle">
+              <i class="fas {% if c.is_done %}fa-square-check{% else %}fa-square{% endif %}"></i>
+              <span>{{ c.label }}</span>
+            </button>
+          </form>
+        </li>
+        {% else %}
+        <li>No checklist items.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div x-show="view === 'parts'">
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Part</th><th>Quantity</th><th>Unit cost</th><th>Line total</th></tr></thead>
+          <tbody>
+            {% for p in detail.parts %}
+            <tr>
+              <td>{{ p.name }}{% if p.notes %}<div style="font-size:12px;color:#64748b;">{{ p.notes }}</div>{% endif %}</td>
+              <td>{{ p.quantity }}</td>
+              <td>R{{ '%.2f'|format(p.unit_cost) }}</td>
+              <td>R{{ '%.2f'|format(p.line_total) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No parts recorded yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <form method="post" action="{{ url_for('maintenance.add_part', item_id=item_id) }}" class="mt-inline-form">
+        <input name="part_name" placeholder="Part name" required />
+        <input name="quantity" type="number" min="1" value="1" style="max-width:88px;" />
+        <input name="unit_cost" type="number" step="0.01" min="0" placeholder="Unit cost (R)" />
+        <button type="submit" class="btn btn-primary btn-sm">Add part</button>
+      </form>
+    </div>
+
+    <div x-show="view === 'files'">
+      {{ entity_files_panel(detail.files, 'maintenance', item_id, url_for('maintenance.details', item_id=item_id, view='files'), title='Attachments') }}
+    </div>
+
+    <div x-show="view === 'timeline'">
+      <ol class="mt-timeline">
+        {% for a in detail.activities %}
+        <li>
+          <time>{{ a.when }}</time>
+          <div>
+            <strong>{{ a.message }}</strong>
+            <span>{{ a.actor }}</span>
+          </div>
+        </li>
+        {% else %}
+        <li><div>No activity yet.</div></li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    <div x-show="view === 'costs'">
+      <div class="mt-cost-stack">
+        <div><span>Labour</span><strong>R{{ '%.2f'|format(detail.costs.labour) }}</strong></div>
+        <div><span>Parts</span><strong>R{{ '%.2f'|format(detail.costs.parts) }}</strong></div>
+        <div><span>Travel</span><strong>R{{ '%.2f'|format(detail.costs.travel) }}</strong></div>
+        <div><span>Other</span><strong>R{{ '%.2f'|format(detail.costs.other) }}</strong></div>
+        <div class="is-total"><span>Total</span><strong>R{{ '%.2f'|format(detail.costs.total) }}</strong></div>
+      </div>
+      <form method="post" action="{{ url_for('maintenance.update_costs', item_id=item_id) }}" class="mt-inline-form" style="margin-top:16px;">
+        <input name="labour_cost" type="number" step="0.01" min="0" value="{{ detail.costs.labour }}" placeholder="Labour" />
+        <input name="travel_cost" type="number" step="0.01" min="0" value="{{ detail.costs.travel }}" placeholder="Travel" />
+        <input name="other_cost" type="number" step="0.01" min="0" value="{{ detail.costs.other }}" placeholder="Other" />
+        <button type="submit" class="btn btn-primary btn-sm">Update costs</button>
+      </form>
+      <p class="chart-panel-subtitle" style="margin-top:8px;">Parts cost updates automatically when parts are added.</p>
+    </div>
+  </div>
 </div>
 {% endblock %}

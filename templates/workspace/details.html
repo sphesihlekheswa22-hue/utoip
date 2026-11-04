@@ -1,0 +1,84 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ file.name }}{% endblock %}
+{% block page_title %}{{ file.name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/documents.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workspace.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('workspace.index') }}">My Workspace</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ file.name }}</span>
+{% endblock %}
+
+{% block content %}
+<header class="sw-header" style="margin-bottom:1rem;">
+  <div>
+    <p class="ws-eyebrow">My Workspace · {{ file.category }}</p>
+    <h1>{{ file.name }}</h1>
+    <p>{{ file.description or 'Personal file' }} · {{ file.size_label }} · v{{ file.version_label or file.version }}</p>
+  </div>
+  <div class="sw-header-actions">
+    <a class="btn btn-primary btn-sm" href="{{ url_for('files.download', item_id=item_id) }}"><i class="fas fa-download"></i> Download</a>
+    <form method="post" action="{{ url_for('workspace.toggle_share', item_id=item_id) }}" style="display:inline;">
+      <button type="submit" class="btn btn-secondary btn-sm">
+        {% if file.shared %}<i class="fas fa-lock"></i> Make private{% else %}<i class="fas fa-share-nodes"></i> Share{% endif %}
+      </button>
+    </form>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('workspace.index') }}">Back</a>
+  </div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+{% endwith %}
+
+<nav class="sw-subtabs">
+  <a class="sw-subtab {% if view == 'overview' %}is-active{% endif %}" href="{{ url_for('workspace.details', item_id=item_id, view='overview') }}">Overview</a>
+  <a class="sw-subtab {% if view == 'versions' %}is-active{% endif %}" href="{{ url_for('workspace.details', item_id=item_id, view='versions') }}">Versions</a>
+</nav>
+
+{% if view == 'versions' %}
+<section class="sw-panel">
+  <h2>Version history</h2>
+  <ul class="ws-versions">
+    {% for v in detail.versions %}
+    <li>
+      <strong>v{{ v.version }}</strong> — {{ v.date }} · {{ v.by }} · {{ v.size_label }}
+      <span>{{ v.note }}</span>
+    </li>
+    {% else %}
+    <li>No versions recorded.</li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="{{ url_for('workspace.new_version', item_id=item_id) }}" enctype="multipart/form-data" class="uf-card" style="margin-top:1rem;padding:1rem;">
+    <h3>Upload new version</h3>
+    <input type="file" name="file" required />
+    <input type="text" name="version_note" placeholder="What changed?" style="margin-top:0.5rem;width:100%;" />
+    <button type="submit" class="btn btn-primary btn-sm" style="margin-top:0.75rem;">Save version</button>
+  </form>
+</section>
+{% else %}
+<section class="sw-panel">
+  <dl class="ws-meta-grid">
+    <div><dt>Owner</dt><dd>{{ file.owner or file.uploaded_by }}</dd></div>
+    <div><dt>Sharing</dt><dd>{% if file.shared %}Shared{% else %}Private{% endif %}</dd></div>
+    <div><dt>Uploaded</dt><dd>{{ file.uploaded }}</dd></div>
+    <div><dt>Type</dt><dd>{{ file.file_type }}</dd></div>
+  </dl>
+  {% if file.previewable %}
+  <div class="fr-preview" style="margin-top:1rem;">
+    {% if file.file_type in ['PNG','JPG','JPEG','GIF','WEBP'] %}
+    <img class="fr-preview-img" src="{{ url_for('files.preview', item_id=item_id) }}" alt="{{ file.name }}" />
+    {% else %}
+    <iframe class="fr-preview-frame" src="{{ url_for('files.preview', item_id=item_id) }}" title="Preview"></iframe>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -3,82 +3,351 @@
 {% block title %}Users{% endblock %}
 {% block page_title %}Users{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/users.css') }}" />
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 {% endblock %}
 
 {% block content %}
-<div class="comp-page" x-data="usersDash()" x-cloak>
-  <header class="comp-header">
+<div class="sw-page us-page" x-data="usersHub()">
+  <header class="sw-header">
     <div>
       <h1>Users</h1>
-      <p>Platform accounts, roles, and departments — backed by UITOP auth.</p>
+      <p>Identity &amp; user management — people, departments, roles, assignments, and sessions. Infrastructure manages devices; Users manages the people who use them.</p>
     </div>
-    <a href="{{ url_for('users.create') }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add user</a>
+    {% if can('users:manage') %}
+    <div class="sw-header-actions">
+      <a href="{{ url_for('users.index', view='invitations') }}" class="btn btn-ghost"><i class="fas fa-envelope"></i> Invitations</a>
+      <a href="{{ url_for('users.create') }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add user</a>
+    </div>
+    {% endif %}
   </header>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}{% for cat, msg in messages %}<p>{{ msg }}</p>{% endfor %}{% endif %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
   {% endwith %}
 
-  <div class="comp-kpi-grid">
-    <article class="comp-kpi is-accent"><p class="comp-kpi-label">Total</p><p class="comp-kpi-value">{{ kpis.total }}</p></article>
-    <article class="comp-kpi is-success"><p class="comp-kpi-label">Active</p><p class="comp-kpi-value">{{ kpis.active }}</p></article>
-    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Admins</p><p class="comp-kpi-value">{{ kpis.admins }}</p></article>
-    <article class="comp-kpi is-danger"><p class="comp-kpi-label">Disabled</p><p class="comp-kpi-value">{{ kpis.disabled }}</p></article>
+  <nav class="sw-subtabs us-nav" role="tablist">
+    {% for key, label in [
+      ('dashboard','Dashboard'),
+      ('directory','All Users'),
+      ('departments','Departments'),
+      ('roles','Roles'),
+      ('permissions','Permissions'),
+      ('teams','Teams'),
+      ('sessions','Active Sessions'),
+      ('assignments','Assignments'),
+      ('audit','Audit Logs'),
+      ('invitations','Invitations')
+    ] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('users.index', view=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="sw-kpi-grid us-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Total Users</p><p class="sw-kpi-value">{{ kpis.total }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Active</p><p class="sw-kpi-value">{{ kpis.active }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Inactive</p><p class="sw-kpi-value">{{ kpis.inactive }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Administrators</p><p class="sw-kpi-value">{{ kpis.admins }}</p></article>
+    <article class="sw-kpi is-danger"><p class="sw-kpi-label">Locked</p><p class="sw-kpi-value">{{ kpis.locked }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">New This Month</p><p class="sw-kpi-value">{{ kpis.new_month }}</p></article>
   </div>
 
-  <div class="comp-toolbar">
-    <div class="comp-search">
-      <i class="fas fa-magnifying-glass"></i>
-      <input type="search" placeholder="Search name, email, role…" x-model="q" />
+  {% if view == 'dashboard' %}
+  <div class="us-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Directory snapshot</h2>
+      <div class="us-card-grid">
+        <a class="us-card" href="{{ url_for('users.index', view='directory') }}"><span class="us-muted">Users</span><strong>{{ kpis.total }}</strong><p>Open directory</p></a>
+        <a class="us-card" href="{{ url_for('users.index', view='departments') }}"><span class="us-muted">Departments</span><strong>{{ kpis.departments }}</strong><p>Org structure</p></a>
+        <a class="us-card" href="{{ url_for('users.index', view='roles') }}"><span class="us-muted">Roles</span><strong>{{ kpis.roles }}</strong><p>RBAC catalog</p></a>
+        <a class="us-card" href="{{ url_for('users.index', view='sessions') }}"><span class="us-muted">Sessions</span><strong>{{ kpis.sessions }}</strong><p>Active logins</p></a>
+      </div>
+      <h2 class="chart-panel-title" style="margin-top:18px;">Recent users</h2>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Name</th><th>Department</th><th>Role</th><th>Computer</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for u in payload.users[:8] %}
+            <tr>
+              <td><strong>{{ u.full_name }}</strong><div class="us-muted">{{ u.email }}</div></td>
+              <td>{{ u.department }}</td>
+              <td>{{ u.role_label }}</td>
+              <td>{% if u.computer_url %}<a href="{{ u.computer_url }}">{{ u.computer }}</a>{% else %}{{ u.computer }}{% endif %}</td>
+              <td><span class="sw-badge {% if u.is_active %}sw-badge--success{% else %}sw-badge--danger{% endif %}">{{ u.status }}</span></td>
+              <td><a class="btn btn-ghost btn-sm" href="{{ url_for('users.details', item_id=u.id) }}">Open</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No users yet. <a href="{{ url_for('users.create') }}">Add one</a>.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">AI insights</h2>
+      {% for tip in payload.ai_insights %}
+      <div class="us-ai us-ai--{{ tip.tone }}"><strong>{{ tip.title }}</strong><p class="us-muted">{{ tip.body }}</p></div>
+      {% endfor %}
+      <h2 class="chart-panel-title" style="margin-top:16px;">Teams</h2>
+      <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;">
+        {% for t in payload.teams[:4] %}
+        <li class="us-card"><h3>{{ t.name }}</h3><p>{{ t.members }} members · {{ t.focus }}</p></li>
+        {% endfor %}
+      </ul>
+      <a class="btn btn-ghost btn-sm" style="margin-top:10px;" href="{{ url_for('users.index', view='teams') }}">All teams</a>
+    </section>
+  </div>
+
+  {% elif view == 'directory' %}
+  <section class="sw-panel">
+    <div class="sw-toolbar">
+      <div class="sw-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="search" placeholder="Search name, email, role, department…" x-model="q" />
+      </div>
+      <select x-model="statusFilter" class="sw-search" style="max-width:140px;padding:8px 10px;">
+        <option value="">All statuses</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="alert('CSV export of the directory will download next.')"><i class="fas fa-download"></i> Export</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="alert('Bulk import from CSV/AD sync is planned with Active Directory integration.')"><i class="fas fa-file-import"></i> Import</button>
     </div>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Department</th>
+            <th>Role</th>
+            <th>Computer</th>
+            <th>Status</th>
+            <th>Last login</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="u in pagedItems(filtered)" :key="u.id">
+            <tr>
+              <td><strong x-text="u.full_name"></strong></td>
+              <td x-text="u.email"></td>
+              <td x-text="u.department"></td>
+              <td x-text="u.role_label"></td>
+              <td x-text="u.computer"></td>
+              <td><span class="sw-badge" :class="u.is_active ? 'sw-badge--success' : 'sw-badge--danger'" x-text="u.status"></span></td>
+              <td x-text="u.last_login"></td>
+              <td><a class="btn btn-ghost btn-sm" :href="'/users/' + u.id">Profile</a></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+    {{ alpine_pager('filtered') }}
+  </section>
+
+  {% elif view == 'departments' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Departments</h2>
+    <div class="us-card-grid">
+      {% for d in payload.departments %}
+      <article class="us-card">
+        <h3>{{ d.name }}</h3>
+        <strong>{{ d.users }}</strong>
+        <p>{{ d.code }}{% if d.description %} · {{ d.description }}{% endif %}</p>
+      </article>
+      {% else %}
+      <p class="us-muted">No departments seeded yet.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% elif view == 'roles' %}
+  <div class="us-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Platform roles</h2>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Role</th><th>Users</th><th>Permissions</th><th>Type</th></tr></thead>
+          <tbody>
+            {% for r in payload.roles %}
+            <tr>
+              <td><strong>{{ r.label }}</strong><div class="us-muted">{{ r.description }}</div></td>
+              <td>{{ r.users }}</td>
+              <td>{{ r.perm_count }}</td>
+              <td>{% if r.is_system %}<span class="sw-badge sw-badge--muted">System</span>{% else %}Custom{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Enterprise role catalog</h2>
+      <p class="us-muted">Target municipal IT roles — map onto platform roles as UITOP grows.</p>
+      <div class="us-card-grid" style="margin-top:10px;">
+        {% for r in payload.enterprise_roles %}
+        <article class="us-card"><h3>{{ r.name }}</h3><p>{{ r.desc }}</p></article>
+        {% endfor %}
+      </div>
+    </section>
   </div>
 
-  <section class="comp-table-wrap">
-    <table class="comp-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Department</th>
-          <th>Status</th>
-          <th>Last login</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <template x-for="u in filtered" :key="u.id">
-          <tr>
-            <td><strong x-text="u.full_name"></strong></td>
-            <td x-text="u.email"></td>
-            <td x-text="u.role_label"></td>
-            <td x-text="u.department"></td>
-            <td><span class="badge" :class="u.is_active ? 'badge-success' : 'badge-danger'" x-text="u.status"></span></td>
-            <td x-text="u.last_login"></td>
-            <td><a class="btn btn-ghost btn-sm" :href="'/users/' + u.id">View</a></td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+  {% elif view == 'permissions' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Permission matrix</h2>
+    <p class="us-muted">Granular codes from the UITOP RBAC catalog — assigned through roles, not hardcoded per user.</p>
+    <div class="us-perm-grid" style="margin-top:12px;">
+      {% for g in payload.permissions %}
+      <div class="us-perm-block">
+        <h3>{{ g.module }}</h3>
+        <ul>
+          {% for item in g.entries %}
+          <li><code>{{ item.action }}</code> — {{ item.description }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
   </section>
+
+  {% elif view == 'teams' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">IT support teams</h2>
+    <p class="us-muted">Tickets can be assigned to teams instead of individuals (wiring into Help Desk next).</p>
+    <div class="us-card-grid" style="margin-top:12px;">
+      {% for t in payload.teams %}
+      <article class="us-card">
+        <h3>{{ t.name }}</h3>
+        <strong>{{ t.members }}</strong>
+        <p>Lead: {{ t.lead }}</p>
+        <p>{{ t.focus }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% elif view == 'sessions' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Active sessions</h2>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>User</th><th>Device</th><th>IP</th><th>Started</th><th>Client</th><th></th></tr></thead>
+        <tbody>
+          {% for s in payload.sessions %}
+          <tr>
+            <td><strong>{{ s.user_name }}</strong><div class="us-muted">{{ s.email }}</div></td>
+            <td>{{ s.device }}</td>
+            <td>{{ s.ip }}</td>
+            <td>{{ s.created }}</td>
+            <td class="us-muted">{{ s.user_agent }}</td>
+            <td><a class="btn btn-ghost btn-sm" href="{{ url_for('users.details', item_id=s.user_id, view='sessions') }}">Manage</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">No active API refresh sessions right now (web login may not issue refresh tokens).</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% elif view == 'assignments' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">User assignments</h2>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>User</th><th>Department</th><th>Computer</th><th>Assets</th><th></th></tr></thead>
+        <tbody>
+          {% for a in payload.assignments %}
+          <tr>
+            <td><strong>{{ a.full_name }}</strong></td>
+            <td>{{ a.department }}</td>
+            <td>{% if a.computer_url %}<a href="{{ a.computer_url }}">{{ a.computer }}</a>{% else %}{{ a.computer }}{% endif %}</td>
+            <td>{{ a.asset_count }}{% if a.assets %} · {{ a.assets|join(', ') }}{% endif %}</td>
+            <td><a class="btn btn-ghost btn-sm" href="{{ url_for('users.details', item_id=a.user_id, view='assets') }}">View</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">No active users.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% elif view == 'audit' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">User-related audit logs</h2>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Resource</th></tr></thead>
+        <tbody>
+          {% for a in payload.audit %}
+          <tr>
+            <td>{{ (a.created_at or '')[:19].replace('T',' ') }}</td>
+            <td>{{ a.actor_name }}</td>
+            <td>{{ a.action }}</td>
+            <td>{{ a.resource_type or '—' }}{% if a.resource_id %} #{{ a.resource_id }}{% endif %}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4">No audit events yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% elif view == 'invitations' %}
+  <section class="sw-panel">
+    <div class="sw-toolbar">
+      <h2 class="chart-panel-title" style="margin:0;">Invitations</h2>
+      <button type="button" class="btn btn-primary btn-sm" onclick="alert('Email invitations will go out when the mail connector is configured.')">+ Invite user</button>
+    </div>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Sent</th></tr></thead>
+        <tbody>
+          {% for i in payload.invitations %}
+          <tr>
+            <td><strong>{{ i.email }}</strong></td>
+            <td>{{ i.role }}</td>
+            <td>{{ i.department }}</td>
+            <td><span class="sw-badge sw-badge--muted">{{ i.status }}</span></td>
+            <td>{{ i.sent }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="us-muted" style="margin-top:12px;">Future: Microsoft Active Directory sync, SSO, and group mapping.</p>
+  </section>
+  {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-window.__USERS__ = {{ users | tojson }};
-function usersDash() {
-  return {
-    q: "",
-    users: window.__USERS__ || [],
+window.__USERS_DIR__ = {{ payload.users | tojson }};
+function usersHub() {
+  return Object.assign({
+    q: '',
+    statusFilter: '',
+    users: window.__USERS_DIR__ || [],
+    init() { this.watchPagerReset(['q', 'statusFilter']); },
     get filtered() {
       var q = this.q.trim().toLowerCase();
-      if (!q) return this.users;
+      var st = this.statusFilter;
       return this.users.filter(function (u) {
-        return [u.full_name, u.email, u.role_label, u.department].join(" ").toLowerCase().indexOf(q) !== -1;
+        if (st === 'active' && !u.is_active) return false;
+        if (st === 'inactive' && u.is_active) return false;
+        if (!q) return true;
+        return [u.full_name, u.email, u.role_label, u.department, u.computer].join(' ').toLowerCase().indexOf(q) !== -1;
       });
     }
-  };
+  }, UITOP.createPager(10));
 }
 </script>
 {% endblock %}

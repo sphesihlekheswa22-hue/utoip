@@ -6,6 +6,7 @@
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/servers.css') }}" />
+<script src="{{ url_for('static', filename='js/network-scan.js') }}"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 {% endblock %}
 
@@ -18,13 +19,20 @@
 {% endblock %}
 
 {% block content %}
-<div class="comp-page" x-data="serverDiscover()" x-cloak>
+<div class="comp-page" x-data="serverDiscover()" x-init="init()" x-cloak>
   <header class="comp-header">
     <div>
       <h1>Discover Servers</h1>
-      <p>Scan LAN, query Active Directory, and inventory VMware / Hyper-V hosts. Unmanaged servers can receive the UITOP agent.</p>
+      <p>Live LAN probe for SSH / RDP / WinRM / SMB signatures typical of servers. Import unmanaged hosts into inventory.</p>
     </div>
     <div class="comp-toolbar-actions">
+      <label class="chart-panel-subtitle" style="display:flex;align-items:center;gap:.5rem;margin:0">
+        Subnet
+        <input type="text" class="form-control" style="width:11rem" x-model="cidr" list="cidr-suggestions" placeholder="192.168.1.0/24" :disabled="scanning" />
+      </label>
+      <datalist id="cidr-suggestions">
+        <template x-for="c in suggested" :key="c"><option :value="c"></option></template>
+      </datalist>
       <button type="button" class="btn btn-primary" @click="startScan()" :disabled="scanning">
         <i class="fas" :class="scanning ? 'fa-spinner fa-spin' : 'fa-satellite-dish'"></i>
         <span x-text="scanning ? 'Discovering…' : 'Start Discovery'"></span>
@@ -48,15 +56,15 @@
     <article class="comp-kpi is-accent"><p class="comp-kpi-label">Discovered Servers</p><p class="comp-kpi-value" x-text="totals.discovered"></p></article>
     <article class="comp-kpi is-success"><p class="comp-kpi-label">Managed Servers</p><p class="comp-kpi-value" x-text="totals.managed"></p></article>
     <article class="comp-kpi is-warning"><p class="comp-kpi-label">Unmanaged Servers</p><p class="comp-kpi-value" x-text="totals.unmanaged"></p></article>
-    <article class="comp-kpi"><p class="comp-kpi-label">Sources</p><p class="comp-kpi-value" x-text="totals.sources"></p><p class="comp-kpi-meta">AD · VM · Network</p></article>
+    <article class="comp-kpi"><p class="comp-kpi-label">Sources</p><p class="comp-kpi-value" x-text="totals.sources"></p><p class="comp-kpi-meta">Network probe</p></article>
   </div>
 
   <section class="comp-table-wrap" x-show="results.length" x-cloak>
     <div class="comp-table-meta">
       <strong>Discovery results</strong>
-      <span>Deploy agents to unmanaged hosts</span>
+      <span>Import unmanaged hosts into UITOP</span>
     </div>
-    <template x-for="r in results" :key="r.hostname">
+    <template x-for="r in results" :key="r.hostname + r.ip">
       <div class="scan-result">
         <div class="scan-result-main">
           <strong x-text="r.hostname"></strong>
@@ -64,13 +72,16 @@
             <span x-text="r.os"></span> ·
             <code x-text="r.ip"></code> ·
             <span x-text="r.source"></span>
+            <template x-if="r.ports && r.ports.length">
+              <span> · ports <span x-text="r.ports.join(', ')"></span></span>
+            </template>
           </span>
         </div>
         <div class="comp-toolbar-actions">
           <span class="badge" :class="r.managed ? 'badge-success' : 'badge-warning'" x-text="r.managed ? 'Managed' : 'Unmanaged'"></span>
           <span class="badge" :class="r.status === 'Online' ? 'badge-success' : 'badge-muted'" x-text="r.status"></span>
           <template x-if="!r.managed">
-            <button type="button" class="btn btn-primary btn-sm" @click="deploy(r)"><i class="fas fa-download"></i> Deploy Agent</button>
+            <button type="button" class="btn btn-primary btn-sm" @click="importHost(r)"><i class="fas fa-plus"></i> Import</button>
           </template>
           <button type="button" class="btn btn-ghost btn-sm" @click="copyLink(r)"><i class="fas fa-link"></i> Copy Installation Link</button>
         </div>
@@ -81,60 +92,26 @@
 
 <script>
 function serverDiscover() {
-  return {
-    scanning: false,
-    done: false,
-    progress: 0,
-    statusText: "Sources: Network discovery · Active Directory · VMware · Hyper-V (demo).",
-    totals: { discovered: 0, managed: 0, unmanaged: 0, sources: 4 },
-    results: [],
-    startScan() {
-      if (this.scanning) return;
-      var self = this;
-      this.scanning = true;
-      this.done = false;
-      this.progress = 0;
-      this.results = [];
-      var steps = [
-        { p: 20, msg: "Querying Active Directory computer accounts…" },
-        { p: 40, msg: "Enumerating VMware / Hyper-V guests…" },
-        { p: 65, msg: "Network probe of server ports (22, 3389, 445, 5985)…" },
-        { p: 85, msg: "Matching UITOP agent registrations…" },
-        { p: 100, msg: "Discovery complete." }
-      ];
-      var i = 0;
-      var timer = setInterval(function () {
-        var step = steps[i++];
-        self.progress = step.p;
-        self.statusText = step.msg;
-        if (step.p >= 65) self.totals = { discovered: 11, managed: 7, unmanaged: 4, sources: 4 };
-        if (step.p === 100) {
-          clearInterval(timer);
-          self.scanning = false;
-          self.done = true;
-          self.results = [
-            { hostname: "DC-AD-01", os: "Windows Server 2022", ip: "10.12.0.11", source: "Active Directory", managed: true, status: "Online" },
-            { hostname: "APP-ERP-02", os: "Windows Server 2019", ip: "10.12.0.42", source: "VMware", managed: true, status: "Online" },
-            { hostname: "SQL-PROD-01", os: "Windows Server 2022", ip: "10.12.0.55", source: "VMware", managed: true, status: "Online" },
-            { hostname: "SRV-LEGACY-09", os: "Windows Server 2012 R2", ip: "10.12.0.109", source: "Network", managed: false, status: "Online" },
-            { hostname: "LX-GIT-01", os: "Ubuntu 20.04", ip: "10.12.0.118", source: "Network", managed: false, status: "Online" },
-            { hostname: "HV-NODE-03", os: "Windows Server 2022", ip: "10.12.0.33", source: "Hyper-V", managed: false, status: "Online" },
-            { hostname: "SRV-TEST-04", os: "Windows Server 2019", ip: "10.12.0.204", source: "Active Directory", managed: false, status: "Online" }
-          ];
-        }
-      }, 650);
+  return UITOP.createNetworkScanner({
+    filter: "servers",
+    preferType: "Server",
+    readyText: "Probing server ports (22, 3389, 445, 5985) on your LAN.",
+    mapResults: function (hosts) {
+      return hosts.map(function (h) {
+        return Object.assign({}, h, {
+          hostname: h.hostname || h.name || h.ip,
+          source: h.source || "Network",
+          managed: !!h.managed,
+        });
+      });
     },
-    deploy(r) {
-      r.managed = true;
-      this.totals.managed += 1;
-      this.totals.unmanaged = Math.max(0, this.totals.unmanaged - 1);
-      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast("Agent deploy queued for " + r.hostname, "success");
-    },
-    copyLink(r) {
-      navigator.clipboard.writeText("https://uitop.umzinyathi.gov.za/agent/server?host=" + encodeURIComponent(r.hostname));
-      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast("Installation link copied", "success");
+    mapTotals: function (totals, hosts) {
+      return Object.assign({}, totals, {
+        discovered: hosts.length,
+        sources: 1,
+      });
     }
-  };
+  });
 }
 </script>
 {% endblock %}

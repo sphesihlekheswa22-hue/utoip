@@ -4,8 +4,8 @@
 
 .table-wrap {
   overflow-x: auto;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-default);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-xs);
 }
@@ -137,7 +137,7 @@
 }
 
 .data-table tbody tr:hover {
-  background: var(--bg-hover);
+  background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
 }
 
 .data-table tbody tr:hover td {

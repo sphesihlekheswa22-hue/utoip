@@ -148,10 +148,19 @@ class Printer(db.Model):
     agent_id = db.Column(db.String(64), nullable=True, unique=True, index=True)
     agent_version = db.Column(db.String(32), nullable=True)
     last_seen_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    # SNMP telemetry
+    snmp_profile_id = db.Column(db.Integer, db.ForeignKey("snmp_profiles.id"), nullable=True)
+    toner_percent = db.Column(db.Integer, nullable=True)
+    paper_percent = db.Column(db.Integer, nullable=True)
+    queue_depth = db.Column(db.Integer, nullable=True)
+    snmp_sys_descr = db.Column(db.String(512), nullable=True)
+    snmp_payload = db.Column(db.JSON, nullable=True)
+    last_snmp_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = db.Column(db.DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
     department = db.relationship("Department", backref=db.backref("printers", lazy="dynamic"))
+    snmp_profile = db.relationship("SnmpProfile", backref=db.backref("printers", lazy="dynamic"))
 
     def to_dict(self):
         return {
@@ -165,5 +174,11 @@ class Printer(db.Model):
             "agent_id": self.agent_id,
             "agent_version": self.agent_version,
             "last_seen_at": self.last_seen_at.isoformat() if self.last_seen_at else None,
+            "snmp_profile_id": self.snmp_profile_id,
+            "toner_percent": self.toner_percent,
+            "paper_percent": self.paper_percent,
+            "queue_depth": self.queue_depth,
+            "snmp_sys_descr": self.snmp_sys_descr,
+            "last_snmp_at": self.last_snmp_at.isoformat() if self.last_snmp_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

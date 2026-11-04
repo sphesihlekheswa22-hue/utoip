@@ -3,98 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#061018" />
+  <meta name="theme-color" content="#0B3A6E" />
   <title>{% block title %}Sign in{% endblock %} — UITOP</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml" />
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}" type="image/png" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}" />
   {% block head %}{% endblock %}
 </head>
 <body class="auth-body">
   <div class="auth-shell">
-    <aside class="auth-stage" aria-label="UITOP introduction">
-      <div class="auth-stage-bg" aria-hidden="true">
-        <div class="auth-orb auth-orb--a"></div>
-        <div class="auth-orb auth-orb--b"></div>
-        <div class="auth-orb auth-orb--c"></div>
-        <div class="auth-stage-grid"></div>
+    <aside class="auth-brand-pane" aria-label="UITOP branding">
+      <div class="auth-brand-bg" aria-hidden="true">
+        <div class="auth-brand-photo"></div>
+        <div class="auth-brand-overlay"></div>
+        <span class="auth-glow auth-glow--a"></span>
+        <span class="auth-glow auth-glow--b"></span>
+        <span class="auth-grain"></span>
       </div>
-      <div class="auth-stage-content">
-        <div class="auth-stage-brand">
-          <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="" width="56" height="56" />
-          <div>
-            <div class="auth-stage-brand-name">UITOP</div>
-            <div class="auth-stage-brand-tag">Umzinyathi IT Operations Platform</div>
+
+      <div class="auth-brand-content">
+        <div class="auth-logo-lockup">
+          <img src="{{ url_for('static', filename='images/logo.png') }}"
+               alt="UITOP — Umzinyathi IT Operations Platform"
+               class="auth-premium-logo" />
+          <div class="auth-lockup-divider"></div>
+          <div class="auth-lockup-copy">
+            <strong>UMZINYATHI IT OPERATIONS PLATFORM</strong>
+            <span>Powering Operations. Strengthening Umzinyathi.</span>
           </div>
         </div>
 
-        <div class="auth-stage-hero">
-          <p class="auth-stage-kicker"><i class="fas fa-shield-halved" aria-hidden="true"></i> Secure municipal operations</p>
-          <h1>{% block auth_headline %}Command every endpoint from one trusted console.{% endblock %}</h1>
-          <p class="auth-stage-lede">{% block auth_lede %}Monitor infrastructure, enroll agents, and respond to incidents with enterprise-grade access control.{% endblock %}</p>
-
-          <ul class="auth-feature-list">
-            <li>
-              <span class="auth-feature-icon" aria-hidden="true"><i class="fas fa-server"></i></span>
-              <div>
-                <strong>Live infrastructure</strong>
-                <span>Computers, servers, network, and printers in one view</span>
-              </div>
-            </li>
-            <li>
-              <span class="auth-feature-icon" aria-hidden="true"><i class="fas fa-robot"></i></span>
-              <div>
-                <strong>Agent-ready</strong>
-                <span>Secure enrollment, heartbeat, and inventory sync</span>
-              </div>
-            </li>
-            <li>
-              <span class="auth-feature-icon" aria-hidden="true"><i class="fas fa-user-lock"></i></span>
-              <div>
-                <strong>RBAC protected</strong>
-                <span>JWT authentication with audited admin actions</span>
-              </div>
-            </li>
-          </ul>
+        <div class="auth-hero-copy">
+          <div class="auth-eyebrow"><span></span> MUNICIPAL OPERATIONS PLATFORM</div>
+          <h1>Smart Operations<br>for a Better <em>Umzinyathi</em></h1>
+          <p>A unified platform to manage assets, support services, requests and operations across the municipality.</p>
         </div>
 
-        <div class="auth-stage-foot">
-          <div class="auth-stat">
-            <strong>24/7</strong>
-            <span>Ops coverage</span>
-          </div>
-          <div class="auth-stat">
-            <strong>JWT</strong>
-            <span>Secure sessions</span>
-          </div>
-          <div class="auth-stat">
-            <strong>AIOps</strong>
-            <span>Assisted response</span>
-          </div>
+        <div class="auth-feature-grid" aria-label="UITOP capabilities">
+          <div class="auth-feature"><i class="fa-solid fa-desktop"></i><span>Manage<br>Assets</span></div>
+          <div class="auth-feature"><i class="fa-solid fa-headset"></i><span>Raise &amp; Track<br>Support Tickets</span></div>
+          <div class="auth-feature"><i class="fa-regular fa-file-lines"></i><span>Access<br>Documents</span></div>
+          <div class="auth-feature"><i class="fa-solid fa-chart-column"></i><span>Monitor<br>Operations</span></div>
+        </div>
+
+        <div class="auth-hero-metrics">
+          <div><strong>2,847</strong><span>Tickets Resolved</span></div>
+          <i></i>
+          <div><strong>156</strong><span>Active Users</span></div>
+          <i></i>
+          <div><strong>99.9<small>%</small></strong><span>Uptime</span></div>
+        </div>
+
+        <div class="auth-trust-row">
+          <span><i class="fa-solid fa-shield-halved"></i> Reliable</span>
+          <span><i class="fa-solid fa-users"></i> Connected</span>
+          <span><i class="fa-solid fa-chart-simple"></i> Efficient</span>
         </div>
       </div>
+      <p class="auth-brand-credit">Umzinyathi Municipality · IT Department</p>
     </aside>
 
-    <section class="auth-side">
-      <div class="auth-side-inner">
-        <div class="auth-mobile-brand">
-          <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="UITOP" width="56" height="56" />
-          <h1>UITOP</h1>
-          <p>Umzinyathi IT Operations Platform</p>
-        </div>
+    <main class="auth-form-pane">
+      <div class="auth-form-wrap">
         {% block content %}{% endblock %}
-        <p class="auth-footnote">&copy; <span id="uitop-year">2026</span> Umzinyathi Municipality · IT Department</p>
+        <p class="auth-footnote">&copy; <span id="uitop-year">2026</span> Umzinyathi Municipality</p>
       </div>
-    </section>
+    </main>
   </div>
+
   <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   <script src="{{ url_for('static', filename='js/auth-login.js') }}"></script>

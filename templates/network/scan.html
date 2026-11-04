@@ -6,6 +6,7 @@
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/network.css') }}" />
+<script src="{{ url_for('static', filename='js/network-scan.js') }}"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 {% endblock %}
 
@@ -18,13 +19,20 @@
 {% endblock %}
 
 {% block content %}
-<div class="comp-page" x-data="netScan()" x-cloak>
+<div class="comp-page" x-data="netScan()" x-init="init()" x-cloak>
   <header class="comp-header">
     <div>
       <h1>Scan Network</h1>
-      <p>SNMP · ICMP · ARP discovery across Umzinyathi VLANs. Assign SNMP credentials to newly found gear.</p>
+      <p>Live ICMP + TCP discovery across private LAN segments. Import appliances into UITOP inventory. If UITOP is hosted in the cloud, use <a href="{{ url_for('network.site_connector') }}">Site Connector</a> instead — Render cannot see your office LAN.</p>
     </div>
     <div class="comp-toolbar-actions">
+      <label class="chart-panel-subtitle" style="display:flex;align-items:center;gap:.5rem;margin:0">
+        Subnet
+        <input type="text" class="form-control" style="width:11rem" x-model="cidr" list="cidr-suggestions" placeholder="192.168.1.0/24" :disabled="scanning" />
+      </label>
+      <datalist id="cidr-suggestions">
+        <template x-for="c in suggested" :key="c"><option :value="c"></option></template>
+      </datalist>
       <button type="button" class="btn btn-primary" @click="start()" :disabled="scanning">
         <i class="fas" :class="scanning ? 'fa-spinner fa-spin' : 'fa-satellite-dish'"></i>
         <span x-text="scanning ? 'Scanning…' : 'Start Scan'"></span>
@@ -59,19 +67,26 @@
   <section class="comp-table-wrap" x-show="results.length" x-cloak>
     <div class="comp-table-meta">
       <strong>Discovered devices</strong>
-      <span>Assign SNMP credentials where needed</span>
+      <span>Import network gear into inventory</span>
     </div>
     <template x-for="r in results" :key="r.ip">
       <div class="scan-result">
         <div class="scan-result-main">
           <strong x-text="r.name"></strong>
-          <span><span x-text="r.type"></span> · <code x-text="r.ip"></code> · <span x-text="r.vendor"></span></span>
+          <span>
+            <span x-text="r.type"></span> ·
+            <code x-text="r.ip"></code> ·
+            <span x-text="r.vendor"></span>
+            <template x-if="r.ports && r.ports.length">
+              <span> · ports <span x-text="r.ports.join(', ')"></span></span>
+            </template>
+          </span>
         </div>
         <div class="comp-toolbar-actions">
-          <span class="badge" :class="r.snmp ? 'badge-success' : 'badge-warning'" x-text="r.snmp ? 'SNMP OK' : 'SNMP Missing'"></span>
+          <span class="badge" :class="r.managed ? 'badge-success' : 'badge-warning'" x-text="r.managed ? 'In inventory' : 'New'"></span>
           <span class="badge" :class="r.status === 'Online' ? 'badge-success' : 'badge-muted'" x-text="r.status"></span>
-          <template x-if="!r.snmp">
-            <button type="button" class="btn btn-primary btn-sm" @click="assignSnmp(r)"><i class="fas fa-key"></i> Assign SNMP</button>
+          <template x-if="!r.managed">
+            <button type="button" class="btn btn-primary btn-sm" @click="importHost(r)"><i class="fas fa-plus"></i> Import</button>
           </template>
           <a class="btn btn-ghost btn-sm" href="{{ url_for('network.snmp') }}">Credentials</a>
         </div>
@@ -82,45 +97,20 @@
 
 <script>
 function netScan() {
-  return {
-    scanning: false, done: false, progress: 0,
-    statusText: "Targets: HQ VLANs 10–40 · methods SNMP v2c/v3, ICMP, ARP.",
-    t: { devices: 0, routers: 0, switches: 0, printers: 0, firewalls: 0, servers: 0, computers: 0, unknown: 0 },
-    results: [],
-    start() {
-      if (this.scanning) return;
-      var self = this;
-      this.scanning = true; this.done = false; this.progress = 0; this.results = [];
-      var steps = [
-        { p: 15, msg: "ARP table sweep…" },
-        { p: 35, msg: "ICMP echo across subnets…" },
-        { p: 55, msg: "SNMP sysDescr / ifTable probes…" },
-        { p: 75, msg: "Classifying device roles…" },
-        { p: 100, msg: "Scan complete." }
-      ];
-      var i = 0;
-      var timer = setInterval(function () {
-        var s = steps[i++];
-        self.progress = s.p; self.statusText = s.msg;
-        if (s.p >= 55) self.t = { devices: 38, routers: 3, switches: 11, printers: 6, firewalls: 2, servers: 8, computers: 5, unknown: 3 };
-        if (s.p === 100) {
-          clearInterval(timer);
-          self.scanning = false; self.done = true;
-          self.results = [
-            { name: "SW-ACCESS-FIN", type: "Switch", ip: "10.12.4.3", vendor: "Aruba", snmp: false, status: "Online" },
-            { name: "AP-FLOOR3-02", type: "Access Point", ip: "10.12.6.52", vendor: "Ubiquiti", snmp: true, status: "Online" },
-            { name: "FW-BRANCH-01", type: "Firewall", ip: "10.20.0.1", vendor: "Fortinet", snmp: false, status: "Online" },
-            { name: "UNK-10.12.9.200", type: "Unknown", ip: "10.12.9.200", vendor: "—", snmp: false, status: "Online" },
-            { name: "NAS-BACKUP-02", type: "NAS", ip: "10.12.0.41", vendor: "Synology", snmp: true, status: "Online" }
-          ];
-        }
-      }, 650);
-    },
-    assignSnmp(r) {
-      r.snmp = true;
-      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast("SNMP profile assigned to " + r.name, "success");
+  return UITOP.createNetworkScanner({
+    filter: "all",
+    preferType: "Network",
+    readyText: "ICMP + TCP probe · private /24 subnets only.",
+    mapResults: function (hosts) {
+      return hosts.map(function (h) {
+        return Object.assign({}, h, {
+          name: h.name || h.hostname || h.ip,
+          vendor: h.vendor || "—",
+          snmp: !!h.snmp,
+        });
+      });
     }
-  };
+  });
 }
 </script>
 {% endblock %}

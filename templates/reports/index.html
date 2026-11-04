@@ -1,65 +1,465 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
 
 {% block title %}Reports{% endblock %}
 {% block page_title %}Reports{% endblock %}
 
+{% from "components/pager_macros.html" import server_pager with context %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
 {% block content %}
-{% call page_header("Reports", "Manage reports across Umzinyathi IT operations.", "{{ url_for('modules.page', module='reports', page='create') }}", "Add Report", "fa-plus") %}{% endcall %}
+<div class="sw-page rp-page" x-data="reportsHub({{ {
+  'view': view,
+  'preselect': preselect_type,
+  'types': payload.report_types,
+  'filters': payload.filters
+} | tojson }})">
+  <header class="sw-header">
+    <div>
+      <h1>Reports</h1>
+      <p>Official UITOP reporting center — generate, export, schedule, and share formal reports. Analysis explores trends; Reports produces documents.</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('analysis.index') }}" class="btn btn-ghost"><i class="fas fa-chart-column"></i> Open Analysis</a>
+      <a href="{{ url_for('reports.index', view='generate') }}" class="btn btn-primary"><i class="fas fa-file-export"></i> Generate report</a>
+    </div>
+  </header>
 
-<div class="kpi-grid">
-  {{ kpi_card("Total", "128", "+3%", "default", "fa-file-lines") }}
-  {{ kpi_card("Active", "110", "Healthy", "success", "fa-circle-check") }}
-  {{ kpi_card("Attention", "12", "Review", "warning", "fa-triangle-exclamation") }}
-  {{ kpi_card("Critical", "6", "Urgent", "danger", "fa-bolt") }}
-</div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
 
-{% call filter_bar("Search reports…") %}
-  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
-  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
-{% endcall %}
+  <nav class="sw-subtabs rp-nav" role="tablist">
+    {% for key, label in [
+      ('dashboard','Dashboard'),
+      ('generate','Generate Report'),
+      ('templates','Templates'),
+      ('scheduled','Scheduled Reports'),
+      ('history','History'),
+      ('shared','Shared Reports'),
+      ('exports','Exports'),
+      ('audit','Audit Reports')
+    ] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('reports.index', view=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
 
-<section class="table-panel panel">
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Owner</th>
-          <th>Type</th>
-          <th>Updated</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Demo Report 1</td>
-          <td>IT Ops</td>
-          <td>Standard</td>
-          <td>Today</td>
-          <td>{{ status_badge('Active') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='reports', page='details') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Report 2</td>
-          <td>Infrastructure</td>
-          <td>{{ status_badge('Critical') }}</td>
-          <td>Yesterday</td>
-          <td>{{ status_badge('Warning') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='reports', page='details') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Report 3</td>
-          <td>Help Desk</td>
-          <td>Standard</td>
-          <td>2 days ago</td>
-          <td>{{ status_badge('Online') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='reports', page='details') }}">View</a></td>
-        </tr>
-      </tbody>
-    </table>
+  {% if view == 'dashboard' %}
+  <section class="rp-command-strip" aria-label="Reporting operations summary">
+    <div><span>Reporting centre</span><strong>Operational</strong></div>
+    <div><span>Generation</span><strong>{{ kpis.generated_today }} today</strong></div>
+    <div><span>Scheduling</span><strong>{{ kpis.scheduled }} active</strong></div>
+    <div><span>Sharing</span><strong>{{ kpis.shared }} shared</strong></div>
+  </section>
+  {% endif %}
+
+  <div class="sw-kpi-grid rp-kpi-grid">
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Generated Today</p><p class="sw-kpi-value">{{ kpis.generated_today }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Scheduled Reports</p><p class="sw-kpi-value">{{ kpis.scheduled }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Recent Reports</p><p class="sw-kpi-value">{{ kpis.recent }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Report Templates</p><p class="sw-kpi-value">{{ kpis.templates }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Exports This Month</p><p class="sw-kpi-value">{{ kpis.exports_month }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Shared Reports</p><p class="sw-kpi-value">{{ kpis.shared }}</p></article>
   </div>
-  {{ pagination(1, 4) }}
-</section>
+
+  {% if view == 'dashboard' %}
+  <section class="rp-management-grid" aria-label="Management reporting actions">
+    <a class="rp-management-card" href="{{ url_for('analysis.index', view='executive') }}">
+      <span class="rp-management-icon"><i class="fas fa-chart-line"></i></span>
+      <span><strong>Executive analysis</strong><small>Review trends, risks, costs and operational indicators.</small></span>
+      <i class="fas fa-arrow-right rp-management-arrow"></i>
+    </a>
+    <a class="rp-management-card" href="{{ url_for('reports.index', view='generate') }}">
+      <span class="rp-management-icon"><i class="fas fa-file-circle-plus"></i></span>
+      <span><strong>Create a report</strong><small>Choose a report, apply filters and preview before export.</small></span>
+      <i class="fas fa-arrow-right rp-management-arrow"></i>
+    </a>
+    <a class="rp-management-card" href="{{ url_for('reports.index', view='scheduled') }}">
+      <span class="rp-management-icon"><i class="fas fa-clock"></i></span>
+      <span><strong>Scheduled reporting</strong><small>Review upcoming recurring reports and recipients.</small></span>
+      <i class="fas fa-arrow-right rp-management-arrow"></i>
+    </a>
+  </section>
+
+  <div class="rp-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Recent reports</h2>
+      <ul class="rp-list">
+        {% for h in payload.recent %}
+        <li>
+          <div>
+            <strong>{{ h.name }}</strong>
+            <span class="rp-muted">{{ h.generated_by }} · {{ h.generated_at }} · {{ h.filters }}</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="sw-badge sw-badge--muted">{{ h.format }}</span>
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('reports.preview', type=h.type_id, format=h.format) }}">Open</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Upcoming schedules</h2>
+      <ul class="rp-list">
+        {% for s in payload.scheduled[:5] %}
+        <li>
+          <div>
+            <strong>{{ s.name }}</strong>
+            <span class="rp-muted">{{ s.cadence }} · {{ s.time }} → {{ s.recipients }}</span>
+          </div>
+          <span class="rp-status {% if s.status == 'active' %}rp-status--active{% else %}rp-status--paused{% endif %}">{{ s.status }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="rp-muted" style="margin-top:12px;">Popular templates: Executive Summary, Asset Inventory, Security Report, Help Desk Performance.</p>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('reports.index', view='templates') }}">Browse templates</a>
+    </section>
+  </div>
+
+  {% elif view == 'generate' %}
+  <div class="rp-wizard">
+    <ol class="rp-steps">
+      <li :class="step === 1 ? 'is-active' : (step > 1 ? 'is-done' : '')"><em>1</em> Choose report</li>
+      <li :class="step === 2 ? 'is-active' : (step > 2 ? 'is-done' : '')"><em>2</em> Date range</li>
+      <li :class="step === 3 ? 'is-active' : (step > 3 ? 'is-done' : '')"><em>3</em> Filters</li>
+      <li :class="step === 4 ? 'is-active' : (step > 4 ? 'is-done' : '')"><em>4</em> Preview</li>
+      <li :class="step === 5 ? 'is-active' : ''"><em>5</em> Generate</li>
+    </ol>
+
+    <div class="rp-wizard-panel" x-show="step === 1">
+      <h2 class="chart-panel-title">Choose report type</h2>
+      <div class="rp-type-grid">
+        <template x-for="t in types" :key="t.id">
+          <button type="button" class="rp-type-card" :class="typeId === t.id && 'is-selected'" @click="typeId = t.id">
+            <i class="fas" :class="t.icon"></i>
+            <h3 x-text="t.name"></h3>
+            <p x-text="t.desc"></p>
+            <div class="rp-type-meta">
+              <template x-for="f in t.formats" :key="f">
+                <span class="sw-badge sw-badge--muted" x-text="f"></span>
+              </template>
+            </div>
+          </button>
+        </template>
+      </div>
+      <div class="rp-wizard-actions">
+        <button type="button" class="btn btn-primary" :disabled="!typeId" @click="step = 2">Continue</button>
+      </div>
+    </div>
+
+    <div class="rp-wizard-panel" x-show="step === 2" x-cloak>
+      <h2 class="chart-panel-title">Choose date range</h2>
+      <div class="rp-form-grid">
+        <div class="rp-field">
+          <label>Period</label>
+          <select x-model="dateRange">
+            <template x-for="p in filters.date_presets" :key="p.id">
+              <option :value="p.id" x-text="p.label"></option>
+            </template>
+          </select>
+        </div>
+        <div class="rp-field" x-show="dateRange === 'custom'">
+          <label>From</label>
+          <input type="date" x-model="dateFrom" />
+        </div>
+        <div class="rp-field" x-show="dateRange === 'custom'">
+          <label>To</label>
+          <input type="date" x-model="dateTo" />
+        </div>
+      </div>
+      <div class="rp-wizard-actions">
+        <button type="button" class="btn btn-ghost" @click="step = 1">Back</button>
+        <button type="button" class="btn btn-primary" @click="step = 3">Continue</button>
+      </div>
+    </div>
+
+    <div class="rp-wizard-panel" x-show="step === 3" x-cloak>
+      <h2 class="chart-panel-title">Choose filters</h2>
+      <div class="rp-form-grid">
+        <div class="rp-field">
+          <label>Department</label>
+          <select x-model="department">
+            <option value="">All departments</option>
+            <template x-for="d in filters.departments" :key="d">
+              <option :value="d" x-text="d"></option>
+            </template>
+          </select>
+        </div>
+        <div class="rp-field">
+          <label>Asset type</label>
+          <select x-model="assetType">
+            <option value="">All types</option>
+            <template x-for="a in filters.asset_types" :key="a">
+              <option :value="a" x-text="a"></option>
+            </template>
+          </select>
+        </div>
+        <div class="rp-field">
+          <label>Status</label>
+          <select x-model="status">
+            <option value="">Any status</option>
+            <template x-for="s in filters.statuses" :key="s">
+              <option :value="s" x-text="s"></option>
+            </template>
+          </select>
+        </div>
+        <div class="rp-field">
+          <label>Priority</label>
+          <select x-model="priority">
+            <option value="">Any priority</option>
+            <template x-for="p in filters.priorities" :key="p">
+              <option :value="p" x-text="p"></option>
+            </template>
+          </select>
+        </div>
+        <div class="rp-field">
+          <label>Export format</label>
+          <select x-model="format">
+            <template x-for="f in filters.formats" :key="f">
+              <option :value="f" x-text="f"></option>
+            </template>
+          </select>
+        </div>
+      </div>
+      <div class="rp-wizard-actions">
+        <button type="button" class="btn btn-ghost" @click="step = 2">Back</button>
+        <button type="button" class="btn btn-primary" @click="step = 4">Continue</button>
+      </div>
+    </div>
+
+    <div class="rp-wizard-panel" x-show="step === 4" x-cloak>
+      <h2 class="chart-panel-title">Preview summary</h2>
+      <div class="rp-summary-box">
+        <div><span class="rp-muted">Report</span> — <strong x-text="selectedName()"></strong></div>
+        <div><span class="rp-muted">Period</span> — <strong x-text="rangeLabel()"></strong></div>
+        <div><span class="rp-muted">Department</span> — <strong x-text="department || 'All departments'"></strong></div>
+        <div><span class="rp-muted">Format</span> — <strong x-text="format"></strong></div>
+      </div>
+      <p class="rp-muted" style="margin-top:12px;">Open a live preview with KPIs, charts tables, and recommendations before downloading.</p>
+      <div class="rp-wizard-actions">
+        <button type="button" class="btn btn-ghost" @click="step = 3">Back</button>
+        <a class="btn btn-ghost" :href="previewUrl()">Open preview</a>
+        <button type="button" class="btn btn-primary" @click="step = 5">Continue to generate</button>
+      </div>
+    </div>
+
+    <div class="rp-wizard-panel" x-show="step === 5" x-cloak>
+      <h2 class="chart-panel-title">Generate &amp; export</h2>
+      <div class="rp-summary-box">
+        <strong x-text="selectedName()"></strong>
+        <span class="rp-muted">Ready to export as <span x-text="format"></span>. PDF/Word open a print-ready preview; Excel/CSV/JSON download immediately.</span>
+      </div>
+      <div class="rp-wizard-actions">
+        <button type="button" class="btn btn-ghost" @click="step = 4">Back</button>
+        <a class="btn btn-ghost" :href="previewUrl()">Preview</a>
+        <a class="btn btn-primary" :href="exportUrl()"><i class="fas fa-download"></i> Generate <span x-text="format"></span></a>
+      </div>
+    </div>
+
+    <aside class="rp-ai-box">
+      <h3><i class="fas fa-sparkles"></i> AI Report Generator <span class="sw-badge sw-badge--muted">Future</span></h3>
+      <p class="rp-muted">Describe what you need and UITOP will assemble the report automatically.</p>
+      <div class="rp-ai-chips">
+        {% for tip in payload.ai_prompt_examples %}
+        <span>{{ tip }}</span>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+
+  {% elif view == 'templates' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Pre-built templates</h2>
+    <div class="rp-template-grid">
+      {% for t in payload.templates %}
+      <a class="rp-template-card" href="{{ url_for('reports.index', view='generate', type=t.type_id) }}">
+        <h3>{{ t.name }}{% if t.popular %} <span class="sw-badge sw-badge--success">Popular</span>{% endif %}</h3>
+        <p>Starts the generate wizard with this report type pre-selected.</p>
+        <div class="rp-type-meta">
+          <span class="sw-badge sw-badge--muted">{{ t.format }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% elif view == 'scheduled' %}
+  <section class="sw-panel">
+    <div class="sw-toolbar">
+      <h2 class="chart-panel-title" style="margin:0;">Scheduled reports</h2>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="alert('Scheduling UI will email recipients on cadence (coming next).')">+ New schedule</button>
+    </div>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr><th>Report</th><th>Cadence</th><th>Time</th><th>Format</th><th>Recipients</th><th>Next</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for s in payload.scheduled %}
+          <tr>
+            <td><strong>{{ s.name }}</strong></td>
+            <td>{{ s.cadence }}</td>
+            <td>{{ s.time }}</td>
+            <td><span class="sw-badge sw-badge--muted">{{ s.format }}</span></td>
+            <td>{{ s.recipients }}</td>
+            <td>{{ s.next_run }}</td>
+            <td><span class="rp-status {% if s.status == 'active' %}rp-status--active{% else %}rp-status--paused{% endif %}">{{ s.status }}</span></td>
+            <td><a class="btn btn-ghost btn-sm" href="{{ url_for('reports.preview', type=s.type_id, format=s.format) }}">Run now</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ server_pager(pager) }}
+  </section>
+
+  {% elif view == 'history' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Report history</h2>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr><th>Report</th><th>Generated by</th><th>When</th><th>Filters</th><th>Format</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for h in payload.history %}
+          <tr>
+            <td><strong>{{ h.name }}</strong></td>
+            <td>{{ h.generated_by }}</td>
+            <td>{{ h.generated_at }}</td>
+            <td>{{ h.filters }}</td>
+            <td><span class="sw-badge sw-badge--muted">{{ h.format }}</span></td>
+            <td><span class="rp-status rp-status--ready">{{ h.status }}</span></td>
+            <td style="white-space:nowrap;">
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('reports.preview', type=h.type_id, format=h.format) }}">Preview</a>
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('reports.export_report', type_id=h.type_id, format=h.format|lower) }}">Download</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ server_pager(pager) }}
+  </section>
+
+  {% elif view == 'shared' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Shared reports</h2>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr><th>Report</th><th>Shared with</th><th>Access</th><th>Shared by</th><th>Date</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for s in payload.shared %}
+          <tr>
+            <td><strong>{{ s.name }}</strong></td>
+            <td>{{ s.shared_with }}</td>
+            <td>{{ s.access }}</td>
+            <td>{{ s.shared_by }}</td>
+            <td>{{ s.shared_at }}</td>
+            <td><a class="btn btn-ghost btn-sm" href="{{ url_for('reports.preview', type=s.type_id) }}">Open</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ server_pager(pager) }}
+  </section>
+
+  {% elif view == 'exports' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Recent exports</h2>
+    <p class="rp-muted" style="margin-top:0;">Supported formats: PDF (print), Excel, CSV, Word (print), JSON.</p>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr><th>File</th><th>Format</th><th>Size</th><th>Exported</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for e in payload.exports %}
+          <tr>
+            <td><strong>{{ e.name }}</strong></td>
+            <td><span class="sw-badge sw-badge--muted">{{ e.format }}</span></td>
+            <td>{{ e.size }}</td>
+            <td>{{ e.exported_at }}</td>
+            <td><a class="btn btn-ghost btn-sm" href="{{ url_for('reports.export_report', type_id=e.type_id, format=e.format|lower) }}">Download again</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ server_pager(pager) }}
+  </section>
+
+  {% elif view == 'audit' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Audit &amp; compliance reports</h2>
+    <p class="rp-muted">For municipal audits — logins, permission changes, deletions, configuration, and security events.</p>
+    <div class="rp-audit-grid" style="margin-top:12px;">
+      {% for a in payload.audit_reports %}
+      <a class="rp-audit-card" href="{{ url_for('reports.preview', type=a.type_id) }}">
+        <h3>{{ a.name }}</h3>
+        <p>{{ a.desc }}</p>
+        <span class="btn btn-ghost btn-sm" style="align-self:flex-start;">Generate</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function reportsHub(cfg) {
+  const types = cfg.types || [];
+  const pre = cfg.preselect || '';
+  return {
+    step: pre ? 2 : 1,
+    typeId: pre || '',
+    types,
+    filters: cfg.filters || {},
+    dateRange: '30d',
+    dateFrom: '',
+    dateTo: '',
+    department: '',
+    assetType: '',
+    status: '',
+    priority: '',
+    format: 'PDF',
+    selectedName() {
+      const t = types.find(x => x.id === this.typeId);
+      return t ? t.name : '—';
+    },
+    rangeLabel() {
+      const p = (this.filters.date_presets || []).find(x => x.id === this.dateRange);
+      return p ? p.label : this.dateRange;
+    },
+    previewUrl() {
+      const q = new URLSearchParams({
+        type: this.typeId || 'executive',
+        format: this.format,
+        range: this.dateRange,
+        department: this.department || ''
+      });
+      return `/reports/preview?${q.toString()}`;
+    },
+    exportUrl() {
+      const fmt = (this.format || 'csv').toLowerCase();
+      const q = new URLSearchParams({
+        format: fmt,
+        range: this.dateRange,
+        department: this.department || ''
+      });
+      return `/reports/export/${this.typeId || 'executive'}?${q.toString()}`;
+    }
+  };
+}
+</script>
 {% endblock %}

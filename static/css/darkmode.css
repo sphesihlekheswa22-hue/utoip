@@ -122,7 +122,7 @@
 
 /* Image/logo adjustments */
 [data-theme="dark"] .uitop-brand-logo {
-  filter: drop-shadow(0 2px 6px rgba(45, 212, 191, 0.25));
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45));
 }
 
 /* Toast dark elevation */

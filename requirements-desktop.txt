@@ -1,0 +1,3 @@
+# Desktop / packaging extras (not required for normal `python app.py` development)
+pywebview>=5.0
+pyinstaller>=6.0

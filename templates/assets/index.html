@@ -3,6 +3,8 @@
 {% block title %}Assets{% endblock %}
 {% block page_title %}Assets{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
@@ -78,7 +80,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="a in filtered" :key="a.id">
+          <template x-for="a in pagedItems(filtered)" :key="a.id">
             <tr>
               <td><code x-text="a.asset_tag"></code></td>
               <td><strong x-text="a.name"></strong></td>
@@ -98,6 +100,7 @@
         </tbody>
       </table>
     </div>
+    {{ alpine_pager('filtered') }}
   </section>
   {% endif %}
 </div>
@@ -105,9 +108,10 @@
 <script>
 window.__ASSETS__ = {{ assets | tojson }};
 function assetsDashboard() {
-  return {
+  return Object.assign({
     q: "",
     assets: window.__ASSETS__ || [],
+    init() { this.watchPagerReset(['q']); },
     get filtered() {
       var q = this.q.trim().toLowerCase();
       if (!q) return this.assets;
@@ -122,7 +126,7 @@ function assetsDashboard() {
       if (s === "disposed") return "badge-danger";
       return "badge-muted";
     }
-  };
+  }, UITOP.createPager(10));
 }
 </script>
 {% endblock %}

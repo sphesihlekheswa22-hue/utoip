@@ -39,6 +39,22 @@ def seed_permissions() -> dict[str, Permission]:
 
 
 def seed_roles(permissions: dict[str, Permission]) -> dict[str, Role]:
+    # Migrate legacy "viewer" role → "employee"
+    legacy = Role.query.filter_by(name="viewer").first()
+    if legacy is not None:
+        existing_employee = Role.query.filter_by(name="employee").first()
+        if existing_employee is None:
+            legacy.name = "employee"
+            legacy.description = ROLE_DESCRIPTIONS.get("employee")
+            legacy.is_system = True
+        else:
+            # Move users from viewer to employee, then drop viewer
+            for user in list(legacy.users):
+                if existing_employee not in user.roles:
+                    user.roles = [r for r in user.roles if r.name != "viewer"] + [existing_employee]
+            db.session.delete(legacy)
+        db.session.flush()
+
     by_name: dict[str, Role] = {}
     for name, codes in ROLE_PERMISSIONS.items():
         role = Role.query.filter_by(name=name).first()
@@ -94,6 +110,61 @@ def seed_admin(roles: dict[str, Role], email: str | None = None, password: str |
         user.roles = list({*user.roles, roles["super_admin"]})
     db.session.flush()
     return user
+
+
+# Shared demo password for seeded staff (not the super-admin).
+DEFAULT_DEMO_PASSWORD = "Demo@UITOP2026"
+
+# (full_name, email, role_name, dept_code, is_active)
+SAMPLE_USERS = [
+    ("Sipho Dlamini", "sipho.dlamini@umzinyathi.gov.za", "admin", "IT", True),
+    ("Lerato Molefe", "lerato.molefe@umzinyathi.gov.za", "operator", "IT", True),
+    ("Johan Botha", "johan.botha@umzinyathi.gov.za", "helpdesk", "IT", True),
+    ("Nomsa Khumalo", "nomsa.khumalo@umzinyathi.gov.za", "helpdesk", "CORP", True),
+    ("Pieter van Wyk", "pieter.vanwyk@umzinyathi.gov.za", "operator", "TECH", True),
+    ("Fatima Hassan", "fatima.hassan@umzinyathi.gov.za", "employee", "FIN", True),
+    ("Ayanda Ndlovu", "ayanda.ndlovu@umzinyathi.gov.za", "employee", "CORP", True),
+    ("Michael Cele", "michael.cele@umzinyathi.gov.za", "admin", "IT", True),
+    ("Grace Mthembu", "grace.mthembu@umzinyathi.gov.za", "helpdesk", "FIN", True),
+    ("Sarah Finance", "sarah.finance@umzinyathi.gov.za", "employee", "FIN", True),
+    ("Inactive Demo", "inactive.user@umzinyathi.gov.za", "employee", "CORP", False),
+]
+
+
+def seed_sample_users(roles: dict[str, Role], *, password: str | None = None) -> list[User]:
+    """Create municipal demo staff across roles/departments (idempotent by email)."""
+    password = password or DEFAULT_DEMO_PASSWORD
+    pwd_hash = hash_password(password)
+    depts = {d.code: d for d in Department.query.all()}
+    created: list[User] = []
+    for full_name, email, role_name, dept_code, is_active in SAMPLE_USERS:
+        email = email.strip().lower()
+        user = User.query.filter_by(email=email).first()
+        dept = depts.get(dept_code)
+        role = roles.get(role_name)
+        if user is None:
+            user = User(
+                email=email,
+                password_hash=pwd_hash,
+                full_name=full_name,
+                is_active=is_active,
+                is_super_admin=False,
+                department_id=dept.id if dept else None,
+            )
+            db.session.add(user)
+            created.append(user)
+        else:
+            user.full_name = full_name
+            user.is_active = is_active
+            user.is_super_admin = False
+            if dept:
+                user.department_id = dept.id
+            # Refresh password only if still a seed demo account pattern
+            user.password_hash = pwd_hash
+        if role:
+            user.roles = [role]
+    db.session.flush()
+    return created
 
 
 def seed_sample_inventory() -> None:
@@ -230,32 +301,87 @@ def seed_sample_inventory() -> None:
     db.session.flush()
 
 
+def seed_employee_assignments() -> None:
+    """Do not assign demo PCs. Only tag real department printers when known."""
+    fin = Department.query.filter_by(code="FIN").first()
+    corp = Department.query.filter_by(code="CORP").first()
+    printer = Printer.query.filter_by(name="PRT-FIN-01").first()
+    if printer and fin and printer.department_id is None:
+        printer.department_id = fin.id
+    corp_printer = Printer.query.filter_by(name="PRT-CORP-02").first()
+    if corp_printer and corp and corp_printer.department_id is None:
+        corp_printer.department_id = corp.id
+
+    # Clear legacy demo assignments of seed computers away from employees
+    from uitop.models.assets import Asset, AssetAssignment
+
+    seed_hosts = {"PC-FIN-014", "PC-IT-002", "LAP-CORP-08"}
+    for host in seed_hosts:
+        pc = Computer.query.filter_by(hostname=host).first()
+        if not pc:
+            continue
+        asset = Asset.query.filter_by(linked_type="computer", linked_id=pc.id).first()
+        if not asset:
+            continue
+        now = datetime.now(timezone.utc)
+        for row in AssetAssignment.query.filter_by(asset_id=asset.id, returned_at=None).all():
+            row.returned_at = now
+            row.notes = (row.notes or "") + " [cleared: demo seed]"
+        if asset.custodian_user_id:
+            custodian = db.session.get(User, asset.custodian_user_id)
+            if custodian and "employee" in custodian.role_names():
+                asset.custodian_user_id = None
+    db.session.flush()
+
+
 def run_seed(*, admin_email: str | None = None, admin_password: str | None = None, sample_inventory: bool = True) -> dict:
     permissions = seed_permissions()
     roles = seed_roles(permissions)
     seed_departments()
     admin = seed_admin(roles, email=admin_email, password=admin_password)
+    sample_users = seed_sample_users(roles)
     if sample_inventory:
         seed_sample_inventory()
         from uitop.services.assets import seed_asset_catalog, seed_assets_from_inventory
 
         seed_asset_catalog()
         seed_assets_from_inventory()
-        from uitop.services.helpdesk import seed_sample_tickets
+        seed_employee_assignments()
+        from uitop.services.helpdesk import seed_sample_tickets, ensure_itsm_demo
 
         seed_sample_tickets()
-        from uitop.services.files_view import seed_sample_repository
+        ensure_itsm_demo()
+        from uitop.services.files_view import seed_sample_repository, ensure_documents_demo
 
         seed_sample_repository(actor_id=admin.id)
+        ensure_documents_demo(actor_id=admin.id)
+        from uitop.services.maintenance import seed_sample_maintenance
+
+        seed_sample_maintenance(actor_id=admin.id)
+        from uitop.services.security_view import seed_security_demo
+
+        seed_security_demo(actor_id=admin.id)
+        from uitop.services.workflow import ensure_workflow_definitions
+
+        ensure_workflow_definitions()
+    else:
+        from uitop.services.workflow import ensure_workflow_definitions
+
+        ensure_workflow_definitions()
     db.session.commit()
     from uitop.models.assets import Asset
     from uitop.models.helpdesk import Ticket
     from uitop.models.files import RepoFile
+    from uitop.models.maintenance import MaintenancePlan, MaintenanceWorkOrder
+    from uitop.models.security import DeviceSecurityPosture, SecurityIncident
 
     return {
         "permissions": len(permissions),
         "roles": len(roles),
         "admin_email": admin.email,
+        "sample_users_created": len(sample_users),
+        "users_total": User.query.count(),
+        "demo_staff_password": DEFAULT_DEMO_PASSWORD,
         "departments": Department.query.count(),
         "computers": Computer.query.count(),
         "servers": Server.query.count(),
@@ -264,4 +390,8 @@ def run_seed(*, admin_email: str | None = None, admin_password: str | None = Non
         "assets": Asset.query.count(),
         "tickets": Ticket.query.count(),
         "repo_files": RepoFile.query.count(),
+        "work_orders": MaintenanceWorkOrder.query.count(),
+        "maintenance_plans": MaintenancePlan.query.count(),
+        "security_devices": DeviceSecurityPosture.query.count(),
+        "security_incidents": SecurityIncident.query.count(),
     }

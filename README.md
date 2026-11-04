@@ -70,6 +70,22 @@ Other areas: `/users`, `/roles`, `/departments`, `/audit`, `/agents/*`, `/comput
 
 All agent actions are written to `AuditLog`. Client secrets are stored hashed and never returned after registration.
 
+### Site connector (LAN discovery for cloud deploy)
+
+When UITOP runs on Render/Neon, the cloud host cannot scan your office LAN. Run **one** always-on PC on-prem:
+
+1. In UITOP: **Network → Site Connector** → generate enrollment token
+2. On the LAN PC (Python 3):
+
+```powershell
+irm https://YOUR-APP.onrender.com/network/site-connector/install.ps1 | iex
+Install-UitopSiteConnector -Token 'enroll_…' -Server 'https://YOUR-APP.onrender.com' -Site 'HQ'
+```
+
+3. Connector heartbeats and POSTs scan results to `/api/v1/connectors/*`
+4. Each managed PC still needs the normal UITOP Agent for rich inventory / My Devices
+
+
 
 ## CLI
 
@@ -106,6 +122,8 @@ wsgi.py          Production WSGI (gunicorn)
 ```bash
 gunicorn -w 4 -b 0.0.0.0:5500 wsgi:app
 ```
+
+**Render:** see [DEPLOY_RENDER.md](DEPLOY_RENDER.md) and `render.yaml` (GitHub: [utoip](https://github.com/sphesihlekheswa22-hue/utoip)).
 
 ## Design
 

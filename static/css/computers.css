@@ -750,3 +750,57 @@
   border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
 }
 .comp-bulk-menu .btn { width: 100%; justify-content: flex-start; }
+
+/* ============================================================
+   Phase 3 — Fleet / Asset Operations polish
+   ============================================================ */
+.fleet-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(110deg, var(--bg-elevated), var(--bg-secondary));
+  box-shadow: var(--shadow-xs);
+}
+
+.fleet-overview-copy { display: grid; gap: 3px; min-width: 240px; }
+.fleet-overview-kicker {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.fleet-overview-copy strong { font-size: 15px; color: var(--text-primary); }
+.fleet-overview-copy > span:last-child { font-size: 12px; color: var(--text-secondary); }
+
+.fleet-health-stats { display: flex; flex-wrap: wrap; gap: 18px; }
+.fleet-health-stat { display: flex; align-items: center; gap: 8px; min-width: 76px; }
+.fleet-health-stat div { display: grid; gap: 1px; }
+.fleet-health-stat strong { font-size: 15px; line-height: 1; font-variant-numeric: tabular-nums; }
+.fleet-health-stat span:not(.fleet-dot) { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.fleet-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent); }
+.fleet-dot.is-good { color: #059669; background: #059669; }
+.fleet-dot.is-warning { color: #d97706; background: #d97706; }
+.fleet-dot.is-danger { color: #dc2626; background: #dc2626; }
+
+.comp-device-id { display: block; margin-top: 2px; color: var(--text-muted); font-size: 10px; }
+.comp-table tbody tr.is-critical-row { box-shadow: inset 3px 0 0 #dc2626; }
+.comp-table tbody tr.is-offline-row { box-shadow: inset 3px 0 0 #f97316; }
+.comp-table tbody tr.is-warning-row { box-shadow: inset 3px 0 0 #d97706; }
+.comp-table tbody tr.is-critical-row:hover,
+.comp-table tbody tr.is-offline-row:hover,
+.comp-table tbody tr.is-warning-row:hover { background: var(--bg-hover); }
+
+@media (max-width: 1000px) {
+  .fleet-overview { align-items: flex-start; flex-direction: column; }
+  .fleet-health-stats { width: 100%; justify-content: space-between; }
+}
+
+@media (max-width: 640px) {
+  .fleet-health-stats { display: grid; grid-template-columns: repeat(2, 1fr); width: 100%; }
+  .fleet-health-stat { min-width: 0; }
+}

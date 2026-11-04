@@ -57,6 +57,7 @@
               name="subject"
               required
               maxlength="255"
+              value="{{ prefill_subject|default('') }}"
               placeholder="e.g. VPN cannot connect after password prompt"
               autocomplete="off"
               x-model="subject"
@@ -70,6 +71,27 @@
               placeholder="What happened, when it started, who is affected, and any error messages…"
             ></textarea>
             <p class="hd-field-hint">Include steps already tried — it shortens first response time.</p>
+          </div>
+
+          <div>
+            <span class="hd-field-label" style="display:block;margin-bottom:8px;">Ticket type</span>
+            <div class="hd-priority-grid" role="radiogroup" aria-label="Ticket type">
+              <label class="hd-priority" :class="{ 'is-active': ticketType === 'incident' }" data-p="high">
+                <input type="radio" name="ticket_type" value="incident" x-model="ticketType" />
+                <strong>Incident</strong>
+                <span>Something is broken</span>
+              </label>
+              <label class="hd-priority" :class="{ 'is-active': ticketType === 'service_request' }" data-p="medium">
+                <input type="radio" name="ticket_type" value="service_request" x-model="ticketType" />
+                <strong>Service request</strong>
+                <span>User wants something</span>
+              </label>
+              <label class="hd-priority" :class="{ 'is-active': ticketType === 'problem' }" data-p="critical">
+                <input type="radio" name="ticket_type" value="problem" x-model="ticketType" />
+                <strong>Problem</strong>
+                <span>Root cause / many incidents</span>
+              </label>
+            </div>
           </div>
 
           <div>
@@ -105,11 +127,24 @@
         <div class="hd-section-head">
           <span class="hd-section-num">2</span>
           <div>
+            {% if employee_mode %}
+            <h2>Your request</h2>
+            <p>Tickets are filed under your account. IT Help Desk will pick them up from the queue.</p>
+            {% else %}
             <h2>Who needs help?</h2>
             <p>Link a platform user, or enter a walk-in name.</p>
+            {% endif %}
           </div>
         </div>
         <div class="hd-section-body">
+          {% if employee_mode and actor %}
+          <input type="hidden" name="requester_user_id" value="{{ actor.id }}" />
+          <input type="hidden" name="requester_name" value="{{ actor.full_name }}" />
+          {% if actor.department_id %}
+          <input type="hidden" name="department_id" value="{{ actor.department_id }}" />
+          {% endif %}
+          <p class="hd-hint">Requester: <strong>{{ actor.full_name }}</strong>{% if actor.department %} · {{ actor.department.name }}{% endif %}</p>
+          {% else %}
           <div class="hd-field-row">
             <div class="hd-field">
               <span class="hd-field-label">Requester (platform user)</span>
@@ -145,6 +180,7 @@
               </select>
             </div>
           </div>
+          {% endif %}
         </div>
       </section>
 
@@ -163,14 +199,38 @@
               <input name="location" placeholder="Building, floor, or remote" />
             </div>
             <div class="hd-field">
-              <span class="hd-field-label">Related computer</span>
-              <select name="linked_id">
-                <option value="">None</option>
-                {% for c in computers %}
-                <option value="{{ c.id }}">{{ c.hostname }}{% if c.ip_address %} · {{ c.ip_address }}{% endif %}</option>
-                {% endfor %}
+              <span class="hd-field-label">Link type</span>
+              <select name="link_type" x-model="linkType">
+                <option value="none">None</option>
+                <option value="computer">Computer</option>
+                <option value="printer">Printer</option>
+                <option value="server">Server</option>
+                <option value="network_device">Network device</option>
+                <option value="asset">Asset</option>
               </select>
             </div>
+          </div>
+          <div class="hd-field" x-show="linkType === 'computer'">
+            <span class="hd-field-label">Related computer</span>
+            <select name="link_id" :disabled="linkType !== 'computer'">
+              <option value="">None</option>
+              {% for c in computers %}
+              <option value="{{ c.id }}">{{ c.hostname }}{% if c.ip_address %} · {{ c.ip_address }}{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="hd-field" x-show="linkType !== 'computer' && linkType !== 'none'">
+            <span class="hd-field-label">Object ID</span>
+            <input type="number" name="link_id" min="1" placeholder="Inventory / asset ID" :disabled="linkType === 'computer' || linkType === 'none'" />
+          </div>
+          <div class="hd-field" x-show="ticketType === 'incident'">
+            <span class="hd-field-label">Link to problem (optional)</span>
+            <select name="problem_id">
+              <option value="">— None —</option>
+              {% for p in problems %}
+              <option value="{{ p.id }}">{{ p.ticket_number }} · {{ p.subject }}</option>
+              {% endfor %}
+            </select>
           </div>
         </div>
       </section>
@@ -218,10 +278,10 @@
 <script>
 function ticketCreate() {
   var priorities = [
-    { id: "low", label: "Low", sla: "72h SLA", hours: 72 },
-    { id: "medium", label: "Medium", sla: "24h SLA", hours: 24 },
-    { id: "high", label: "High", sla: "8h SLA", hours: 8 },
-    { id: "critical", label: "Critical", sla: "4h SLA", hours: 4 },
+    { id: "low", label: "Low", sla: "72h resolve", hours: 72 },
+    { id: "medium", label: "Medium", sla: "24h resolve", hours: 24 },
+    { id: "high", label: "High", sla: "8h resolve", hours: 8 },
+    { id: "critical", label: "Critical", sla: "2h resolve · 15m respond", hours: 2 },
   ];
   var categories = [
     { id: "endpoint", label: "Endpoint", icon: "fa-laptop" },
@@ -231,12 +291,15 @@ function ticketCreate() {
     { id: "vpn", label: "VPN", icon: "fa-shield-halved" },
     { id: "email", label: "Email", icon: "fa-envelope" },
     { id: "server", label: "Server", icon: "fa-server" },
+    { id: "software", label: "Software", icon: "fa-cube" },
     { id: "other", label: "Other", icon: "fa-circle-question" },
   ];
   return {
     subject: "",
     priority: "medium",
     category: "other",
+    ticketType: "incident",
+    linkType: "none",
     priorities: priorities,
     categories: categories,
     get priorityLabel() {

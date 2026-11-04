@@ -1,33 +1,200 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, status_badge, detail_row %}
 
-{% block title %}Monitor details{% endblock %}
-{% block page_title %}Monitor details{% endblock %}
+{% block title %}Monitor · {{ device.name or device.hostname }}{% endblock %}
+{% block page_title %}{{ device.name or device.hostname }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/monitoring.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('monitoring.index') }}">Monitoring</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ device.name or device.hostname }}</span>
+{% endblock %}
 
 {% block content %}
-{% call page_header("Monitor details", "Operational profile and related activity.", "{{ url_for('monitoring.index') }}", "Edit", "fa-pen") %}{% endcall %}
+<div class="sw-page mon-page" x-data="{ view: {{ view | tojson }} }" x-cloak x-init="$nextTick(() => initDeviceCharts())">
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon"><i class="fas fa-{% if kind == 'server' %}server{% elif kind == 'network' %}network-wired{% else %}desktop{% endif %}"></i></div>
+      <div>
+        <h1>{{ device.name or device.hostname }}</h1>
+        <p class="sw-hero-sub">{{ kind|title }} monitoring · {{ device.ip or '—' }} · Last seen {{ device.last_seen or '—' }}</p>
+        <div class="sw-hero-badges">
+          <span class="sw-badge {% if device.status == 'Online' %}sw-badge--success{% elif device.status == 'Warning' %}sw-badge--warning{% else %}sw-badge--danger{% endif %}">{{ device.status }}</span>
+          <span class="sw-badge sw-badge--muted">CPU {{ device.cpu or 0 }}%</span>
+          <span class="sw-badge sw-badge--muted">RAM {{ device.ram or 0 }}%</span>
+        </div>
+      </div>
+    </div>
+    <div class="sw-hero-actions">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="alert('Remote session via UITOP Agent (coming soon)')"><i class="fas fa-desktop"></i> Remote</button>
+      <a href="{{ detail.infra_url }}" class="btn btn-primary btn-sm">Open in Infrastructure</a>
+      <a href="{{ url_for('monitoring.index', view='live') }}" class="btn btn-ghost btn-sm">Fleet</a>
+    </div>
+  </section>
 
-<div class="detail-layout">
-  <section class="panel detail-card">
-    <header class="card-header">
-      <h2>Overview</h2>
-      {{ status_badge("Online") }}
-    </header>
-    <dl class="detail-list">
-      {{ detail_row("Name", "Demo Monitor 01") }}
-      {{ detail_row("Identifier", "UITOP-DEMO-001") }}
-      {{ detail_row("Owner", "IT Operations") }}
-      {{ detail_row("Department", "Corporate Services") }}
-      {{ detail_row("Last updated", "Today 09:42") }}
-    </dl>
-  </section>
-  <section class="panel detail-card">
-    <header class="card-header"><h2>Related</h2></header>
-    <ul class="related-list">
-      <li><a href="{{ url_for('monitoring.index') }}">Back to Monitoring</a></li>
-      <li><a href="{{ url_for('monitoring.index') }}">Open monitoring</a></li>
-      <li><a href="{{ url_for('ai.index') }}">Ask AI about this record</a></li>
-    </ul>
-  </section>
+  <nav class="sw-subtabs">
+    {% for key, label in [
+      ('overview','Overview'),
+      ('performance','Live Performance'),
+      ('software','Installed Software'),
+      ('processes','Processes'),
+      ('services','Services'),
+      ('alerts','Alerts'),
+      ('history','History'),
+      ('remote','Remote Actions')
+    ] %}
+    <button type="button" class="sw-subtab" :class="{ 'is-active': view === '{{ key }}' }" @click="view = '{{ key }}'">{{ label }}</button>
+    {% endfor %}
+  </nav>
+
+  <div class="sw-detail-body">
+    <div x-show="view === 'overview'">
+      <dl class="sw-stat-row">
+        <div class="sw-stat"><dt>CPU</dt><dd>{{ device.cpu or 0 }}%</dd></div>
+        <div class="sw-stat"><dt>Memory</dt><dd>{{ device.ram or 0 }}%</dd></div>
+        <div class="sw-stat"><dt>Disk</dt><dd>{{ device.disk or 0 }}%</dd></div>
+        <div class="sw-stat"><dt>Status</dt><dd>{{ device.status }}</dd></div>
+      </dl>
+      <p class="chart-panel-subtitle" style="margin-top:12px;">Live values from UITOP Agent samples when available; otherwise estate monitoring estimates.</p>
+    </div>
+
+    <div x-show="view === 'performance'" x-cloak>
+      <div class="mon-chart-grid">
+        <div class="mon-chart-card"><h3>CPU</h3><canvas id="devCpu" height="140"></canvas></div>
+        <div class="mon-chart-card"><h3>Memory</h3><canvas id="devMem" height="140"></canvas></div>
+        <div class="mon-chart-card"><h3>Disk</h3><canvas id="devDisk" height="140"></canvas></div>
+      </div>
+    </div>
+
+    <div x-show="view === 'software'" x-cloak>
+      <p class="sw-empty">Installed software inventory lives on the Infrastructure record. <a href="{{ detail.infra_url }}">Open device software tab</a>.</p>
+    </div>
+
+    <div x-show="view === 'processes'" x-cloak>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Process</th><th>Host</th><th>CPU</th><th>RAM</th><th>User</th></tr></thead>
+          <tbody>
+            {% for p in detail.processes %}
+            <tr>
+              <td><code>{{ p.name }}</code></td>
+              <td>{{ p.host }}</td>
+              <td>{{ p.cpu }}%</td>
+              <td>{{ p.ram }}%</td>
+              <td>{{ p.user }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No process snapshot for this device yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div x-show="view === 'services'" x-cloak>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Service</th><th>Host</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for s in detail.services %}
+            <tr>
+              <td><strong>{{ s.name }}</strong></td>
+              <td>{{ s.host }}</td>
+              <td><span class="sw-badge {% if s.status == 'Running' %}sw-badge--success{% else %}sw-badge--danger{% endif %}">{{ s.status }}</span></td>
+              <td><button type="button" class="btn btn-ghost btn-sm" onclick="alert('Restart queued (agent)')">Restart</button></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No services reported.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div x-show="view === 'alerts'" x-cloak>
+      {% for a in detail.alerts %}
+      <article class="mon-alert {% if a.severity in ['critical','error'] %}is-critical{% endif %}">
+        <strong>{{ a.title }}</strong>
+        <p style="margin:0;color:#64748b;font-size:13px;">{{ a.when }} — {{ a.message }}</p>
+      </article>
+      {% else %}
+      <p class="sw-empty">No open alerts for this device.</p>
+      {% endfor %}
+    </div>
+
+    <div x-show="view === 'history'" x-cloak>
+      {% for e in detail.events %}
+      <div class="mon-event">
+        <time>{{ e.when }}</time>
+        <strong>{{ e.message }}</strong>
+        <span style="font-size:12px;color:#64748b;">{{ e.severity }} · {{ e.type }}</span>
+      </div>
+      {% else %}
+      <p class="sw-empty">No events yet.</p>
+      {% endfor %}
+    </div>
+
+    <div x-show="view === 'remote'" x-cloak>
+      <p class="chart-panel-subtitle">Remote actions are queued to the UITOP Agent.</p>
+      <div class="remote-grid">
+        <button type="button" class="remote-btn" onclick="alert('Restart queued')"><i class="fas fa-power-off"></i><strong>Restart</strong><span>Graceful reboot</span></button>
+        <button type="button" class="remote-btn" onclick="alert('Service restart wizard')"><i class="fas fa-gears"></i><strong>Restart Service</strong><span>Windows services</span></button>
+        <button type="button" class="remote-btn" onclick="alert('Remote desktop (future)')"><i class="fas fa-desktop"></i><strong>Remote Connect</strong><span>Agent session</span></button>
+        <button type="button" class="remote-btn" onclick="alert('Diagnostics started')"><i class="fas fa-stethoscope"></i><strong>Collect Diagnostics</strong><span>Bundle logs</span></button>
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+window.__DEV_SERIES__ = {{ detail.series | tojson }};
+function initDeviceCharts() {
+  if (typeof Chart === "undefined") return;
+  var series = window.__DEV_SERIES__ || {};
+  var labels, cpu, mem, disk;
+  if (Array.isArray(series)) {
+    labels = series.map(function (s, i) {
+      if (!s.t) return "#" + (i + 1);
+      try { return new Date(s.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+      catch (e) { return "#" + (i + 1); }
+    });
+    cpu = series.map(function (s) { return s.cpu || 0; });
+    mem = series.map(function (s) { return s.mem || 0; });
+    disk = series.map(function (s) { return s.disk || 0; });
+  } else {
+    labels = series.labels || ["now"];
+    cpu = series.cpu || [{{ device.cpu or 0 }}];
+    mem = series.mem || [{{ device.ram or 0 }}];
+    disk = series.disk || [{{ device.disk or 0 }}];
+  }
+  var mk = function (id, data, color) {
+    var el = document.getElementById(id);
+    if (!el || el._chart) return;
+    el._chart = new Chart(el, {
+      type: "line",
+      data: {
+        labels: labels.length ? labels : ["now"],
+        datasets: [{ data: data, borderColor: color, backgroundColor: color + "22", fill: true, tension: 0.35, borderWidth: 2, pointRadius: data.length > 1 ? 0 : 3 }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { x: { display: labels.length > 1 }, y: { beginAtZero: true, max: 100 } }
+      }
+    });
+  };
+  mk("devCpu", cpu, "#0d9488");
+  mk("devMem", mem, "#3b82f6");
+  mk("devDisk", disk, "#f59e0b");
+}
+</script>
 {% endblock %}

@@ -1,60 +1,230 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
 
-{% block title %}AI Assistant{% endblock %}
-{% block page_title %}AI Assistant{% endblock %}
+{% block title %}IT Copilot{% endblock %}
+{% block page_title %}IT Copilot{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/copilot.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>IT Copilot</span>
+{% endblock %}
 
 {% block content %}
-{% call page_header("AI Assistant", "Manage ai assistant across Umzinyathi IT operations.", "{{ url_for('ai.index') }}", "Add Session", "fa-plus") %}{% endcall %}
+{% set snap = snapshot or {} %}
+<div class="copilot-shell" id="copilot-page" data-session-id="">
+  {# ── Left rail (dense ops) ── #}
+  <aside class="copilot-rail" aria-label="Copilot navigation">
+    <div class="copilot-rail-brand">
+      <div class="copilot-mark" aria-hidden="true">
+        <i class="fas fa-robot"></i>
+      </div>
+      <div>
+        <p class="copilot-rail-name">IT Copilot</p>
+        <p class="copilot-rail-tag">Umzinyathi operations</p>
+      </div>
+    </div>
 
-<div class="kpi-grid">
-  {{ kpi_card("Sessions today", "64", "+12%", "default", "fa-comments") }}
-  {{ kpi_card("Suggestions accepted", "71%", "Ops", "success", "fa-thumbs-up") }}
-  {{ kpi_card("Incidents assisted", "9", "Open tickets", "warning", "fa-life-ring") }}
-  {{ kpi_card("Avg resolve assist", "6m", "Faster triage", "success", "fa-stopwatch") }}
+    <button type="button" class="copilot-new-btn" id="copilot-page-new">
+      <i class="fas fa-plus"></i>
+      <span>New conversation</span>
+    </button>
+
+    <div class="copilot-rail-section">
+      <h2 class="copilot-rail-label">Ask about</h2>
+      <div class="copilot-caps" role="list">
+        <button type="button" class="copilot-cap" role="listitem" data-prompt="How is the IT department doing today?">
+          <span class="copilot-cap-icon" aria-hidden="true"><i class="fas fa-heart-pulse"></i></span>
+          <span class="copilot-cap-text"><strong>Dashboard</strong><small>IT health today</small></span>
+        </button>
+        <button type="button" class="copilot-cap" role="listitem" data-prompt="Show all computers in HR.">
+          <span class="copilot-cap-icon" aria-hidden="true"><i class="fas fa-laptop"></i></span>
+          <span class="copilot-cap-text"><strong>Assets</strong><small>Find devices &amp; owners</small></span>
+        </button>
+        <button type="button" class="copilot-cap" role="listitem" data-prompt="Which computers failed backup today?">
+          <span class="copilot-cap-icon" aria-hidden="true"><i class="fas fa-hard-drive"></i></span>
+          <span class="copilot-cap-text"><strong>Backups</strong><small>Failures &amp; restore</small></span>
+        </button>
+        <button type="button" class="copilot-cap" role="listitem" data-prompt="Show open high-priority tickets.">
+          <span class="copilot-cap-icon" aria-hidden="true"><i class="fas fa-headset"></i></span>
+          <span class="copilot-cap-text"><strong>Helpdesk</strong><small>Tickets &amp; workload</small></span>
+        </button>
+        <button type="button" class="copilot-cap" role="listitem" data-prompt="Show offline computers. Any critical alerts?">
+          <span class="copilot-cap-icon" aria-hidden="true"><i class="fas fa-tower-broadcast"></i></span>
+          <span class="copilot-cap-text"><strong>Monitoring</strong><small>Alerts &amp; offline gear</small></span>
+        </button>
+        <button type="button" class="copilot-cap" role="listitem" data-prompt="Give me today's executive IT summary.">
+          <span class="copilot-cap-icon" aria-hidden="true"><i class="fas fa-briefcase"></i></span>
+          <span class="copilot-cap-text"><strong>Executive</strong><small>Manager briefing</small></span>
+        </button>
+        <button type="button" class="copilot-cap" role="listitem" data-prompt="Show admin actions today.">
+          <span class="copilot-cap-icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
+          <span class="copilot-cap-text"><strong>Audit</strong><small>Who did what today</small></span>
+        </button>
+        <button type="button" class="copilot-cap" role="listitem" data-prompt="Find the printer installation guide.">
+          <span class="copilot-cap-icon" aria-hidden="true"><i class="fas fa-book"></i></span>
+          <span class="copilot-cap-text"><strong>Knowledge</strong><small>Guides &amp; docs</small></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="copilot-rail-section copilot-rail-sessions">
+      <h2 class="copilot-rail-label">Recent</h2>
+      <ul class="copilot-session-list" id="copilot-session-list">
+        {% for s in copilot_sessions %}
+        <li>
+          <button type="button" class="copilot-session-item" data-session-id="{{ s.id }}">
+            <i class="fas fa-comment-dots" aria-hidden="true"></i>
+            <span class="copilot-session-meta">
+              <span class="copilot-session-title">{{ s.title or 'Conversation' }}</span>
+              <span class="copilot-session-time">{{ s.updated_at.strftime('%d %b · %H:%M') if s.updated_at else '' }}</span>
+            </span>
+          </button>
+        </li>
+        {% else %}
+        <li class="copilot-session-empty">Your conversations will appear here.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="copilot-rail-foot">
+      <span class="copilot-pill"><i class="fas fa-shield-halved"></i> RBAC</span>
+      <span class="copilot-pill copilot-pill--live"><i class="fas fa-circle"></i> Live data</span>
+    </div>
+  </aside>
+
+  {# ── Main stage (executive calm) ── #}
+  <section class="copilot-stage" aria-label="IT Copilot chat">
+    <header class="copilot-stage-bar">
+      <div class="copilot-stage-identity">
+        <span class="copilot-pulse" aria-hidden="true"></span>
+        <div>
+          <h1 class="copilot-stage-title">IT Copilot</h1>
+          <p class="copilot-stage-sub">Briefing · search · troubleshooting — one place</p>
+        </div>
+      </div>
+      <div class="copilot-stage-actions">
+        <span class="copilot-hint-chip"><kbd>Enter</kbd> send · <kbd>Shift</kbd>+<kbd>Enter</kbd> newline</span>
+      </div>
+    </header>
+
+    <div class="copilot-page-body" id="copilot-page-body">
+      <div class="copilot-welcome copilot-welcome--page" id="copilot-page-welcome">
+        <div class="copilot-welcome-glow" aria-hidden="true"></div>
+
+        <p class="copilot-eyebrow">Umzinyathi Municipality · IT Operations</p>
+        <h2 class="copilot-welcome-title">Today’s IT briefing</h2>
+        <p class="copilot-welcome-lead">
+          Ask in plain language. I’ll query live UITOP data and answer with clear next steps — without bypassing your permissions.
+        </p>
+
+        <div class="copilot-brief" aria-label="Live snapshot">
+          <div class="copilot-brief-item">
+            <span class="copilot-brief-label">Devices online</span>
+            <strong class="copilot-brief-value">{{ snap.get('computers_online', '—') }}<span>/{{ snap.get('computers_total', '—') }}</span></strong>
+          </div>
+          <div class="copilot-brief-item">
+            <span class="copilot-brief-label">Open tickets</span>
+            <strong class="copilot-brief-value">{{ snap.get('open_tickets', '—') }}</strong>
+          </div>
+          <div class="copilot-brief-item {% if snap.get('high_priority_tickets') %}is-alert{% endif %}">
+            <span class="copilot-brief-label">High / critical</span>
+            <strong class="copilot-brief-value">{{ snap.get('high_priority_tickets', '—') }}</strong>
+          </div>
+          <div class="copilot-brief-item {% if snap.get('printers_offline') %}is-alert{% endif %}">
+            <span class="copilot-brief-label">Printers offline</span>
+            <strong class="copilot-brief-value">{{ snap.get('printers_offline', '—') }}</strong>
+          </div>
+          <div class="copilot-brief-item">
+            <span class="copilot-brief-label">Resolved today</span>
+            <strong class="copilot-brief-value">{{ snap.get('tickets_resolved_today', '—') }}</strong>
+          </div>
+          <div class="copilot-brief-item">
+            <span class="copilot-brief-label">Online health</span>
+            <strong class="copilot-brief-value">{{ snap.get('device_online_pct', '—') }}{% if snap.get('device_online_pct') is not none %}%{% endif %}</strong>
+          </div>
+        </div>
+
+        <div class="copilot-prompt-row">
+          <button type="button" class="copilot-prompt-primary" data-prompt="Give me today's executive IT summary.">
+            <i class="fas fa-file-invoice" aria-hidden="true"></i>
+            <span>Executive summary</span>
+          </button>
+          <button type="button" class="copilot-prompt-card" data-prompt="How is the IT department doing today?">
+            <i class="fas fa-chart-line" aria-hidden="true"></i>
+            <span>How is IT doing today?</span>
+          </button>
+          <button type="button" class="copilot-prompt-card" data-prompt="Show open high-priority tickets.">
+            <i class="fas fa-ticket" aria-hidden="true"></i>
+            <span>High-priority tickets</span>
+          </button>
+          <button type="button" class="copilot-prompt-card" data-prompt="Which computers failed backup today?">
+            <i class="fas fa-hard-drive" aria-hidden="true"></i>
+            <span>Failed backups</span>
+          </button>
+        </div>
+
+        <div class="copilot-ops-grid" aria-label="UITOP operations shortcuts">
+          <a class="copilot-ops-card" href="{{ url_for('monitoring.index') }}">
+            <span class="copilot-ops-icon"><i class="fas fa-heart-pulse"></i></span>
+            <span><strong>Infrastructure</strong><small>View live monitoring</small></span>
+            <i class="fas fa-arrow-right copilot-ops-arrow"></i>
+          </a>
+          <a class="copilot-ops-card" href="{{ url_for('helpdesk.index') }}">
+            <span class="copilot-ops-icon"><i class="fas fa-ticket"></i></span>
+            <span><strong>Service Desk</strong><small>Review tickets &amp; workload</small></span>
+            <i class="fas fa-arrow-right copilot-ops-arrow"></i>
+          </a>
+          <a class="copilot-ops-card" href="{{ url_for('reports.index') }}">
+            <span class="copilot-ops-icon"><i class="fas fa-chart-column"></i></span>
+            <span><strong>Management</strong><small>Open reports &amp; analysis</small></span>
+            <i class="fas fa-arrow-right copilot-ops-arrow"></i>
+          </a>
+        </div>
+
+        <p class="copilot-trust-note"><i class="fas fa-shield-halved"></i> Copilot uses UITOP data available to your role. It does not bypass permissions.</p>
+      </div>
+
+      <div class="copilot-messages copilot-messages--page" id="copilot-page-messages"></div>
+    </div>
+
+    <div class="copilot-typing copilot-typing--page" id="copilot-page-typing" hidden>
+      <span class="copilot-avatar-sm"><i class="fas fa-robot"></i></span>
+      <div class="copilot-typing-label">
+        <span>Checking UITOP data</span>
+        <div class="copilot-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <form class="copilot-composer" id="copilot-page-form" autocomplete="off">
+      <div class="copilot-composer-shell">
+        <textarea
+          id="copilot-page-input"
+          class="copilot-input copilot-composer-input"
+          placeholder="Ask anything about the municipality IT environment…"
+          rows="1"
+          aria-label="Ask IT Copilot"
+          maxlength="2000"
+        ></textarea>
+        <button type="submit" class="copilot-send-btn copilot-composer-send" aria-label="Send">
+          <i class="fas fa-arrow-up"></i>
+        </button>
+      </div>
+      <p class="copilot-composer-note">Live data · role-aware answers · Umzinyathi IT Operations Platform</p>
+    </form>
+  </section>
 </div>
+{% endblock %}
 
-{% call filter_bar("Search ai assistant…") %}
-  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
-  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
-{% endcall %}
-
-<section class="table-panel panel">
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Session</th>
-          <th>User</th>
-          <th>Topic</th>
-          <th>Messages</th>
-          <th>Outcome</th>
-          <th>When</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>AI-8841</td>
-          <td>S. Dlamini</td>
-          <td>VPN troubleshooting</td>
-          <td>12</td>
-          <td>Resolved</td>
-          <td>10:14</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('ai.index') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>AI-8830</td>
-          <td>T. Nkosi</td>
-          <td>License expiry report</td>
-          <td>5</td>
-          <td>Report ready</td>
-          <td>09:40</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('ai.index') }}">View</a></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  {{ pagination(1, 4) }}
-</section>
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.UITOP && UITOP.ai && UITOP.ai.initPage) {
+      UITOP.ai.initPage();
+    }
+  });
+</script>
 {% endblock %}

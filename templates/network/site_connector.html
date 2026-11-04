@@ -1,0 +1,116 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Site Connector{% endblock %}
+{% block page_title %}Site Connector{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workflow.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('network.index') }}">Network</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Site Connector</span>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page wf-page">
+  <header class="sw-header">
+    <div>
+      <h1>Site Connector</h1>
+      <p>Run one always-on PC on the municipality LAN. It scans computers, printers, and network gear and pushes results to this UITOP cloud instance.</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('network.scan') }}" class="btn btn-secondary">Local scan (LAN only)</a>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <section class="sw-panel" style="margin-bottom:1.25rem">
+    <h2 class="chart-panel-title">Why this exists</h2>
+    <p class="chart-panel-subtitle" style="margin:0">
+      After you deploy UITOP to Render, the server cannot see office IP ranges. PC agents still report themselves over HTTPS.
+      Printers and switches need this connector (or manual entry). Point agents and the connector at:
+      <code>{{ server_url }}</code>
+    </p>
+  </section>
+
+  <div class="cat-grid" style="margin-bottom:1.5rem">
+    <article class="cat-card" style="cursor:default">
+      <span class="cat-card-icon"><i class="fas fa-key"></i></span>
+      <strong class="cat-card-name">1. Create enrollment token</strong>
+      <span class="cat-card-sum">Generate a one-time token for the LAN PC. Copy it immediately.</span>
+      <form method="post" action="{{ url_for('network.site_connector_token') }}" style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.5rem">
+        <input type="text" name="label" placeholder="e.g. HQ connector" value="HQ site connector" />
+        <button type="submit" class="btn btn-primary">Generate token</button>
+      </form>
+      {% if raw_token %}
+      <div style="margin-top:0.75rem;padding:0.75rem;border-radius:10px;background:rgba(13,148,136,.08);word-break:break-all">
+        <div class="cat-card-cat">Copy now</div>
+        <code id="enrollToken">{{ raw_token }}</code>
+      </div>
+      {% endif %}
+    </article>
+
+    <article class="cat-card" style="cursor:default">
+      <span class="cat-card-icon"><i class="fas fa-download"></i></span>
+      <strong class="cat-card-name">2. Install on a LAN PC</strong>
+      <span class="cat-card-sum">On an always-on Windows PC with Python 3, run PowerShell as the user that will keep it running:</span>
+      <pre style="margin:0.75rem 0 0;font-size:0.78rem;white-space:pre-wrap;background:#f8fafc;padding:0.75rem;border-radius:8px">irm {{ server_url }}/network/site-connector/install.ps1 | iex
+Install-UitopSiteConnector -Token 'PASTE_TOKEN' -Server '{{ server_url }}' -Site 'HQ'</pre>
+      <p class="cat-card-sum" style="margin-top:0.5rem">Or download <a href="{{ url_for('network.download_site_connector_script') }}">site_connector.py</a> and run:</p>
+      <pre style="margin:0.35rem 0 0;font-size:0.78rem;white-space:pre-wrap;background:#f8fafc;padding:0.75rem;border-radius:8px">python site_connector.py --server {{ server_url }} --token enroll_… --site HQ --once</pre>
+    </article>
+
+    <article class="cat-card" style="cursor:default">
+      <span class="cat-card-icon"><i class="fas fa-desktop"></i></span>
+      <strong class="cat-card-name">3. PC agents (separate)</strong>
+      <span class="cat-card-sum">Each computer still needs the UITOP Agent for rich inventory and “My Devices”. The site connector finds printers/network and unmarked hosts.</span>
+      <a class="cat-card-cta" href="{{ url_for('computers.install_agent') }}">Add device / agent →</a>
+    </article>
+  </div>
+
+  <section class="sw-panel">
+    <header class="chart-panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <h2 class="chart-panel-title">Registered connectors</h2>
+        <p class="chart-panel-subtitle">Last seen from heartbeat / scan ingest.</p>
+      </div>
+    </header>
+    {% if connectors %}
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Site</th>
+            <th>Host</th>
+            <th>Status</th>
+            <th>CIDRs</th>
+            <th>Last scan</th>
+            <th>Last seen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in connectors %}
+          <tr>
+            <td><strong>{{ c.site_name }}</strong><div class="chart-panel-subtitle">{{ c.connector_id }}</div></td>
+            <td>{{ c.hostname or '—' }}{% if c.ip_address %}<div class="chart-panel-subtitle">{{ c.ip_address }}</div>{% endif %}</td>
+            <td><span class="wf-pill wf-pill--{{ c.status }}">{{ c.status }}</span></td>
+            <td>{{ (c.cidrs or [])|join(', ') or '—' }}</td>
+            <td>{{ c.last_scan_at or '—' }}</td>
+            <td>{{ c.last_seen_at or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="wf-empty">No site connectors enrolled yet.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

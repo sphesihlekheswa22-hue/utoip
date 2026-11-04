@@ -1,0 +1,88 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Request restore{% endblock %}
+{% block page_title %}Request restore{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workflow.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('workflows.index') }}">Workflows</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Request restore</span>
+{% endblock %}
+
+{% block content %}
+<section class="wf-form-card">
+  <header>
+    <p class="wf-eyebrow">Workflow · Backup Restore Request</p>
+    <h1>Request a restore</h1>
+    <p>Submit for IT review. Technicians approve, then operators with backup rights execute. Everything is audit-logged.</p>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <ol class="wf-steps-preview">
+    <li class="is-active">You submit</li>
+    <li>IT reviews</li>
+    <li>Restore executed</li>
+    <li>Done</li>
+  </ol>
+
+  <form method="post" class="wf-form">
+    <label>
+      <span>Device / target</span>
+      {% if computers %}
+      <select name="resource_id" id="resSelect">
+        <option value="">— Select detected device —</option>
+        {% for c in computers %}
+        <option value="{{ c.id }}" data-label="{{ c.hostname or c.name }}">{{ c.hostname or c.name }}{% if c.ip or c.ip_address %} · {{ c.ip or c.ip_address }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <input type="text" name="resource_label" id="resLabel" placeholder="Hostname or description" required />
+    </label>
+    <label>
+      <span>What do you need restored?</span>
+      <input type="text" name="title" placeholder="e.g. Restore Presentation.pptx from last Friday" required />
+    </label>
+    <label>
+      <span>Backup point (if known)</span>
+      <input type="text" name="backup_point" placeholder="e.g. Daily backup 2026-07-25" />
+    </label>
+    <label>
+      <span>Priority</span>
+      <select name="priority">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+        <option value="critical">Critical</option>
+      </select>
+    </label>
+    <label>
+      <span>Reason / details</span>
+      <textarea name="reason" rows="4" placeholder="What happened? Which files or folders?"></textarea>
+    </label>
+    <footer>
+      <a class="btn btn-secondary" href="{{ url_for('workflows.index') }}">Cancel</a>
+      <button type="submit" class="btn btn-primary">Submit request</button>
+    </footer>
+  </form>
+</section>
+<script>
+(function(){
+  var sel = document.getElementById('resSelect');
+  var lab = document.getElementById('resLabel');
+  if (sel && lab) {
+    sel.addEventListener('change', function(){
+      var opt = sel.options[sel.selectedIndex];
+      if (opt && opt.dataset.label) lab.value = opt.dataset.label;
+    });
+  }
+})();
+</script>
+{% endblock %}

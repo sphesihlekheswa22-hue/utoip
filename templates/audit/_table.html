@@ -1,0 +1,33 @@
+{% from "components/pager_macros.html" import server_pager with context %}
+{% set events = events if events is defined else (pager.items if pager is defined else payload.events) %}
+<div class="sw-table-wrap">
+  <table class="sw-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>User</th>
+        <th>Action</th>
+        <th>Resource</th>
+        <th>Result</th>
+        <th>Severity</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in events %}
+      <tr>
+        <td>{{ e.when }}<div class="au-muted">{{ e.code }}</div></td>
+        <td><strong>{{ e.actor_name }}</strong><div class="au-muted">{{ e.ip }}</div></td>
+        <td>{{ e.action_label }}<div class="au-muted">{{ e.category }}</div></td>
+        <td>{{ e.resource }}</td>
+        <td class="{% if e.result == 'Failed' %}au-result--failed{% else %}au-result--success{% endif %}">{{ e.result }}</td>
+        <td><span class="au-sev au-sev--{{ e.severity }}">{{ e.severity }}</span></td>
+        <td><a class="btn btn-ghost btn-sm" href="{{ url_for('audit.details', item_id=e.id) }}">Detail</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7">No audit events for this filter.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{{ server_pager(pager) if pager is defined else '' }}

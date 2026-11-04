@@ -1,65 +1,235 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import page_header, kpi_card, filter_bar, status_badge, pagination %}
 
 {% block title %}Maintenance{% endblock %}
 {% block page_title %}Maintenance{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/maintenance.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
 {% block content %}
-{% call page_header("Maintenance", "Manage maintenance across Umzinyathi IT operations.", "{{ url_for('modules.page', module='maintenance', page='create') }}", "Add Maintenance", "fa-plus") %}{% endcall %}
+<div class="sw-page mt-page" x-data="maintenanceHub()" x-cloak>
+  <header class="sw-header">
+    <div>
+      <h1>Maintenance</h1>
+      <p>Preventive &amp; corrective work orders for IT infrastructure — schedules, parts, costs, and asset history.</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('maintenance.create_plan') }}" class="btn btn-ghost"><i class="fas fa-calendar-check"></i> New plan</a>
+      <a href="{{ url_for('maintenance.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> New work order</a>
+    </div>
+  </header>
 
-<div class="kpi-grid">
-  {{ kpi_card("Total", "128", "+3%", "default", "fa-wrench") }}
-  {{ kpi_card("Active", "110", "Healthy", "success", "fa-circle-check") }}
-  {{ kpi_card("Attention", "12", "Review", "warning", "fa-triangle-exclamation") }}
-  {{ kpi_card("Critical", "6", "Urgent", "danger", "fa-bolt") }}
-</div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
 
-{% call filter_bar("Search maintenance…") %}
-  <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-filter"></i> Filters</button>
-  <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</button>
-{% endcall %}
+  <div class="mt-ops-strip" aria-label="Operations shortcuts">
+    <a class="mt-ops-chip" href="{{ url_for('maintenance.index', view='scheduled') }}"><i class="fas fa-calendar-day"></i><div><strong>Scheduled</strong><span>Upcoming maintenance</span></div></a>
+    <a class="mt-ops-chip" href="{{ url_for('maintenance.index', view='work_orders') }}"><i class="fas fa-screwdriver-wrench"></i><div><strong>Work Orders</strong><span>Active field work</span></div></a>
+    <a class="mt-ops-chip" href="{{ url_for('maintenance.index', view='plans') }}"><i class="fas fa-rotate"></i><div><strong>Plans</strong><span>Recurring maintenance</span></div></a>
+    <a class="mt-ops-chip" href="{{ url_for('maintenance.index', view='reports') }}"><i class="fas fa-chart-line"></i><div><strong>Reports</strong><span>Maintenance performance</span></div></a>
+  </div>
 
-<section class="table-panel panel">
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Owner</th>
-          <th>Type</th>
-          <th>Updated</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
+  <nav class="sw-subtabs mt-nav" role="tablist">
+    {% for key, label in [
+      ('dashboard','Dashboard'),
+      ('scheduled','Scheduled'),
+      ('work_orders','Work Orders'),
+      ('completed','Completed'),
+      ('recurring','Recurring'),
+      ('plans','Maintenance Plans'),
+      ('history','History'),
+      ('reports','Reports')
+    ] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('maintenance.index', view=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if view == 'dashboard' %}
+  <div class="sw-kpi-grid mt-kpi-grid">
+    <a class="sw-kpi is-accent" href="{{ url_for('maintenance.index', view='scheduled') }}" style="text-decoration:none;color:inherit;">
+      <p class="sw-kpi-label">Scheduled</p><p class="sw-kpi-value">{{ kpis.scheduled }}</p>
+    </a>
+    <a class="sw-kpi is-warning" href="{{ url_for('maintenance.index', view='work_orders') }}" style="text-decoration:none;color:inherit;">
+      <p class="sw-kpi-label">In Progress</p><p class="sw-kpi-value">{{ kpis.in_progress }}</p>
+    </a>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Completed This Month</p><p class="sw-kpi-value">{{ kpis.completed_month }}</p></article>
+    <a class="sw-kpi is-danger" href="{{ url_for('maintenance.index', view='work_orders') }}" style="text-decoration:none;color:inherit;">
+      <p class="sw-kpi-label">Overdue</p><p class="sw-kpi-value">{{ kpis.overdue }}</p>
+    </a>
+    <article class="sw-kpi"><p class="sw-kpi-label">Preventive</p><p class="sw-kpi-value">{{ kpis.preventive }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Corrective</p><p class="sw-kpi-value">{{ kpis.corrective }}</p></article>
+  </div>
+
+  <div class="mt-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Active queue</h2>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Work Order</th><th>Asset</th><th>Type</th><th>Technician</th><th>Status</th><th>Due</th><th></th></tr></thead>
+          <tbody>
+            {% for w in work_orders if w.status not in ['completed','cancelled'] %}
+            {% if loop.index <= 10 %}
+            <tr>
+              <td><code>{{ w.work_order_number }}</code><div><strong>{{ w.title }}</strong></div></td>
+              <td>{% if w.asset_url %}<a href="{{ w.asset_url }}">{{ w.asset_label }}</a>{% else %}{{ w.asset_label or '—' }}{% endif %}</td>
+              <td><span class="sw-badge {% if w.maintenance_type == 'emergency' %}sw-badge--danger{% elif w.maintenance_type == 'corrective' %}sw-badge--warning{% else %}sw-badge--muted{% endif %}">{{ w.type_label }}</span></td>
+              <td>{{ w.technician }}</td>
+              <td>{{ w.status_label }}{% if w.overdue %} <span class="sw-badge sw-badge--danger">Overdue</span>{% endif %}</td>
+              <td>{{ w.due }}</td>
+              <td><a class="btn btn-ghost btn-sm" href="{{ url_for('maintenance.details', item_id=w.id) }}">Open</a></td>
+            </tr>
+            {% endif %}
+            {% else %}
+            <tr><td colspan="7">No open work orders. <a href="{{ url_for('maintenance.create') }}">Create one</a>.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Maintenance types</h2>
+      <div class="mt-type-cards">
+        <div><strong>{{ kpis.preventive }}</strong><span>Preventive</span><p>Planned before failure</p></div>
+        <div><strong>{{ kpis.corrective }}</strong><span>Corrective</span><p>After something fails</p></div>
+        <div><strong>{{ kpis.emergency }}</strong><span>Emergency</span><p>Critical outages</p></div>
+      </div>
+      <h2 class="chart-panel-title" style="margin-top:20px;">Active plans</h2>
+      <ul class="mt-plan-list">
+        {% for p in plans if p.is_active %}
+        <li><strong>{{ p.name }}</strong><span>{{ p.frequency|replace('_',' ') }} · every {{ p.interval_days }}d</span></li>
+        {% else %}
+        <li>No plans yet.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  {% elif view in ['scheduled','work_orders','completed','history'] %}
+  <div class="sw-toolbar">
+    <div class="sw-search">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="search" placeholder="Search work order, asset, technician…" x-model="q" />
+    </div>
+    <select x-model="typeFilter">
+      <option value="">All types</option>
+      <option value="preventive">Preventive</option>
+      <option value="corrective">Corrective</option>
+      <option value="emergency">Emergency</option>
+    </select>
+    <select x-model="statusFilter">
+      <option value="">All statuses</option>
+      <option value="scheduled">Scheduled</option>
+      <option value="in_progress">In progress</option>
+      <option value="on_hold">On hold</option>
+      <option value="completed">Completed</option>
+    </select>
+  </div>
+  <div class="sw-table-wrap">
+    <table class="sw-table">
+      <thead><tr><th>Work Order</th><th>Asset</th><th>Type</th><th>Technician</th><th>Status</th><th>Due</th><th></th></tr></thead>
       <tbody>
-        <tr>
-          <td>Demo Maintenance 1</td>
-          <td>IT Ops</td>
-          <td>Standard</td>
-          <td>Today</td>
-          <td>{{ status_badge('Active') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='maintenance', page='details') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Maintenance 2</td>
-          <td>Infrastructure</td>
-          <td>{{ status_badge('Critical') }}</td>
-          <td>Yesterday</td>
-          <td>{{ status_badge('Warning') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='maintenance', page='details') }}">View</a></td>
-        </tr>
-        <tr>
-          <td>Demo Maintenance 3</td>
-          <td>Help Desk</td>
-          <td>Standard</td>
-          <td>2 days ago</td>
-          <td>{{ status_badge('Online') }}</td>
-          <td class="row-actions"><a class="btn btn-ghost btn-sm" href="{{ url_for('modules.page', module='maintenance', page='details') }}">View</a></td>
-        </tr>
+        <template x-for="w in pagedItems(filtered())" :key="w.id">
+          <tr>
+            <td><code x-text="w.work_order_number"></code><div><strong x-text="w.title"></strong></div></td>
+            <td x-text="w.asset_label || '—'"></td>
+            <td x-text="w.type_label"></td>
+            <td x-text="w.technician"></td>
+            <td>
+              <span x-text="w.status_label"></span>
+              <span class="sw-badge sw-badge--danger" x-show="w.overdue">Overdue</span>
+            </td>
+            <td x-text="w.due"></td>
+            <td><a class="btn btn-ghost btn-sm" :href="'/maintenance/' + w.id">Open</a></td>
+          </tr>
+        </template>
       </tbody>
     </table>
   </div>
-  {{ pagination(1, 4) }}
-</section>
+  {{ alpine_pager('filtered()') }}
+
+  {% elif view == 'plans' or view == 'recurring' %}
+  <div class="mt-plans-grid">
+    {% for p in plans %}
+    <article class="sw-panel mt-plan-card">
+      <h3>{{ p.name }}</h3>
+      <p>{{ p.description or 'Preventive maintenance plan.' }}</p>
+      <dl class="mt-plan-meta">
+        <div><dt>Frequency</dt><dd>{{ p.frequency|replace('_',' ')|title }}</dd></div>
+        <div><dt>Interval</dt><dd>Every {{ p.interval_days }} days</dd></div>
+        <div><dt>Scope</dt><dd>{{ (p.linked_type or 'All assets')|replace('_',' ')|title }}</dd></div>
+        <div><dt>Status</dt><dd>{% if p.is_active %}Active{% else %}Paused{% endif %}</dd></div>
+      </dl>
+      {% if p.checklist_template %}
+      <ul class="mt-mini-check">
+        {% for c in p.checklist_template[:5] %}
+        <li>{{ c }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </article>
+    {% else %}
+    <p>No maintenance plans yet. <a href="{{ url_for('maintenance.create_plan') }}">Create a plan</a> to auto-schedule work orders.</p>
+    {% endfor %}
+  </div>
+
+  {% elif view == 'reports' %}
+  <div class="sw-kpi-grid mt-kpi-grid">
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Completed jobs</p><p class="sw-kpi-value">{{ report.completed_count }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Total cost (completed)</p><p class="sw-kpi-value">R{{ '%.0f'|format(report.cost_total) }}</p></article>
+    <article class="sw-kpi is-danger"><p class="sw-kpi-label">Overdue</p><p class="sw-kpi-value">{{ report.overdue|length }}</p></article>
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">Upcoming</p><p class="sw-kpi-value">{{ report.upcoming|length }}</p></article>
+  </div>
+  <div class="mt-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Most maintained assets</h2>
+      <ol class="mt-rank-list">
+        {% for label, count in report.most_repaired %}
+        <li><span>{{ label }}</span><strong>{{ count }}</strong></li>
+        {% else %}
+        <li>No data yet.</li>
+        {% endfor %}
+      </ol>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Upcoming schedule</h2>
+      <ul class="mt-plan-list">
+        {% for w in report.upcoming %}
+        <li><strong>{{ w.work_order_number }}</strong><span>{{ w.asset_label }} · {{ w.due }}</span></li>
+        {% else %}
+        <li>Nothing scheduled.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function maintenanceHub() {
+  const rows = {{ work_orders | tojson }};
+  return Object.assign({
+    q: '',
+    typeFilter: {{ (type_filter or '') | tojson }},
+    statusFilter: '',
+    init() { this.watchPagerReset(['q', 'typeFilter', 'statusFilter']); },
+    filtered() {
+      const q = (this.q || '').toLowerCase();
+      return rows.filter(w => {
+        if (this.typeFilter && w.maintenance_type !== this.typeFilter) return false;
+        if (this.statusFilter && w.status !== this.statusFilter) return false;
+        if (!q) return true;
+        const hay = [w.work_order_number, w.title, w.asset_label, w.technician, w.type_label, w.status_label].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+    }
+  }, UITOP.createPager(10));
+}
+</script>
 {% endblock %}

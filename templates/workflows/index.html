@@ -1,0 +1,79 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Workflows{% endblock %}
+{% block page_title %}Workflows{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/workflow.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="sw-page wf-page">
+  <header class="sw-header">
+    <div>
+      <h1>{% if is_employee %}My Requests{% else %}Workflows{% endif %}</h1>
+      <p>{% if is_employee %}Track catalog and restore requests. IT reviews and fulfills them.{% else %}Approval and execution queues for catalog and restore requests.{% endif %}</p>
+    </div>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('catalog.index') }}" class="btn btn-primary"><i class="fas fa-store"></i> Request Catalog</a>
+      <a href="{{ url_for('workflows.restore_request') }}" class="btn btn-secondary"><i class="fas fa-rotate-left"></i> Request restore</a>
+      {% if not is_employee %}
+      <a href="{{ url_for('tasks.index', view='queue') }}" class="btn btn-secondary">Open tasks</a>
+      {% endif %}
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <nav class="sw-subtabs">
+    {% if is_employee %}
+    <a class="sw-subtab is-active" href="{{ url_for('workflows.index') }}">My requests</a>
+    {% else %}
+    <a class="sw-subtab {% if view == 'queue' %}is-active{% endif %}" href="{{ url_for('workflows.index', view='queue') }}">Queue</a>
+    <a class="sw-subtab {% if view == 'mine' %}is-active{% endif %}" href="{{ url_for('workflows.index', view='mine') }}">My submissions</a>
+    {% endif %}
+  </nav>
+
+  <section class="sw-panel">
+    {% if instances %}
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
+          <tr>
+            <th>Number</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Step</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in instances %}
+          <tr>
+            <td><a href="{{ url_for('workflows.details', item_id=i.id) }}"><strong>{{ i.number }}</strong></a></td>
+            <td>{{ i.title }}</td>
+            <td>{{ i.definition_name }}</td>
+            <td>{{ i.current_step_key }}</td>
+            <td><span class="wf-pill wf-pill--{{ i.status }}">{{ i.status|replace('_',' ') }}</span></td>
+            <td>{{ i.priority }}</td>
+            <td>{{ (i.updated_at or '')[:16]|replace('T',' ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="wf-empty">
+      <h3>No workflow requests yet</h3>
+      <p>Start with a backup restore request — IT will review, then execute.</p>
+      <a class="btn btn-primary" href="{{ url_for('workflows.restore_request') }}">Request restore</a>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

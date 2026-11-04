@@ -1,0 +1,99 @@
+/* UITOP — Audit Logs */
+
+.au-page {
+  --au-line: color-mix(in srgb, #0f766e 12%, #e2e8f0);
+  --au-muted: #64748b;
+  --au-ink: #0f172a;
+}
+
+.au-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.au-nav { flex-wrap: wrap; }
+
+.au-dash-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .au-dash-grid { grid-template-columns: 1fr; }
+}
+
+.au-muted { color: var(--au-muted); font-size: 12px; }
+
+.au-sev {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.au-sev--high { background: #fef2f2; color: #b91c1c; }
+.au-sev--medium { background: #fffbeb; color: #b45309; }
+.au-sev--low { background: #eff6ff; color: #1d4ed8; }
+.au-sev--info { background: #f1f5f9; color: #475569; }
+
+.au-result--success { color: #047857; font-weight: 600; }
+.au-result--failed { color: #b91c1c; font-weight: 600; }
+
+.au-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.au-legend article {
+  border: 1px solid var(--au-line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.au-legend h3 { margin: 0 0 4px; font-size: 0.92rem; }
+
+.au-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.au-filters select,
+.au-filters input {
+  border: 1px solid var(--au-line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  background: #fff;
+}
+
+.au-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.au-field {
+  border: 1px solid var(--au-line);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+.au-field dt { margin: 0; font-size: 11px; color: var(--au-muted); }
+.au-field dd { margin: 4px 0 0; font-weight: 600; color: var(--au-ink); }
+
+.au-meta {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow: auto;
+  white-space: pre-wrap;
+}

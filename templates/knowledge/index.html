@@ -4,8 +4,23 @@
 {% block title %}Knowledge Base{% endblock %}
 {% block page_title %}Knowledge Base{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/knowledge.css') }}" />
+{% endblock %}
+
 {% block content %}
 {% call page_header("Knowledge Base", "Manage knowledge base across Umzinyathi IT operations.", "{{ url_for('modules.page', module='knowledge', page='create') }}", "Add Knowledge Base", "fa-plus") %}{% endcall %}
+
+<div class="knowledge-intro">
+  <div class="knowledge-intro__copy"><strong>IT Knowledge Centre</strong><p>Central reference for procedures, operational guidance, troubleshooting and support knowledge.</p></div>
+</div>
+
+<div class="knowledge-status-strip">
+  <div class="knowledge-status is-success"><i class="fas fa-circle-check"></i><div><strong>Knowledge available</strong><span>Central IT reference</span></div></div>
+  <div class="knowledge-status"><i class="fas fa-book-open"></i><div><strong>Operational guides</strong><span>Procedures and standards</span></div></div>
+  <div class="knowledge-status is-warning"><i class="fas fa-clock"></i><div><strong>Review required</strong><span>Content needs attention</span></div></div>
+  <div class="knowledge-status is-danger"><i class="fas fa-triangle-exclamation"></i><div><strong>Critical guidance</strong><span>Priority support content</span></div></div>
+</div>
 
 <div class="kpi-grid">
   {{ kpi_card("Total", "128", "+3%", "default", "fa-book-open") }}

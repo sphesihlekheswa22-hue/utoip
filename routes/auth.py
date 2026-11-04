@@ -17,6 +17,13 @@ PUBLIC_ENDPOINTS = {
     "auth.verify_otp",
     "auth.mfa",
     "static",
+    # Agent bootstrap on other PCs (no login)
+    "computers.download_agent_script",
+    "computers.download_install_ps1",
+    "computers.download_agent_exe",
+    # Site connector bootstrap on LAN PCs (no login)
+    "network.download_site_connector_script",
+    "network.download_site_connector_ps1",
 }
 
 
@@ -33,21 +40,29 @@ def establish_session(user_dict: dict, tokens: dict) -> None:
     session.clear()
     session.permanent = True
     roles = user_dict.get("roles") or []
+    role_keys = [str(r.get("name")) for r in roles if isinstance(r, dict) and r.get("name")]
     if user_dict.get("is_super_admin"):
         role_label = "Super Admin"
-    elif roles:
-        role_label = str(roles[0].get("name") or "User").replace("_", " ").title()
+    elif role_keys:
+        from uitop.services.users_view import ROLE_LABELS
+
+        role_label = ROLE_LABELS.get(role_keys[0], role_keys[0].replace("_", " ").title())
     else:
         role_label = "User"
+    permissions = list(user_dict.get("permissions") or [])
     session["user_id"] = user_dict["id"]
+    session["role_keys"] = role_keys
     session["user"] = {
         "id": user_dict["id"],
         "email": user_dict["email"],
         "name": user_dict["full_name"],
         "role": role_label,
+        "role_keys": role_keys,
         "initials": _initials(user_dict.get("full_name") or ""),
         "is_super_admin": bool(user_dict.get("is_super_admin")),
+        "permissions": permissions,
     }
+    session["permissions"] = permissions
     session["access_token"] = tokens.get("access_token")
     session["refresh_token"] = tokens.get("refresh_token")
 
@@ -55,14 +70,18 @@ def establish_session(user_dict: dict, tokens: dict) -> None:
 @bp.get("/")
 def root():
     if session.get("user_id"):
-        return redirect(url_for("dashboard.index"))
+        from uitop.core.ui_rbac import safe_home_endpoint
+
+        return redirect(url_for(safe_home_endpoint()))
     return redirect(url_for("auth.login"))
 
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id") and request.method == "GET":
-        return redirect(url_for("dashboard.index"))
+        from uitop.core.ui_rbac import safe_home_endpoint
+
+        return redirect(url_for(safe_home_endpoint()))
 
     if request.method == "POST":
         email = (request.form.get("email") or "").strip()
@@ -74,9 +93,11 @@ def login():
         try:
             result = auth_service.login(email, password)
             establish_session(result["user"], result["tokens"])
-            next_url = request.args.get("next") or url_for("dashboard.index")
+            from uitop.core.ui_rbac import safe_home_endpoint
+
+            next_url = request.args.get("next") or url_for(safe_home_endpoint())
             if not str(next_url).startswith("/"):
-                next_url = url_for("dashboard.index")
+                next_url = url_for(safe_home_endpoint())
             return redirect(next_url)
         except APIError as err:
             flash(err.message, "error")

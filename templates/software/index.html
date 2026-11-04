@@ -3,6 +3,8 @@
 {% block title %}Software{% endblock %}
 {% block page_title %}Software Management{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
@@ -73,7 +75,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="s in filteredCatalog" :key="s.id">
+          <template x-for="s in pagedItems(filteredCatalog)" :key="s.id">
             <tr>
               <td>
                 <div class="sw-name">
@@ -105,6 +107,7 @@
         </tbody>
       </table>
       <p class="sw-empty" x-show="filteredCatalog.length === 0">No catalog titles match.</p>
+      {{ alpine_pager('filteredCatalog') }}
     </div>
   </section>
 
@@ -118,7 +121,7 @@
       </div>
     </div>
     <div class="sw-pc-grid">
-      <template x-for="pc in filteredComputers" :key="pc.computer_id">
+      <template x-for="pc in pagedItems(filteredComputers)" :key="pc.computer_id">
         <article class="sw-pc-card">
           <h3 x-text="pc.hostname"></h3>
           <p class="meta"><span x-text="pc.user"></span> · <span x-text="pc.department"></span></p>
@@ -131,6 +134,7 @@
       </template>
     </div>
     <p class="sw-empty" x-show="filteredComputers.length === 0">No endpoints match.</p>
+    {{ alpine_pager('filteredComputers') }}
   </section>
 
   {# ── Deployment ── #}
@@ -350,13 +354,14 @@ window.__SOFTWARE__ = {{ payload | tojson }};
 function softwareHub() {
   var data = window.__SOFTWARE__ || {};
   var params = new URLSearchParams(window.location.search);
-  return {
+  return Object.assign({
     data: data,
     tab: params.get("tab") || {{ tab | tojson }},
     q: "",
     qInstalled: "",
     catFilter: "",
     approvedFilter: "",
+    init() { this.watchPagerReset(['q', 'qInstalled', 'catFilter', 'approvedFilter', 'tab']); },
     tabs: [
       { id: "catalog", label: "Software Catalog" },
       { id: "installed", label: "Installed Software" },
@@ -400,7 +405,7 @@ function softwareHub() {
     toast: function (msg) {
       alert(msg);
     },
-  };
+  }, UITOP.createPager(10));
 }
 </script>
 {% endblock %}

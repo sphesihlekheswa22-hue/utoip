@@ -3,6 +3,8 @@
 {% block title %}Files{% endblock %}
 {% block page_title %}Files{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}" />
@@ -84,7 +86,7 @@
             </tr>
           </thead>
           <tbody>
-            <template x-for="f in filtered" :key="f.id">
+            <template x-for="f in pagedItems(filtered)" :key="f.id">
               <tr>
                 <td>
                   <div class="sw-name">
@@ -130,6 +132,7 @@
           </tbody>
         </table>
         <p class="sw-empty" x-show="filtered.length === 0">No repository files match. Upload and link artifacts to infrastructure and assets.</p>
+        {{ alpine_pager('filtered') }}
       </div>
     </section>
   </div>
@@ -198,13 +201,14 @@
 <script>
 window.__FILES__ = {{ payload | tojson }};
 function filesHub() {
-  return {
+  return Object.assign({
     data: window.__FILES__ || {},
     q: {{ q | tojson }},
     cat: {{ category | tojson }},
     typeFilter: "",
     sharedOnly: false,
     showUpload: false,
+    init() { this.watchPagerReset(['q', 'cat', 'typeFilter', 'sharedOnly']); },
     setCat(name) {
       this.cat = name;
       var url = new URL(window.location.href);
@@ -232,7 +236,7 @@ function filesHub() {
         return [f.name, f.category, f.uploaded_by, f.description, links].concat(f.tags || []).join(" ").toLowerCase().indexOf(q) !== -1;
       });
     },
-  };
+  }, UITOP.createPager(10));
 }
 </script>
 {% endblock %}

@@ -20,11 +20,29 @@ def register_blueprints(app):
     from routes.licenses import bp as licenses_bp
     from routes.vendors import bp as vendors_bp
     from routes.files import bp as files_bp
+    from routes.documents import bp as documents_bp
+    from routes.workspace import bp as workspace_bp
+    from routes.workflows import bp as workflows_bp
+    from routes.workflows import tasks_bp
+    from routes.catalog import bp as catalog_bp
     from routes.network import bp as network_bp
     from routes.printers import bp as printers_bp
+    from routes.maintenance import bp as maintenance_bp
+    from routes.security import bp as security_bp
+    from routes.calendar import bp as calendar_bp
+    from routes.analysis import bp as analysis_bp
+    from routes.audit import bp as audit_bp
     from routes.modules import bp as modules_bp
+    from routes.discovery import bp as discovery_bp
+    from routes.profile import bp as profile_bp
+    from routes.notifications import bp as notifications_bp
+    from routes.employee import bp as employee_bp
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(discovery_bp)
+    app.register_blueprint(profile_bp)
+    app.register_blueprint(notifications_bp)
+    app.register_blueprint(employee_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(computers_bp)
     app.register_blueprint(servers_bp)
@@ -35,13 +53,23 @@ def register_blueprints(app):
     app.register_blueprint(licenses_bp)
     app.register_blueprint(vendors_bp)
     app.register_blueprint(files_bp)
+    app.register_blueprint(documents_bp)
+    app.register_blueprint(workspace_bp)
+    app.register_blueprint(workflows_bp)
+    app.register_blueprint(tasks_bp)
+    app.register_blueprint(catalog_bp)
     app.register_blueprint(backup_bp)
     app.register_blueprint(restore_bp)
     app.register_blueprint(monitoring_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(analytics_bp)
+    app.register_blueprint(analysis_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(ai_bp)
     app.register_blueprint(helpdesk_bp)
+    app.register_blueprint(maintenance_bp)
+    app.register_blueprint(security_bp)
+    app.register_blueprint(calendar_bp)
+    app.register_blueprint(audit_bp)
     app.register_blueprint(modules_bp)

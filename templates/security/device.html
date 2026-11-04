@@ -1,0 +1,136 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ device.hostname }} · Security{% endblock %}
+{% block page_title %}{{ device.hostname }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/security.css') }}" />
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('security.index') }}">Security</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ device.hostname }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page sec-page" x-data="{ view: {{ view | tojson }} }" x-cloak>
+  <section class="sw-hero">
+    <div class="sw-hero-main">
+      <div class="sw-hero-icon"><i class="fas fa-shield-halved"></i></div>
+      <div>
+        <h1>{{ device.hostname }}</h1>
+        <p class="sw-hero-sub">{{ device.os or 'Endpoint' }} · {{ device.ip or '—' }} · Compliance {{ posture.compliance_score }}%</p>
+        <div class="sw-hero-badges">
+          <span class="sw-badge {% if posture.is_protected %}sw-badge--success{% else %}sw-badge--danger{% endif %}">{{ posture.status_label }}</span>
+          <span class="sw-badge sw-badge--muted">Risk {{ posture.risk_score }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="sw-hero-actions">
+      <a href="{{ device.url }}" class="btn btn-ghost btn-sm">Open computer</a>
+      <a href="{{ url_for('security.index', view='devices') }}" class="btn btn-ghost btn-sm">All devices</a>
+    </div>
+  </section>
+
+  <nav class="sw-subtabs">
+    {% for key, label in [
+      ('overview','Overview'),
+      ('antivirus','Antivirus'),
+      ('firewall','Firewall'),
+      ('bitlocker','BitLocker'),
+      ('updates','Windows Updates'),
+      ('events','Security Events'),
+      ('compliance','Compliance')
+    ] %}
+    <button type="button" class="sw-subtab" :class="{ 'is-active': view === '{{ key }}' }" @click="view = '{{ key }}'">{{ label }}</button>
+    {% endfor %}
+  </nav>
+
+  <div class="sw-detail-body">
+    <div x-show="view === 'overview'">
+      <dl class="sw-stat-row">
+        <div class="sw-stat"><dt>Compliance</dt><dd>{{ posture.compliance_score }}%</dd></div>
+        <div class="sw-stat"><dt>Risk</dt><dd>{{ posture.risk_score }}</dd></div>
+        <div class="sw-stat"><dt>Antivirus</dt><dd>{% if posture.antivirus_enabled %}On{% else %}Off{% endif %}</dd></div>
+        <div class="sw-stat"><dt>Firewall</dt><dd>{% if posture.firewall_enabled %}On{% else %}Off{% endif %}</dd></div>
+        <div class="sw-stat"><dt>BitLocker</dt><dd>{% if posture.bitlocker_enabled %}On{% else %}Off{% endif %}</dd></div>
+        <div class="sw-stat"><dt>Reported</dt><dd>{{ posture.reported }}</dd></div>
+      </dl>
+      {% if detail.threats or detail.vulnerabilities %}
+      <h3 class="fr-section-title" style="margin-top:16px;">Open findings</h3>
+      <ul class="sec-finding-list">
+        {% for t in detail.threats if t.status in ['open','investigating'] %}
+        <li><span class="sw-badge sw-badge--danger">Threat</span> {{ t.title }}</li>
+        {% endfor %}
+        {% for v in detail.vulnerabilities if v.status == 'open' %}
+        <li><span class="sw-badge sw-badge--warning">Vuln</span> {{ v.title }}{% if v.cve_id %} · {{ v.cve_id }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+
+    <div x-show="view === 'antivirus'">
+      <div class="sec-score-stack" style="max-width:420px;">
+        <div><span>Product</span><strong>{{ posture.antivirus_name or '—' }}</strong></div>
+        <div><span>Status</span><strong>{% if posture.antivirus_enabled %}Enabled{% else %}<span class="sec-alert-text">Disabled</span>{% endif %}</strong></div>
+        <div><span>Virus definitions</span><strong>{% if posture.antivirus_definitions_ok %}Updated{% else %}Outdated{% endif %}</strong></div>
+        <div><span>Last scan</span><strong>{{ posture.last_scan }}</strong></div>
+      </div>
+    </div>
+
+    <div x-show="view === 'firewall'">
+      <div class="sec-score-stack" style="max-width:420px;">
+        <div><span>Windows Firewall</span><strong>{% if posture.firewall_enabled %}Enabled{% else %}<span class="sec-alert-text">Disabled</span>{% endif %}</strong></div>
+        <div><span>Inbound / outbound</span><strong>Agent-reported profile</strong></div>
+      </div>
+      {% if not posture.firewall_enabled %}
+      <p class="sec-ai sec-ai--danger" style="margin-top:12px;"><strong>Critical</strong><p>Firewall disabled — open a Help Desk ticket and re-enable immediately.</p></p>
+      {% endif %}
+    </div>
+
+    <div x-show="view === 'bitlocker'">
+      <div class="sec-score-stack" style="max-width:420px;">
+        <div><span>BitLocker</span><strong>{% if posture.bitlocker_enabled %}Enabled{% else %}Disabled{% endif %}</strong></div>
+        <div><span>Policy</span><strong>Required on corporate endpoints</strong></div>
+      </div>
+    </div>
+
+    <div x-show="view === 'updates'">
+      <div class="sec-score-stack" style="max-width:420px;">
+        <div><span>Windows Updated</span><strong>{% if posture.windows_updated %}Yes{% else %}No{% endif %}</strong></div>
+        <div><span>Pending updates</span><strong>{{ posture.pending_updates }}</strong></div>
+      </div>
+    </div>
+
+    <div x-show="view === 'events'">
+      <ol class="sec-timeline">
+        {% for a in detail.events %}
+        <li>
+          <time>{{ a.when }}</time>
+          <div><strong>{{ a.message }}</strong><span>{{ a.type_label }}</span></div>
+        </li>
+        {% else %}
+        <li><div>No security events for this device.</div></li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    <div x-show="view === 'compliance'">
+      <ul class="sec-check-list">
+        {% for c in detail.checks %}
+        <li class="{% if c.ok %}is-ok{% else %}is-bad{% endif %}">
+          <i class="fas {% if c.ok %}fa-circle-check{% else %}fa-circle-xmark{% endif %}"></i>
+          <div><strong>{{ c.name }}</strong><span>{{ c.detail }}</span></div>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="sec-muted" style="margin-top:12px;">Overall compliance for this device: <strong>{{ posture.compliance_score }}%</strong></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -3,6 +3,8 @@
 {% block title %}Vendors{% endblock %}
 {% block page_title %}Vendors{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
@@ -73,7 +75,7 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="v in filtered" :key="v.id">
+          <template x-for="v in pagedItems(filtered)" :key="v.id">
             <tr>
               <td>
                 <div class="sw-name">
@@ -112,6 +114,7 @@
         </tbody>
       </table>
       <p class="sw-empty" x-show="filtered.length === 0">No vendors match.</p>
+      {{ alpine_pager('filtered') }}
     </div>
   </section>
 </div>
@@ -119,12 +122,13 @@
 <script>
 window.__VENDORS__ = {{ payload | tojson }};
 function vendorsHub() {
-  return {
+  return Object.assign({
     data: window.__VENDORS__ || {},
     q: "",
     catFilter: "",
     statusFilter: "Active",
     sortBy: "name",
+    init() { this.watchPagerReset(['q', 'catFilter', 'statusFilter', 'sortBy']); },
     get filtered() {
       var q = this.q.trim().toLowerCase();
       var cat = this.catFilter;
@@ -148,7 +152,7 @@ function vendorsHub() {
     exportHint: function () {
       alert("Export CSV/PDF will download from the live API once vendors are persisted.");
     },
-  };
+  }, UITOP.createPager(10));
 }
 </script>
 {% endblock %}

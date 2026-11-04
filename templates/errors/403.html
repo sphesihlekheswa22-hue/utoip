@@ -1,10 +1,12 @@
 {% extends "layouts/error.html" %}
-{% block title %}403{% endblock %}
+{% block title %}Access restricted{% endblock %}
 {% block content %}
 <div class="error-card">
-  <p class="error-code">403</p>
-  <h1>Access denied</h1>
-  <p>You do not have permission to view this resource.</p>
-  <a class="btn btn-primary" href="{{ url_for('dashboard.index') }}">Back to dashboard</a>
+  <p class="error-code">Restricted</p>
+  <h1>This area is locked for your role</h1>
+  <p>Your account does not include permission for that page. You can continue from a module you are allowed to use.</p>
+  <a class="btn btn-primary" href="{{ url_for('dashboard.index') if can('dashboard:read') else (url_for('monitoring.index') if can('monitoring:read') else url_for('profile.index')) }}">
+    Go to my home
+  </a>
 </div>
 {% endblock %}

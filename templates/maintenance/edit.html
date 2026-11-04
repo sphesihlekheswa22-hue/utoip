@@ -1,41 +1,70 @@
 {% extends "layouts/base.html" %}
-{% from "components/macros.html" import form_field %}
 
-{% block title %}Edit Maintenance{% endblock %}
-{% block page_title %}Edit Maintenance{% endblock %}
+{% block title %}Edit {{ work_order.work_order_number }}{% endblock %}
+{% block page_title %}Edit work order{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/maintenance.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('maintenance.index') }}">Maintenance</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('maintenance.details', item_id=item_id) }}">{{ work_order.work_order_number }}</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Edit</span>
+{% endblock %}
 
 {% block content %}
-<div class="uf-page uf-page--single">
-  <header class="uf-hero">
-    <div class="uf-hero-inner">
-      <div>
-        <p class="uf-eyebrow"><i class="fas fa-wrench"></i> Maintenance window</p>
-        <h1>Edit Maintenance</h1>
-        <p>Update inventory and ownership details.</p>
-      </div>
+<div class="sw-page mt-page" style="max-width:880px;">
+  <header class="sw-header">
+    <div>
+      <h1>Edit {{ work_order.work_order_number }}</h1>
+      <p>{{ work_order.title }}</p>
     </div>
   </header>
 
-  <form class="uf-card" method="post" data-validate>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <form method="post" class="uf-card" style="padding:0;">
     <section class="uf-section">
-      <div class="uf-section-head">
-        <span class="uf-section-num">1</span>
-        <div>
-          <h2>Details</h2>
-          <p>Keep records current for audits and support.</p>
-        </div>
-      </div>
-      <div class="uf-section-body">
-        <div class="form-grid uf-form-grid">
-          {{ form_field("name", "Name", value=item.name if item is defined else "Demo Maintenance", required=True) }}
-          {{ form_field("status", "Status", value="Active") }}
-          {{ form_field("owner", "Owner", value="IT Operations") }}
-          {{ form_field("notes", "Notes", type="textarea", value="Updated via UITOP.") }}
-        </div>
+      <div class="uf-section-body uf-grid-2">
+        <label class="uf-field uf-span-2"><span class="uf-field-label">Title</span><input name="title" value="{{ work_order.title }}" required /></label>
+        <label class="uf-field"><span class="uf-field-label">Type</span>
+          <select name="maintenance_type">
+            {% for t in types %}<option value="{{ t }}" {% if work_order.maintenance_type == t %}selected{% endif %}>{{ t|title }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Priority</span>
+          <select name="priority">
+            {% for p in priorities %}<option value="{{ p }}" {% if work_order.priority == p %}selected{% endif %}>{{ p|title }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Status</span>
+          <select name="status">
+            {% for s in statuses %}<option value="{{ s }}" {% if work_order.status == s %}selected{% endif %}>{{ s|replace('_',' ')|title }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Technician</span>
+          <select name="technician_user_id">
+            <option value="">Unassigned</option>
+            {% for u in users %}<option value="{{ u.id }}" {% if work_order.technician_user_id == u.id %}selected{% endif %}>{{ u.full_name }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Location</span><input name="location" value="{{ work_order.location or '' }}" /></label>
+        <label class="uf-field"><span class="uf-field-label">Labour (R)</span><input type="number" step="0.01" name="labour_cost" value="{{ work_order.labour_cost }}" /></label>
+        <label class="uf-field"><span class="uf-field-label">Travel (R)</span><input type="number" step="0.01" name="travel_cost" value="{{ work_order.travel_cost }}" /></label>
+        <label class="uf-field"><span class="uf-field-label">Other (R)</span><input type="number" step="0.01" name="other_cost" value="{{ work_order.other_cost }}" /></label>
+        <label class="uf-field uf-span-2"><span class="uf-field-label">Description</span><textarea name="description" rows="4">{{ work_order.description or '' }}</textarea></label>
       </div>
     </section>
-    <div class="uf-actions">
-      <a href="{{ url_for('modules.maintenance_index') }}" class="btn btn-secondary">Cancel</a>
+    <div class="uf-form-actions">
+      <a href="{{ url_for('maintenance.details', item_id=item_id) }}" class="btn btn-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary">Save changes</button>
     </div>
   </form>

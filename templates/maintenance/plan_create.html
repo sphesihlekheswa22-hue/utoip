@@ -1,0 +1,60 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}New maintenance plan{% endblock %}
+{% block page_title %}New maintenance plan{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/maintenance.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('maintenance.index') }}">Maintenance</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>New plan</span>
+{% endblock %}
+
+{% block content %}
+<div class="sw-page mt-page" style="max-width:720px;">
+  <header class="sw-header">
+    <div>
+      <h1>Maintenance plan</h1>
+      <p>Recurring preventive templates that generate work orders on a schedule.</p>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <form method="post" class="uf-card" style="padding:0;">
+    <section class="uf-section">
+      <div class="uf-section-body uf-grid-2">
+        <label class="uf-field uf-span-2"><span class="uf-field-label">Name</span><input name="name" required placeholder="Monthly Server Inspection" /></label>
+        <label class="uf-field"><span class="uf-field-label">Frequency</span>
+          <select name="frequency">
+            {% for f in frequencies %}<option value="{{ f }}" {% if f == 'monthly' %}selected{% endif %}>{{ f|replace('_',' ')|title }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field"><span class="uf-field-label">Interval days</span><input type="number" name="interval_days" min="1" placeholder="Auto from frequency" /></label>
+        <label class="uf-field"><span class="uf-field-label">Scope type</span>
+          <select name="linked_type">
+            <option value="">All assets</option>
+            {% for t in link_types %}<option value="{{ t }}">{{ t|replace('_',' ')|title }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="uf-field uf-span-2"><span class="uf-field-label">Description</span><textarea name="description" rows="3"></textarea></label>
+        <label class="uf-field uf-span-2"><span class="uf-field-label">Checklist template</span>
+          <textarea name="checklist" rows="6" placeholder="One item per line"></textarea>
+        </label>
+      </div>
+    </section>
+    <div class="uf-form-actions">
+      <a href="{{ url_for('maintenance.index', view='plans') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">Create plan</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

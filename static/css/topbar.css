@@ -14,6 +14,7 @@
   backdrop-filter: blur(20px) saturate(1.8);
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
   border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--bg-elevated) 70%, transparent);
   transition:
     background var(--transition-base),
     border-color var(--transition-base);
@@ -76,10 +77,11 @@
 .uitop-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px 8px 4px 4px;
+  gap: 10px;
+  padding: 2px 6px 2px 2px;
   border-radius: var(--radius-lg);
   transition: background var(--transition-fast);
+  max-width: min(280px, 42vw);
 }
 
 .uitop-brand:hover {
@@ -87,21 +89,24 @@
 }
 
 .uitop-brand-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-md);
-  filter: drop-shadow(0 2px 4px rgba(13, 148, 136, 0.2));
-  transition: transform var(--transition-bounce);
+  display: block;
+  height: 52px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+  border-radius: 0;
+  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.12));
+  transition: transform var(--transition-base), filter var(--transition-base);
 }
 
 .uitop-brand:hover .uitop-brand-logo {
-  transform: rotate(-8deg) scale(1.08);
+  transform: scale(1.03);
+  filter: drop-shadow(0 4px 10px rgba(13, 148, 136, 0.22));
 }
 
 .uitop-brand-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
+  display: none;
 }
 
 .uitop-brand-name {

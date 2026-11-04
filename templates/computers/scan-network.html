@@ -5,6 +5,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<script src="{{ url_for('static', filename='js/network-scan.js') }}"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 {% endblock %}
 
@@ -17,13 +18,20 @@
 {% endblock %}
 
 {% block content %}
-<div class="comp-page" x-data="networkScan()" x-cloak>
+<div class="comp-page" x-data="networkScan()" x-init="init()" x-cloak>
   <header class="comp-header">
     <div>
       <h1>Scan Network</h1>
-      <p>Discover devices on municipal LAN segments, then deploy the UITOP agent where it is missing.</p>
+      <p>Live ICMP + TCP discovery on your LAN. Import hosts into UITOP inventory, then deploy the agent where it is missing.</p>
     </div>
     <div class="comp-toolbar-actions">
+      <label class="chart-panel-subtitle" style="display:flex;align-items:center;gap:.5rem;margin:0">
+        Subnet
+        <input type="text" class="form-control" style="width:11rem" x-model="cidr" list="cidr-suggestions" placeholder="192.168.1.0/24" :disabled="scanning" />
+      </label>
+      <datalist id="cidr-suggestions">
+        <template x-for="c in suggested" :key="c"><option :value="c"></option></template>
+      </datalist>
       <button type="button" class="btn btn-primary" @click="startScan()" :disabled="scanning">
         <i class="fas" :class="scanning ? 'fa-spinner fa-spin' : 'fa-satellite-dish'"></i>
         <span x-text="scanning ? 'Scanning…' : 'Start Scan'"></span>
@@ -57,7 +65,7 @@
   <section class="comp-table-wrap" x-show="results.length" x-cloak>
     <div class="comp-table-meta">
       <strong>Discovered computers</strong>
-      <span>Deploy agents to unmanaged hosts</span>
+      <span>Import unmanaged hosts, then deploy the agent</span>
     </div>
     <template x-for="r in results" :key="r.ip">
       <div class="scan-result">
@@ -67,13 +75,17 @@
             <span x-text="r.os"></span> ·
             <code x-text="r.ip"></code> ·
             <span x-text="r.type"></span>
+            <template x-if="r.ports && r.ports.length">
+              <span> · ports <span x-text="r.ports.join(', ')"></span></span>
+            </template>
           </span>
         </div>
         <div class="comp-toolbar-actions">
+          <span class="badge" :class="r.managed ? 'badge-success' : 'badge-warning'" x-text="r.managed ? 'In inventory' : 'New'"></span>
           <span class="badge" :class="r.agent === 'Agent Installed' ? 'badge-success' : 'badge-warning'" x-text="r.agent"></span>
           <span class="badge" :class="r.status === 'Online' ? 'badge-success' : 'badge-muted'" x-text="r.status"></span>
-          <template x-if="r.agent !== 'Agent Installed'">
-            <button type="button" class="btn btn-primary btn-sm" @click="deploy(r)"><i class="fas fa-download"></i> Deploy Agent</button>
+          <template x-if="!r.managed">
+            <button type="button" class="btn btn-primary btn-sm" @click="importHost(r)"><i class="fas fa-plus"></i> Import</button>
           </template>
           <button type="button" class="btn btn-ghost btn-sm" @click="copyLink(r)"><i class="fas fa-link"></i> Copy Installation Link</button>
         </div>
@@ -84,63 +96,19 @@
 
 <script>
 function networkScan() {
-  return {
-    scanning: false,
-    done: false,
-    progress: 0,
-    statusText: "Select a subnet range and start discovery (demo uses HQ VLAN 10.12.0.0/16).",
-    totals: { devices: 0, computers: 0, printers: 0, network: 0, routers: 0, switches: 0, firewalls: 0, unknown: 0, servers: 0 },
-    results: [],
-    startScan() {
-      if (this.scanning) return;
-      this.scanning = true;
-      this.done = false;
-      this.progress = 0;
-      this.results = [];
-      this.statusText = "Probing ARP / ICMP / SMB signatures…";
-      var steps = [
-        { p: 18, msg: "Enumerating DHCP leases…" },
-        { p: 36, msg: "Fingerprinting operating systems…" },
-        { p: 54, msg: "Classifying printers and network gear…" },
-        { p: 72, msg: "Checking UITOP agent presence…" },
-        { p: 90, msg: "Correlating with asset inventory…" },
-        { p: 100, msg: "Scan complete." }
-      ];
-      var i = 0;
-      var self = this;
-      var timer = setInterval(function () {
-        var step = steps[i++];
-        self.progress = step.p;
-        self.statusText = step.msg;
-        if (step.p >= 54) {
-          self.totals = { devices: 42, computers: 18, printers: 6, network: 11, routers: 2, switches: 7, firewalls: 2, unknown: 5, servers: 4 };
-        }
-        if (step.p === 100) {
-          clearInterval(timer);
-          self.scanning = false;
-          self.done = true;
-          self.results = [
-            { hostname: "PC-001", os: "Windows 11", ip: "192.168.1.20", type: "Computer", agent: "Agent Installed", status: "Online" },
-            { hostname: "PC-002", os: "Windows 10", ip: "192.168.1.24", type: "Computer", agent: "Agent Missing", status: "Online" },
-            { hostname: "PC-FIN-088", os: "Windows 11", ip: "10.12.4.88", type: "Computer", agent: "Agent Installed", status: "Online" },
-            { hostname: "LAP-HR-015", os: "Windows 11", ip: "10.12.5.15", type: "Computer", agent: "Agent Missing", status: "Online" },
-            { hostname: "SRV-FILE-02", os: "Windows Server 2022", ip: "10.12.0.62", type: "Server", agent: "Agent Missing", status: "Online" }
-          ];
-        }
-      }, 700);
-    },
-    deploy(r) {
-      if (window.UITOP && UITOP.utils && UITOP.utils.toast) {
-        UITOP.utils.toast("Agent deploy queued for " + r.hostname, "success");
-      }
-      r.agent = "Agent Installed";
-    },
-    copyLink(r) {
-      var link = "https://uitop.umzinyathi.gov.za/agent/install?host=" + encodeURIComponent(r.hostname);
-      navigator.clipboard.writeText(link);
-      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast("Installation link copied", "success");
+  return UITOP.createNetworkScanner({
+    filter: "computers",
+    preferType: "Computer",
+    readyText: "ICMP + TCP probe of your LAN (private /24 only).",
+    mapResults: function (hosts) {
+      return hosts.map(function (h) {
+        return Object.assign({}, h, {
+          hostname: h.hostname || h.name || h.ip,
+          agent: h.agent || (h.managed ? "Agent Missing" : "Agent Missing"),
+        });
+      });
     }
-  };
+  });
 }
 </script>
 {% endblock %}

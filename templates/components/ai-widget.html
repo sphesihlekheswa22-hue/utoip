@@ -1,13 +1,83 @@
-<div class="ai-widget" id="ai-widget" hidden>
-  <header class="ai-widget-header">
-    <strong><i class="fas fa-sparkles"></i> UITOP AI</strong>
-    <button type="button" class="btn btn-ghost btn-sm" data-ai-close aria-label="Close">&times;</button>
-  </header>
-  <div class="ai-widget-body">
-    <p class="ai-bubble">Ask about assets, alerts, or troubleshooting steps.</p>
+<!-- IT Copilot floating widget -->
+<div class="copilot-widget" id="ai-widget" aria-hidden="true" role="dialog" aria-label="IT Copilot">
+  <div class="copilot-header">
+    <div class="copilot-header-left">
+      <span class="copilot-avatar"><i class="fas fa-robot"></i></span>
+      <div>
+        <strong class="copilot-title">IT Copilot</strong>
+        <span class="copilot-subtitle">Umzinyathi IT Operations</span>
+      </div>
+    </div>
+    <div class="copilot-header-actions">
+      <button type="button" class="copilot-icon-btn" id="copilot-new-chat" title="New conversation" aria-label="New chat">
+        <i class="fas fa-plus"></i>
+      </button>
+      <button type="button" class="copilot-icon-btn" data-ai-close aria-label="Close IT Copilot">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
   </div>
-  <form class="ai-widget-form" onsubmit="return false;">
-    <input type="text" placeholder="Ask UITOP AI…" aria-label="AI prompt" />
-    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-paper-plane"></i></button>
+
+  <div class="copilot-body" id="copilot-body">
+    <!-- Welcome state (shown when no messages) -->
+    <div class="copilot-welcome" id="copilot-welcome">
+      <div class="copilot-welcome-icon"><i class="fas fa-robot"></i></div>
+      <h3>Hello, I'm your IT Copilot</h3>
+      <p>Ask me anything about your IT environment — devices, tickets, assets, backups, security, and more.</p>
+      <div class="copilot-suggestions">
+        <button type="button" class="copilot-suggestion" data-prompt="How is the IT department doing today?">
+          How is IT doing today?
+        </button>
+        <button type="button" class="copilot-suggestion" data-prompt="Show all open high-priority tickets.">
+          Open high-priority tickets
+        </button>
+        <button type="button" class="copilot-suggestion" data-prompt="Which computers are offline?">
+          Which computers are offline?
+        </button>
+        <button type="button" class="copilot-suggestion" data-prompt="Show offline printers.">
+          Offline printers
+        </button>
+        <button type="button" class="copilot-suggestion" data-prompt="Give me today's executive IT summary.">
+          Executive IT summary
+        </button>
+        <button type="button" class="copilot-suggestion" data-prompt="Which technician has the most open tickets?">
+          Top technician by tickets
+        </button>
+      </div>
+    </div>
+    <!-- Messages are injected here by ai.js -->
+    <div class="copilot-messages" id="copilot-messages"></div>
+  </div>
+
+  <div class="copilot-typing" id="copilot-typing" hidden>
+    <span class="copilot-avatar-sm"><i class="fas fa-robot"></i></span>
+    <div class="copilot-dots"><span></span><span></span><span></span></div>
+  </div>
+
+  <form class="copilot-form" id="copilot-form" autocomplete="off">
+    <textarea
+      id="copilot-input"
+      class="copilot-input"
+      placeholder="Ask about devices, tickets, assets…"
+      rows="1"
+      aria-label="Ask IT Copilot"
+      maxlength="500"
+    ></textarea>
+    <button type="submit" class="copilot-send-btn" aria-label="Send">
+      <i class="fas fa-paper-plane"></i>
+    </button>
   </form>
 </div>
+
+<!-- Floating trigger button -->
+<button
+  type="button"
+  class="copilot-trigger"
+  data-ai-toggle
+  aria-label="Open IT Copilot"
+  title="IT Copilot"
+  id="copilot-trigger"
+>
+  <i class="fas fa-robot"></i>
+  <span class="copilot-trigger-label">IT Copilot</span>
+</button>

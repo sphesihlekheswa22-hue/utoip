@@ -1,0 +1,142 @@
+/* ============================================================
+   UITOP — Phase 12 Final Integration & UX Consistency
+   Visual/UX consistency layer. No routes, data bindings or IDs changed.
+   ============================================================ */
+
+:root {
+  --uitop-focus: rgba(13,148,136,.28);
+  --uitop-surface-hover: color-mix(in srgb, var(--accent-soft) 38%, var(--bg-elevated));
+}
+
+/* Consistent page rhythm */
+.uitop-content > * + * { margin-top: 18px; }
+.uitop-content .uitop-breadcrumb { margin-top: 0; }
+
+/* Page titles and section headings across modules */
+.page-header, .page-heading, .section-heading, .module-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-header h1, .page-heading h1, .section-heading h2, .module-header h1 {
+  letter-spacing: -.025em;
+}
+
+.page-header p, .page-heading p, .section-heading p, .module-header p {
+  color: var(--text-muted);
+  max-width: 760px;
+}
+
+/* Shared status language */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.status-dot.online, .status-dot.success { color: var(--emerald-500); }
+.status-dot.warning { color: var(--amber-500); }
+.status-dot.offline, .status-dot.danger { color: var(--red-500); }
+.status-dot.info { color: var(--blue-500); }
+
+/* Links and action hierarchy */
+a:not(.btn):not(.sidebar-link) { transition: color .16s ease, opacity .16s ease; }
+a:not(.btn):not(.sidebar-link):hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Tables: readable on every module */
+.table-responsive, .table-wrap { scrollbar-width: thin; }
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.data-table tbody tr { transition: background-color .14s ease; }
+.data-table tbody tr:focus-within { background: var(--uitop-surface-hover); }
+
+/* Empty states */
+.empty-state, .no-results, .empty-state-card {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: 28px;
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-elevated) 76%, transparent);
+}
+
+.empty-state i, .no-results i { font-size: 26px; margin-bottom: 10px; opacity: .7; }
+.empty-state h3, .no-results h3 { color: var(--text-primary); margin: 0 0 5px; }
+.empty-state p, .no-results p { margin: 0; max-width: 520px; }
+
+/* Loading/skeleton consistency */
+.loading, .is-loading { cursor: progress; }
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  border-radius: 7px;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+  animation: uitop-skeleton 1.3s infinite;
+}
+@keyframes uitop-skeleton { to { transform: translateX(100%); } }
+
+/* Forms: consistent error/help states */
+.field-error, .form-error { color: var(--red-500); font-size: 12px; }
+.field.has-error input, .field.has-error select, .field.has-error textarea,
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
+  border-color: var(--red-500) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,.08);
+}
+.field-help, .form-help { color: var(--text-muted); font-size: 11.5px; }
+
+/* Notifications/alerts */
+.alert, .notification, .flash-message {
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+}
+
+/* Modal consistency */
+.modal-content, .modal-dialog, .modal-panel { border-radius: 14px; }
+
+/* Keyboard accessibility */
+:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--uitop-focus);
+}
+
+/* Prevent accidental horizontal overflow from module widgets */
+img, svg, canvas, video { max-width: 100%; }
+.card, .panel, .table-wrap, .form-panel { min-width: 0; }
+
+/* Mobile consistency */
+@media (max-width: 900px) {
+  .uitop-content > * + * { margin-top: 14px; }
+  .page-header, .page-heading, .section-heading, .module-header { gap: 10px; }
+}
+
+@media (max-width: 680px) {
+  .page-header > .actions, .page-heading > .actions, .module-header > .actions { width: 100%; }
+  .page-header > .actions .btn, .page-heading > .actions .btn, .module-header > .actions .btn { width: 100%; }
+  .empty-state, .no-results, .empty-state-card { min-height: 150px; padding: 22px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+[data-theme="dark"] .empty-state,
+[data-theme="dark"] .no-results,
+[data-theme="dark"] .empty-state-card { background: color-mix(in srgb, var(--bg-secondary) 88%, transparent); }
+
+[data-theme="dark"] .skeleton { background: var(--bg-tertiary); }

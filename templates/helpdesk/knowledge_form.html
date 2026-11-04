@@ -1,0 +1,68 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ 'Edit article' if article else 'New article' }}{% endblock %}
+{% block page_title %}Knowledge{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/helpdesk.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('helpdesk.index', view='knowledge') }}">Knowledge Base</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>{{ 'Edit' if article else 'New' }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="hd-kb-form-page">
+  <header class="sw-header">
+    <div>
+      <h1>{{ 'Edit article' if article else 'New knowledge article' }}</h1>
+      <p>Document solutions so technicians and staff can resolve issues faster.</p>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <form method="post" class="hd-kb-form sw-panel">
+    <label class="hd-field">
+      <span>Title</span>
+      <input type="text" name="title" required maxlength="255" value="{{ article.title if article else '' }}" />
+    </label>
+    <label class="hd-field">
+      <span>Summary</span>
+      <input type="text" name="summary" maxlength="512" value="{{ article.summary if article and article.summary else '' }}" placeholder="One-line description" />
+    </label>
+    <div class="hd-field-row">
+      <label class="hd-field">
+        <span>Category</span>
+        <select name="category">
+          {% for c in categories %}
+          <option value="{{ c }}" {% if article and article.category == c %}selected{% endif %}>{{ c|replace('_',' ')|title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="hd-field">
+        <span>Tags</span>
+        <input type="text" name="tags" value="{{ article.tags if article and article.tags else '' }}" placeholder="vpn,printer,comma-separated" />
+      </label>
+    </div>
+    <label class="hd-field">
+      <span>Article body</span>
+      <textarea name="body" rows="14" required placeholder="Steps, causes, and fix guidance…">{{ article.body if article else '' }}</textarea>
+    </label>
+    <label class="hd-check">
+      <input type="checkbox" name="is_published" value="1" {% if not article or article.is_published %}checked{% endif %} />
+      <span>Published (visible in Knowledge Base)</span>
+    </label>
+    <div class="hd-form-actions">
+      <a class="btn btn-secondary" href="{{ url_for('helpdesk.index', view='knowledge') }}">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save article</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

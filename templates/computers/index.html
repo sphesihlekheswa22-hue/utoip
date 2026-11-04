@@ -3,6 +3,8 @@
 {% block title %}Computers{% endblock %}
 {% block page_title %}Computers{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
@@ -20,7 +22,7 @@
       <p>Agent-managed endpoints across Umzinyathi — discovered automatically, never typed in by hand.</p>
     </div>
     <div class="comp-toolbar-actions">
-      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-primary"><i class="fas fa-download"></i> Install Agent</a>
+      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add device</a>
       <a href="{{ url_for('computers.scan_network') }}" class="btn btn-secondary"><i class="fas fa-satellite-dish"></i> Scan Network</a>
     </div>
   </header>
@@ -31,7 +33,7 @@
     <h2>No managed computers found.</h2>
     <p>Install the UITOP desktop agent or scan the network to discover and enroll devices automatically.</p>
     <div class="comp-empty-actions">
-      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-primary"><i class="fas fa-download"></i> Install Agent</a>
+      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add device</a>
       <a href="{{ url_for('computers.scan_network') }}" class="btn btn-secondary"><i class="fas fa-satellite-dish"></i> Scan Network</a>
     </div>
   </div>
@@ -48,13 +50,27 @@
     <article class="comp-kpi is-warning"><p class="comp-kpi-label">Pending Updates</p><p class="comp-kpi-value">{{ kpis.pending_updates }}</p><p class="comp-kpi-meta">Across fleet</p></article>
   </div>
 
+  <section class="fleet-overview" aria-label="Fleet health overview">
+    <div class="fleet-overview-copy">
+      <span class="fleet-overview-kicker"><i class="fas fa-shield-halved"></i> Fleet health</span>
+      <strong>Endpoint operations at a glance</strong>
+      <span>Use status and health signals below to identify devices that need attention.</span>
+    </div>
+    <div class="fleet-health-stats">
+      <div class="fleet-health-stat"><span class="fleet-dot is-good"></span><div><strong>{{ kpis.online }}</strong><span>Online</span></div></div>
+      <div class="fleet-health-stat"><span class="fleet-dot is-danger"></span><div><strong>{{ kpis.offline }}</strong><span>Offline</span></div></div>
+      <div class="fleet-health-stat"><span class="fleet-dot is-warning"></span><div><strong>{{ kpis.warning }}</strong><span>Warnings</span></div></div>
+      <div class="fleet-health-stat"><span class="fleet-dot is-danger"></span><div><strong>{{ kpis.critical }}</strong><span>Critical</span></div></div>
+    </div>
+  </section>
+
   <div class="comp-toolbar">
     <div class="comp-search">
       <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
       <input type="search" placeholder="Search device, hostname, user, IP, MAC…" x-model="q" aria-label="Search computers" />
     </div>
     <div class="comp-toolbar-actions">
-      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-primary btn-sm"><i class="fas fa-download"></i> Install Agent</a>
+      <a href="{{ url_for('computers.install_agent') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add device</a>
       <a href="{{ url_for('computers.scan_network') }}" class="btn btn-secondary btn-sm"><i class="fas fa-satellite-dish"></i> Scan Network</a>
       <button type="button" class="btn btn-ghost btn-sm" @click="refresh()"><i class="fas fa-rotate" :class="refreshing && 'fa-spin'"></i> Refresh</button>
       <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-file-import"></i> Import Devices</button>
@@ -176,8 +192,8 @@
           </tr>
         </thead>
         <tbody>
-          <template x-for="c in filtered" :key="c.id">
-            <tr @click="openDevice(c.id)">
+          <template x-for="c in pagedItems(filtered)" :key="c.id">
+            <tr @click="openDevice(c.id)" :class="rowHealthClass(c)">
               <td @click.stop>
                 <input type="checkbox" :value="c.id" x-model="selected" :aria-label="'Select ' + c.hostname" />
               </td>
@@ -186,7 +202,7 @@
                   <div class="comp-device-icon"><i class="fas" :class="c.type === 'Laptop' ? 'fa-laptop' : 'fa-desktop'"></i></div>
                   <div>
                     <strong x-text="c.name"></strong>
-                    <span x-text="c.manufacturer + ' · ' + c.model"></span>
+                    <span x-text="c.manufacturer + ' · ' + c.model"></span><small class="comp-device-id" x-text="'Asset #' + (c.asset_tag || c.id)"></small>
                   </div>
                 </div>
               </td>
@@ -227,6 +243,7 @@
         </tbody>
       </table>
     </div>
+    {{ alpine_pager('filtered') }}
   </section>
   {% endif %}
 </div>
@@ -234,7 +251,7 @@
 <script>
   window.__COMPUTERS__ = {{ computers | tojson }};
   function computersDashboard() {
-    return {
+    return Object.assign({
       q: "",
       showFilters: true,
       refreshing: false,
@@ -243,6 +260,13 @@
       filters: {
         status: "", department: "", user: "", os: "", type: "",
         agent: "", seen: "", manufacturer: "", model: "", criticality: ""
+      },
+      init() {
+        this.watchPagerReset([
+          'q', 'filters.status', 'filters.department', 'filters.user', 'filters.os',
+          'filters.type', 'filters.agent', 'filters.seen', 'filters.manufacturer',
+          'filters.model', 'filters.criticality'
+        ]);
       },
       get filtered() {
         var q = this.q.trim().toLowerCase();
@@ -277,6 +301,12 @@
         if (v >= 70) return "is-warn";
         return "";
       },
+      rowHealthClass(c) {
+        if (c.status === "Critical") return "is-critical-row";
+        if (c.status === "Offline") return "is-offline-row";
+        if (c.status === "Warning") return "is-warning-row";
+        return "";
+      },
       statusBadge(s) {
         if (s === "Online") return "badge-success";
         if (s === "Warning") return "badge-warning";
@@ -290,7 +320,7 @@
         this.refreshing = true;
         setTimeout(() => { this.refreshing = false; location.reload(); }, 600);
       }
-    };
+    }, UITOP.createPager(10));
   }
 </script>
 {% endblock %}

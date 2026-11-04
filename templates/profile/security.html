@@ -1,0 +1,75 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Security{% endblock %}
+{% block page_title %}Security{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}" />
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('dashboard.index') }}">Home</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<a href="{{ url_for('profile.index') }}">My Profile</a>
+<span aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+<span>Security</span>
+{% endblock %}
+
+{% block content %}
+<div class="pf-page pf-page--narrow">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+      <div class="pf-flash pf-flash--{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <section class="pf-edit-hero">
+    <div class="pf-sec-mark" aria-hidden="true"><i class="fas fa-shield-halved"></i></div>
+    <div>
+      <p class="pf-eyebrow">Account security</p>
+      <h1 class="pf-name">Password &amp; access</h1>
+      <p class="pf-lead">Keep your UITOP credentials strong. Never share passwords with colleagues.</p>
+    </div>
+  </section>
+
+  <form class="pf-form-card" method="post" action="{{ url_for('profile.security') }}" novalidate>
+    <div class="pf-form-section">
+      <h2>Change password</h2>
+      <p class="pf-form-help">Use at least 8 characters. Prefer a unique password you don’t reuse elsewhere.</p>
+      <div class="pf-form-grid pf-form-grid--stack">
+        <label class="pf-field">
+          <span>Current password</span>
+          <input type="password" name="current_password" required autocomplete="current-password" />
+        </label>
+        <label class="pf-field">
+          <span>New password</span>
+          <input type="password" name="new_password" required minlength="8" autocomplete="new-password" />
+        </label>
+        <label class="pf-field">
+          <span>Confirm new password</span>
+          <input type="password" name="confirm_password" required minlength="8" autocomplete="new-password" />
+        </label>
+      </div>
+    </div>
+
+    <div class="pf-form-section pf-form-section--muted">
+      <h2>Security status</h2>
+      <div class="pf-readonly-grid">
+        <div><span>MFA</span><strong>{{ 'Enabled' if me.mfa_enabled else 'Not enabled' }}</strong></div>
+        <div><span>Last login</span><strong>{{ me.last_login_at.strftime('%d %b %Y %H:%M') if me.last_login_at else '—' }}</strong></div>
+        <div><span>Account</span><strong>{{ 'Active' if me.is_active else 'Inactive' }}</strong></div>
+      </div>
+      {% if not me.mfa_enabled %}
+      <p class="pf-sec-note"><i class="fas fa-circle-info"></i> Multi-factor authentication can be enabled by an administrator for high-privilege accounts.</p>
+      {% endif %}
+    </div>
+
+    <div class="pf-form-actions">
+      <a href="{{ url_for('profile.index') }}" class="btn btn-secondary">Back to profile</a>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-key"></i> Update password</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

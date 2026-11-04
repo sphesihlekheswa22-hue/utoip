@@ -26,7 +26,10 @@ def register_cli(app: Flask) -> None:
         click.echo("Seed complete:")
         for key, value in result.items():
             click.echo(f"  {key}: {value}")
-        click.echo(f"  demo password (if new admin): {admin_password or DEFAULT_ADMIN_PASSWORD}")
+        click.echo(f"  admin password (if new): {admin_password or DEFAULT_ADMIN_PASSWORD}")
+        from uitop.seeds.bootstrap import DEFAULT_DEMO_PASSWORD
+
+        click.echo(f"  demo staff password: {DEFAULT_DEMO_PASSWORD}")
 
     @app.cli.command("create-admin")
     @click.option("--email", default=DEFAULT_ADMIN_EMAIL, show_default=True)

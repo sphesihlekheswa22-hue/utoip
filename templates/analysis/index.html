@@ -1,0 +1,287 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Analysis{% endblock %}
+{% block page_title %}Analysis{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="sw-page an-page">
+  <header class="sw-header">
+    <div>
+      <h1>Analysis</h1>
+      <p>Executive insights from across UITOP — trends, costs, risks, and forecasts. Monitoring shows now; Analysis explains why and what next.</p>
+    </div>
+  </header>
+
+  <nav class="sw-subtabs an-nav" role="tablist">
+    {% for key, label in [
+      ('executive','Executive Dashboard'),
+      ('infrastructure','Infrastructure'),
+      ('assets','Assets'),
+      ('helpdesk','Help Desk'),
+      ('performance','Performance'),
+      ('security','Security'),
+      ('maintenance','Maintenance'),
+      ('financial','Financial'),
+      ('forecasts','Forecasts'),
+      ('reports','Custom Reports')
+    ] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('analysis.index', view=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="sw-kpi-grid an-kpi-grid">
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Infrastructure Score</p><p class="sw-kpi-value">{{ kpis.infrastructure_score }}%</p></article>
+    <article class="sw-kpi is-accent"><p class="sw-kpi-label">IT Health Trend</p><p class="sw-kpi-value">↑ {{ kpis.health_trend }}%</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Asset Utilization</p><p class="sw-kpi-value">{{ kpis.asset_utilization }}%</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Avg Resolution</p><p class="sw-kpi-value">{{ kpis.avg_resolution }}</p></article>
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Maintenance Cost</p><p class="sw-kpi-value">R{{ '%.0f'|format(kpis.maintenance_cost) }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Compliance</p><p class="sw-kpi-value">{{ kpis.compliance_score }}%</p></article>
+  </div>
+
+  {% if view == 'executive' %}
+  <div class="an-exec-grid">
+    {% for c in payload.executive_cards %}
+    <article class="an-exec-card an-exec-card--{{ c.tone }}">
+      <p>{{ c.label }}</p>
+      <strong>{{ c.value }}</strong>
+    </article>
+    {% endfor %}
+  </div>
+  <div class="an-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Top risks</h2>
+      <ul class="an-risk-list">
+        {% for r in payload.top_risks %}
+        <li class="an-risk an-risk--{{ r.tone }}"><strong>{{ r.title }}</strong><span>{{ r.detail }}</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">AI insights</h2>
+      {% for tip in payload.ai_insights %}
+      <div class="an-ai an-ai--{{ tip.tone }}">
+        <strong>{{ tip.title }}</strong>
+        <p>{{ tip.body }}</p>
+      </div>
+      {% endfor %}
+    </section>
+  </div>
+
+  {% elif view == 'infrastructure' %}
+  <div class="an-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Device health</h2>
+      <div class="an-health-bars">
+        <div><span>Healthy</span><strong>{{ payload.infrastructure.device_health.healthy }}%</strong><div class="an-bar"><i style="width:{{ payload.infrastructure.device_health.healthy }}%;background:#0f766e"></i></div></div>
+        <div><span>Warning</span><strong>{{ payload.infrastructure.device_health.warning }}%</strong><div class="an-bar"><i style="width:{{ payload.infrastructure.device_health.warning }}%;background:#d97706"></i></div></div>
+        <div><span>Critical</span><strong>{{ payload.infrastructure.device_health.critical }}%</strong><div class="an-bar"><i style="width:{{ payload.infrastructure.device_health.critical }}%;background:#dc2626"></i></div></div>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Device availability</h2>
+      <table class="sw-table">
+        <thead><tr><th>Device type</th><th>Uptime</th></tr></thead>
+        <tbody>
+          {% for row in payload.infrastructure.availability %}
+          <tr><td>{{ row.type }}</td><td><strong>{{ row.uptime }}%</strong></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  {% elif view == 'assets' %}
+  <div class="sw-table-wrap">
+    <table class="sw-table">
+      <thead><tr><th>Asset</th><th>Age</th><th>Repairs</th><th>Residual value</th><th>Recommendation</th><th></th></tr></thead>
+      <tbody>
+        {% for r in payload.assets.rows %}
+        <tr>
+          <td><code>{{ r.tag }}</code><div>{{ r.name }}</div></td>
+          <td>{{ r.age }} yrs</td>
+          <td>{{ r.repairs }}</td>
+          <td>R{{ '%.0f'|format(r.value) }}</td>
+          <td><span class="sw-badge {% if r.recommendation == 'Replace' %}sw-badge--danger{% elif r.recommendation == 'Watch' %}sw-badge--warning{% else %}sw-badge--success{% endif %}">{{ r.recommendation }}</span></td>
+          <td><a class="btn btn-ghost btn-sm" href="{{ r.url }}">Open</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No assets to analyse.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% elif view == 'helpdesk' %}
+  <div class="an-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Tickets by month</h2>
+      <div class="an-spark">
+        {% set mx = payload.helpdesk.by_month.series|max or 1 %}
+        {% for v in payload.helpdesk.by_month.series %}
+        <div class="an-spark-col"><i style="height:{{ (v / mx * 100)|int }}%"></i><span>{{ payload.helpdesk.by_month.labels[loop.index0] }}</span><em>{{ v }}</em></div>
+        {% endfor %}
+      </div>
+      <p class="an-muted">Avg resolution {{ payload.helpdesk.avg_resolution_label }} · SLA {{ payload.helpdesk.sla_compliance }}%</p>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">By department</h2>
+      <ol class="an-rank">
+        {% for d in payload.helpdesk.by_department %}
+        <li><span>{{ d.name }}</span><strong>{{ d.count }}</strong></li>
+        {% else %}
+        <li>No ticket data.</li>
+        {% endfor %}
+      </ol>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">By technician</h2>
+      <ol class="an-rank">
+        {% for t in payload.helpdesk.by_technician %}
+        <li><span>{{ t.name }}</span><strong>{{ t.count }}</strong></li>
+        {% endfor %}
+      </ol>
+    </section>
+  </div>
+
+  {% elif view == 'performance' %}
+  <div class="an-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">CPU trend</h2>
+      <div class="an-spark">
+        {% set mx = 100 %}
+        {% for v in payload.performance.cpu_trend.series %}
+        <div class="an-spark-col"><i style="height:{{ v }}%;background:#ea580c"></i><span>{{ payload.performance.cpu_trend.labels[loop.index0] }}</span><em>{{ v }}%</em></div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Current averages</h2>
+      <div class="an-metric-stack">
+        <div><span>CPU</span><strong>{{ payload.performance.current.cpu }}%</strong></div>
+        <div><span>Memory</span><strong>{{ payload.performance.current.memory }}%</strong></div>
+        <div><span>Storage</span><strong>{{ payload.performance.current.disk }}%</strong></div>
+        <div><span>Network util</span><strong>{{ payload.performance.current.network }}%</strong></div>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Disk growth</h2>
+      <div class="an-spark">
+        {% for v in payload.performance.disk_trend.series %}
+        <div class="an-spark-col"><i style="height:{{ v }}%;background:#2563eb"></i><span>{{ payload.performance.disk_trend.labels[loop.index0] }}</span><em>{{ v }}%</em></div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  {% elif view == 'security' %}
+  <div class="an-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Security posture</h2>
+      <div class="an-metric-stack">
+        <div><span>Security score</span><strong>{{ payload.security.security_score }}%</strong></div>
+        <div><span>Compliance</span><strong>{{ payload.security.compliance }}%</strong></div>
+        <div><span>AV coverage</span><strong>{{ payload.security.antivirus_coverage }}%</strong></div>
+        <div><span>Failed logins today</span><strong>{{ payload.security.failed_logins_today }}</strong></div>
+        <div><span>Open incidents</span><strong>{{ payload.security.incidents }}</strong></div>
+        <div><span>Risk score</span><strong>{{ payload.security.risk_score }}</strong></div>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Incidents over time</h2>
+      <div class="an-spark">
+        {% set mx = payload.security.incident_trend.series|max or 1 %}
+        {% for v in payload.security.incident_trend.series %}
+        <div class="an-spark-col"><i style="height:{{ (v / mx * 100)|int }}%;background:#be123c"></i><span>{{ payload.security.incident_trend.labels[loop.index0] }}</span><em>{{ v }}</em></div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  {% elif view == 'maintenance' %}
+  <div class="an-type-cards">
+    <div><strong>{{ payload.maintenance.repairs }}</strong><span>Total jobs</span></div>
+    <div><strong>{{ payload.maintenance.preventive }}</strong><span>Preventive</span></div>
+    <div><strong>{{ payload.maintenance.corrective }}</strong><span>Corrective</span></div>
+    <div><strong>{{ payload.maintenance.mttr_hours }}h</strong><span>MTTR</span></div>
+    <div><strong>{{ payload.maintenance.mtbf_days }}d</strong><span>MTBF</span></div>
+    <div><strong>R{{ '%.0f'|format(payload.maintenance.cost_total) }}</strong><span>Cost</span></div>
+  </div>
+  <section class="sw-panel" style="margin-top:16px;">
+    <h2 class="chart-panel-title">Most repaired devices</h2>
+    <ol class="an-rank">
+      {% for d in payload.maintenance.most_repaired %}
+      <li><span>{{ d.device }}</span><strong>{{ d.count }}</strong></li>
+      {% else %}
+      <li>No corrective history yet.</li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  {% elif view == 'financial' %}
+  <div class="an-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Cost overview</h2>
+      <div class="an-metric-stack">
+        <div><span>Asset residual value</span><strong>R{{ '%.0f'|format(payload.financial.asset_value) }}</strong></div>
+        <div><span>Maintenance</span><strong>R{{ '%.0f'|format(payload.financial.maintenance_cost) }}</strong></div>
+        <div><span>Software licenses (annual)</span><strong>R{{ '%.0f'|format(payload.financial.license_cost) }}</strong></div>
+        <div><span>Ops cost (period)</span><strong>R{{ '%.0f'|format(payload.financial.total_ops_cost) }}</strong></div>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Vendor spending</h2>
+      <ol class="an-rank">
+        {% for v in payload.financial.vendor_spend %}
+        <li><span>{{ v.name }}</span><strong>R{{ '{:,}'.format(v.spend) }}</strong></li>
+        {% endfor %}
+      </ol>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Department spending</h2>
+      <ol class="an-rank">
+        {% for d in payload.financial.department_spend %}
+        <li><span>{{ d.name }}</span><strong>R{{ '{:,}'.format(d.spend) }}</strong></li>
+        {% endfor %}
+      </ol>
+    </section>
+  </div>
+
+  {% elif view == 'forecasts' %}
+  <div class="an-forecast-grid">
+    {% for f in payload.forecasts %}
+    <article class="sw-panel an-forecast an-forecast--{{ f.tone }}">
+      <p class="an-muted">{{ f.title }}</p>
+      <h3>{% if f.url %}<a href="{{ f.url }}">{{ f.subject }}</a>{% else %}{{ f.subject }}{% endif %}</h3>
+      <strong>{{ f.metric }}</strong>
+      <p>{{ f.prediction }}</p>
+      <em>{{ f.action }}</em>
+    </article>
+    {% endfor %}
+  </div>
+
+  {% elif view == 'reports' %}
+  <div class="sw-panel" style="margin-bottom:16px;">
+    <h2 class="chart-panel-title">Official reports</h2>
+    <p class="an-muted" style="margin:0 0 12px;">Analysis explores trends interactively. For formal PDF/Excel exports, schedules, and audit packs, use the Reports module.</p>
+    <a class="btn btn-primary btn-sm" href="{{ url_for('reports.index', view='generate') }}"><i class="fas fa-file-export"></i> Open Reports</a>
+  </div>
+  <div class="an-report-grid">
+    {% for r in payload.reports %}
+    <article class="sw-panel an-report-card">
+      <h3>{{ r.name }}</h3>
+      <p>{{ r.desc }}</p>
+      <div class="an-report-actions">
+        <span class="sw-badge sw-badge--muted">{{ r.format }}</span>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('reports.index', view='generate') }}">Generate in Reports</a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

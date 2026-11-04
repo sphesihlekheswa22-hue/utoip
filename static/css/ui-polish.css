@@ -1,0 +1,316 @@
+/* ============================================================
+   UITOP — Phase 2 Shared UI Polish
+   Visual-only shared component refinement.
+   Does not change routes, data, IDs, or JavaScript hooks.
+   ============================================================ */
+
+/* Application shell */
+.uitop-main {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(13,148,136,.055), transparent 28%),
+    var(--bg-secondary);
+}
+
+.uitop-content {
+  padding: 24px 30px 40px;
+}
+
+.uitop-breadcrumb {
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+/* Topbar: quieter, denser municipal-IT feel */
+.uitop-topbar {
+  background: color-mix(in srgb, var(--topbar-bg) 92%, var(--bg-elevated));
+  box-shadow: 0 1px 0 var(--border-subtle), 0 6px 20px rgba(15,23,42,.035);
+}
+
+.uitop-topbar-inner {
+  padding: 0 22px;
+}
+
+.uitop-brand {
+  gap: 9px;
+  max-width: 300px;
+}
+
+.uitop-brand-logo {
+  height: 46px;
+  filter: none;
+}
+
+.uitop-brand:hover .uitop-brand-logo {
+  transform: none;
+  filter: none;
+}
+
+.uitop-topbar-search {
+  max-width: 520px;
+  margin: 0 28px;
+}
+
+.uitop-topbar-search input {
+  height: 38px;
+  border-radius: 9px;
+  background: var(--bg-secondary);
+}
+
+.uitop-icon-btn,
+.uitop-menu-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+}
+
+.uitop-btn-ai {
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 9px;
+  box-shadow: 0 2px 8px rgba(13,148,136,.18);
+}
+
+/* Sidebar */
+[data-theme="light"] .uitop-sidebar {
+  background: linear-gradient(180deg, var(--sidebar-bg), color-mix(in srgb, var(--sidebar-bg) 96%, var(--teal-900)));
+}
+
+.uitop-sidebar-user {
+  padding: 16px 18px;
+  background: transparent;
+}
+
+.uitop-sidebar-user .uitop-avatar {
+  width: 38px;
+  height: 38px;
+}
+
+.uitop-nav {
+  padding: 10px 12px;
+}
+
+.uitop-nav-label {
+  padding: 14px 10px 6px;
+  letter-spacing: .1em;
+}
+
+.sidebar-link {
+  min-height: 38px;
+  padding: 8px 10px;
+  margin: 1px 0;
+  border-radius: 8px;
+  gap: 11px;
+  font-size: 13px;
+}
+
+.sidebar-link::before {
+  width: 2px;
+}
+
+.sidebar-link:hover {
+  transform: none;
+}
+
+.sidebar-link.is-active {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.uitop-sidebar-foot {
+  padding: 12px 14px;
+}
+
+/* Shared cards / panels */
+.card,
+.panel,
+.metric-card,
+.table-wrap,
+.table-panel,
+.form-panel {
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15,23,42,.035), 0 6px 18px rgba(15,23,42,.025);
+}
+
+.card:hover,
+.panel:hover,
+.metric-card:hover {
+  transform: none;
+  box-shadow: 0 5px 18px rgba(15,23,42,.055);
+}
+
+.card-header,
+.panel-header,
+.chart-panel-header {
+  padding: 16px 18px;
+}
+
+.card-body {
+  padding: 18px;
+}
+
+/* KPI cards: stronger hierarchy without changing markup */
+.metric-card,
+.kpi-card {
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.metric-card-label,
+.kpi-label {
+  font-size: 10px;
+  letter-spacing: .09em;
+}
+
+.metric-card-value,
+.kpi-value {
+  font-size: clamp(1.5rem, 2.2vw, 1.85rem);
+}
+
+/* Buttons */
+.btn {
+  height: 38px;
+  border-radius: 8px;
+  font-size: 13px;
+  padding-inline: 15px;
+}
+
+.btn-primary {
+  box-shadow: 0 2px 7px rgba(13,148,136,.2);
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-danger:hover:not(:disabled),
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-sm {
+  height: 32px;
+  border-radius: 7px;
+}
+
+/* Tables */
+.table-wrap {
+  overflow: hidden;
+}
+
+.table-toolbar {
+  padding: 13px 16px;
+}
+
+.data-table {
+  font-size: 12.5px;
+}
+
+.data-table th {
+  padding: 11px 14px;
+  font-size: 10px;
+  letter-spacing: .075em;
+}
+
+.data-table td {
+  padding: 11px 14px;
+}
+
+.data-table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent-soft) 45%, transparent);
+}
+
+.table-badge,
+.badge {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* Forms */
+.form-panel {
+  padding: 20px;
+}
+
+.field {
+  gap: 5px;
+}
+
+.field label,
+.field-label {
+  font-size: 11.5px;
+}
+
+.field input,
+.field select,
+.field textarea,
+.input {
+  border-radius: 8px;
+}
+
+/* Focus treatment */
+:focus-visible {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+/* Dark mode: retain contrast while keeping the same structure */
+[data-theme="dark"] .uitop-main {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(45,212,191,.045), transparent 28%),
+    var(--bg-primary);
+}
+
+[data-theme="dark"] .uitop-topbar {
+  box-shadow: 0 1px 0 var(--border-subtle), 0 8px 24px rgba(0,0,0,.18);
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .metric-card,
+[data-theme="dark"] .table-wrap,
+[data-theme="dark"] .table-panel,
+[data-theme="dark"] .form-panel {
+  box-shadow: 0 1px 2px rgba(0,0,0,.18), 0 8px 22px rgba(0,0,0,.12);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .uitop-content {
+    padding: 20px 18px 32px;
+  }
+
+  .uitop-topbar-inner {
+    padding: 0 14px;
+  }
+
+  .uitop-topbar-search {
+    margin: 0 12px;
+  }
+
+  .uitop-brand-logo {
+    height: 42px;
+  }
+}
+
+@media (max-width: 680px) {
+  .uitop-topbar-search {
+    display: none;
+  }
+
+  .uitop-brand {
+    max-width: 180px;
+  }
+
+  .uitop-btn-ai span {
+    display: none;
+  }
+
+  .uitop-btn-ai {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .uitop-content {
+    padding: 16px 14px 28px;
+  }
+}

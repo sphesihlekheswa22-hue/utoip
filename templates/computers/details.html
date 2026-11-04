@@ -35,7 +35,7 @@
     </div>
     <div class="device-hero-actions">
       <button type="button" class="btn btn-secondary btn-sm" @click="tab = 'remote'"><i class="fas fa-desktop"></i> Remote Actions</button>
-      <button type="button" class="btn btn-ghost btn-sm"><i class="fas fa-rotate"></i> Sync Agent</button>
+      <button type="button" class="btn btn-ghost btn-sm" @click="runRemote('sync_inventory')"><i class="fas fa-rotate"></i> Sync Agent</button>
       <a href="{{ url_for('computers.index') }}" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Fleet</a>
     </div>
   </section>
@@ -272,7 +272,7 @@
 
   <!-- Files (IT repository attachments) -->
   <section class="device-panel" x-show="tab === 'files'">
-    <h2 class="chart-panel-title">Files</h2>
+    <h2 class="chart-panel-title">Attachments</h2>
     {% from "files/_entity_files.html" import entity_files_panel %}
     {{ entity_files_panel(linked_files or [], 'computer', item_id, url_for('computers.details', item_id=item_id, tab='files')) }}
   </section>
@@ -294,28 +294,50 @@
   <!-- Remote -->
   <section class="device-panel" x-show="tab === 'remote'">
     <h2 class="chart-panel-title">Remote Actions</h2>
-    <p class="chart-panel-subtitle">Actions are queued to the UITOP agent (demo UI only).</p>
+    <p class="chart-panel-subtitle" x-text="remoteHint"></p>
     <div class="remote-grid">
-      <button type="button" class="remote-btn" @click="toast('Restart queued')"><i class="fas fa-power-off"></i><strong>Restart Computer</strong><span>Graceful reboot</span></button>
-      <button type="button" class="remote-btn is-danger" @click="toast('Shutdown queued')"><i class="fas fa-plug"></i><strong>Shutdown</strong><span>Power off host</span></button>
-      <button type="button" class="remote-btn" @click="toast('Lock sent')"><i class="fas fa-lock"></i><strong>Lock</strong><span>Workstation lock</span></button>
-      <button type="button" class="remote-btn" @click="toast('Log off sent')"><i class="fas fa-right-from-bracket"></i><strong>Log Off</strong><span>End user session</span></button>
-      <button type="button" class="remote-btn" @click="toast('Script runner opened')"><i class="fas fa-terminal"></i><strong>Run Script</strong><span>PowerShell / Bash</span></button>
-      <button type="button" class="remote-btn" @click="toast('RDP launch requested')"><i class="fas fa-desktop"></i><strong>Open Remote Desktop</strong><span>RDP / shadow</span></button>
-      <button type="button" class="remote-btn" @click="toast('Agent sync started')"><i class="fas fa-rotate"></i><strong>Sync Agent</strong><span>Force inventory</span></button>
-      <button type="button" class="remote-btn" @click="toast('WoL packet sent')"><i class="fas fa-bolt"></i><strong>Wake On LAN</strong><span>Magic packet</span></button>
-      <button type="button" class="remote-btn" @click="toast('Software deploy wizard')"><i class="fas fa-box-open"></i><strong>Deploy Software</strong><span>Push package</span></button>
-      <button type="button" class="remote-btn" @click="toast('Diagnostics collection started')"><i class="fas fa-stethoscope"></i><strong>Collect Diagnostics</strong><span>Bundle logs</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runRemote('restart')"><i class="fas fa-power-off"></i><strong>Restart Computer</strong><span>Reboot in 30s</span></button>
+      <button type="button" class="remote-btn is-danger" :disabled="busy" @click="runRemote('shutdown')"><i class="fas fa-plug"></i><strong>Shutdown</strong><span>Power off in 30s</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runRemote('lock')"><i class="fas fa-lock"></i><strong>Lock</strong><span>Workstation lock</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runRemote('logoff')"><i class="fas fa-right-from-bracket"></i><strong>Log Off</strong><span>End user session</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runRemote('sync_inventory')"><i class="fas fa-rotate"></i><strong>Sync Agent</strong><span>Force inventory now</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runRemote('collect_diagnostics')"><i class="fas fa-stethoscope"></i><strong>Collect Diagnostics</strong><span>CPU / RAM / disk snapshot</span></button>
+      <button type="button" class="remote-btn" :disabled="busy" @click="runRemote('wake_on_lan')"><i class="fas fa-bolt"></i><strong>Wake On LAN</strong><span>Magic packet from server</span></button>
+      <a class="remote-btn" href="{% if device.ip and device.ip != '—' %}javascript:void(0){% else %}#{% endif %}" @click.prevent="openRdp()"><i class="fas fa-desktop"></i><strong>Open Remote Desktop</strong><span>RDP to {{ device.ip }}</span></a>
+    </div>
+    <h2 class="chart-panel-title" style="margin-top:1.5rem">Recent commands</h2>
+    <div class="table-scroll">
+      <table class="comp-table">
+        <thead><tr><th>When</th><th>Action</th><th>Status</th><th>Result</th></tr></thead>
+        <tbody>
+          <template x-for="c in commands" :key="c.id">
+            <tr>
+              <td x-text="formatTime(c.created_at)"></td>
+              <td x-text="c.command"></td>
+              <td><span class="badge" :class="statusBadge(c.status)" x-text="c.status"></span></td>
+              <td style="max-width:280px;white-space:pre-wrap;font-size:.85rem" x-text="c.result || '—'"></td>
+            </tr>
+          </template>
+          <tr x-show="!commands.length"><td colspan="4">No remote commands yet.</td></tr>
+        </tbody>
+      </table>
     </div>
   </section>
 </div>
 
 <script>
 window.__PERF_SERIES__ = {{ perf_series | tojson }};
+window.__RECENT_COMMANDS__ = {{ recent_commands | tojson }};
+window.__HAS_AGENT__ = {{ has_agent | tojson }};
+window.__COMPUTER_ID__ = {{ item_id | tojson }};
+window.__DEVICE_IP__ = {{ device.ip | tojson }};
 function deviceConsole(initial) {
   return {
     tab: initial || "overview",
     chartsReady: false,
+    busy: false,
+    hasAgent: window.__HAS_AGENT__,
+    commands: window.__RECENT_COMMANDS__ || [],
     tabs: [
       { id: "overview", label: "Overview" },
       { id: "hardware", label: "Hardware" },
@@ -328,10 +350,16 @@ function deviceConsole(initial) {
       { id: "updates", label: "Windows Updates" },
       { id: "security", label: "Security" },
       { id: "events", label: "Event Logs" },
-      { id: "files", label: "Files" },
+      { id: "files", label: "Attachments" },
       { id: "timeline", label: "Activity Timeline" },
       { id: "remote", label: "Remote Actions" }
     ],
+    get remoteHint() {
+      if (!this.hasAgent) {
+        return "No agent enrolled — install UITOP Agent on this PC first (Wake-on-LAN still works if MAC is known).";
+      }
+      return "Actions go to the UITOP agent. Keep the agent running; results show below within ~5–30 seconds.";
+    },
     setTab(id) {
       this.tab = id;
       var url = new URL(window.location.href);
@@ -341,10 +369,75 @@ function deviceConsole(initial) {
         var self = this;
         this.$nextTick(function () { self.initPerfCharts(); });
       }
+      if (id === "remote") this.refreshCommands();
     },
-    toast(msg) {
-      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, "success");
+    toast(msg, kind) {
+      if (window.UITOP && UITOP.utils && UITOP.utils.toast) UITOP.utils.toast(msg, kind || "success");
       else alert(msg);
+    },
+    statusBadge(st) {
+      if (st === "completed") return "badge-success";
+      if (st === "failed") return "badge-danger";
+      if (st === "sent" || st === "pending") return "badge-warning";
+      return "badge-muted";
+    },
+    formatTime(iso) {
+      if (!iso) return "—";
+      try { return new Date(iso).toLocaleString(); } catch (e) { return iso; }
+    },
+    openRdp() {
+      var ip = window.__DEVICE_IP__;
+      if (!ip || ip === "—") {
+        this.toast("No IP address on this computer", "error");
+        return;
+      }
+      this.toast("Opening Remote Desktop to " + ip + "…");
+      window.location.href = "mstsc:/v:" + ip;
+    },
+    async runRemote(command) {
+      if (this.busy) return;
+      var labels = {
+        restart: "Restart this computer in 30 seconds?",
+        shutdown: "Shut down this computer in 30 seconds?",
+        lock: "Lock the workstation now?",
+        logoff: "Log off the current user?",
+        sync_inventory: "Force an inventory sync?",
+        collect_diagnostics: "Collect diagnostics from the agent?",
+        wake_on_lan: "Send a Wake-on-LAN packet?"
+      };
+      if (!confirm(labels[command] || "Run this action?")) return;
+      this.busy = true;
+      try {
+        var res = await fetch("/computers/" + window.__COMPUTER_ID__ + "/remote/" + encodeURIComponent(command), {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        });
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok) throw new Error(data.error || "Request failed");
+        this.toast(data.message || "Queued", data.command && data.command.status === "failed" ? "error" : "success");
+        if (data.command) {
+          this.commands = [data.command].concat(this.commands.filter(function (c) { return c.id !== data.command.id; }));
+        }
+        var self = this;
+        setTimeout(function () { self.refreshCommands(); }, 4000);
+        setTimeout(function () { self.refreshCommands(); }, 12000);
+      } catch (err) {
+        this.toast(err.message || "Failed", "error");
+      } finally {
+        this.busy = false;
+      }
+    },
+    async refreshCommands() {
+      try {
+        var res = await fetch("/computers/" + window.__COMPUTER_ID__ + "/remote", {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        });
+        if (!res.ok) return;
+        var data = await res.json();
+        this.commands = data.commands || [];
+      } catch (e) { /* ignore */ }
     },
     initPerfCharts() {
       if (!window.UITOP || !UITOP.charts || typeof Chart === "undefined") return;

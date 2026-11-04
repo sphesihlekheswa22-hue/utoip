@@ -3,38 +3,111 @@
 {% block title %}Help Desk{% endblock %}
 {% block page_title %}Help Desk{% endblock %}
 
+{% from "components/pager_macros.html" import alpine_pager %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/computers.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/software.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/helpdesk.css') }}" />
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 {% endblock %}
 
 {% block content %}
-<div class="comp-page" x-data="helpdeskDash()" x-cloak>
-  <header class="comp-header">
+<div class="sw-page hd-page" x-data="helpdeskHub()" x-cloak>
+  <header class="sw-header">
     <div>
       <h1>Help Desk</h1>
-      <p>Live ticket queue for Umzinyathi IT support.</p>
+      <p>IT Service Management — incidents, service requests, and problems linked to infrastructure, assets, and files.</p>
     </div>
-    <a href="{{ url_for('helpdesk.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> New ticket</a>
+    <div class="sw-header-actions">
+      <a href="{{ url_for('helpdesk.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> New ticket</a>
+    </div>
   </header>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}{% for cat, msg in messages %}<p>{{ msg }}</p>{% endfor %}{% endif %}
+    {% if messages %}{% for cat, msg in messages %}<div class="uf-flash {% if cat == 'success' %}uf-flash--success{% elif cat == 'error' %}uf-flash--error{% endif %}">{{ msg }}</div>{% endfor %}{% endif %}
   {% endwith %}
 
-  <div class="comp-kpi-grid">
-    <article class="comp-kpi is-warning"><p class="comp-kpi-label">Open</p><p class="comp-kpi-value">{{ kpis.open }}</p></article>
-    <article class="comp-kpi is-danger"><p class="comp-kpi-label">SLA breached</p><p class="comp-kpi-value">{{ kpis.sla_breached }}</p></article>
-    <article class="comp-kpi is-success"><p class="comp-kpi-label">Resolved today</p><p class="comp-kpi-value">{{ kpis.resolved_today }}</p></article>
-    <article class="comp-kpi is-accent"><p class="comp-kpi-label">Avg response</p><p class="comp-kpi-value">{% if kpis.avg_response_min %}{{ kpis.avg_response_min }}m{% else %}—{% endif %}</p></article>
+  <nav class="sw-subtabs hd-nav" role="tablist">
+    {% for key, label in [
+      ('dashboard','Dashboard'),
+      ('tickets','Tickets'),
+      ('incidents','Incidents'),
+      ('service_requests','Service Requests'),
+      ('problems','Problems'),
+      ('knowledge','Knowledge Base'),
+      ('remote','Remote Support'),
+      ('sla','SLA'),
+      ('reports','Reports')
+    ] %}
+    <a class="sw-subtab {% if view == key %}is-active{% endif %}" href="{{ url_for('helpdesk.index', view=key) }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if view == 'dashboard' %}
+  <div class="hd-service-strip">
+    <div class="hd-service-state"><span class="hd-live-dot"></span><div><strong>IT Service Desk</strong><span>Operational queue overview</span></div></div>
+    <div class="hd-service-meta"><span><b>{{ kpis.open }}</b> active</span><span><b>{{ kpis.overdue }}</b> SLA attention</span><span><b>{{ kpis.resolved_today }}</b> resolved today</span></div>
   </div>
 
-  <div class="comp-toolbar">
-    <div class="comp-search">
+  <div class="sw-kpi-grid hd-kpi-grid">
+    <article class="sw-kpi is-warning"><p class="sw-kpi-label">Open tickets</p><p class="sw-kpi-value">{{ kpis.open }}</p></article>
+    <a class="sw-kpi is-accent" href="{{ url_for('helpdesk.index', view='tickets', mine=1) }}" style="text-decoration:none;color:inherit;">
+      <p class="sw-kpi-label">Assigned to me</p><p class="sw-kpi-value">{{ kpis.assigned_to_me }}</p>
+    </a>
+    <a class="sw-kpi is-danger" href="{{ url_for('helpdesk.index', view='tickets', priority='critical') }}" style="text-decoration:none;color:inherit;">
+      <p class="sw-kpi-label">Critical</p><p class="sw-kpi-value">{{ kpis.critical }}</p>
+    </a>
+    <article class="sw-kpi is-danger"><p class="sw-kpi-label">Overdue / SLA</p><p class="sw-kpi-value">{{ kpis.overdue }}</p></article>
+    <article class="sw-kpi is-success"><p class="sw-kpi-label">Resolved today</p><p class="sw-kpi-value">{{ kpis.resolved_today }}</p></article>
+    <article class="sw-kpi"><p class="sw-kpi-label">Avg resolution</p><p class="sw-kpi-value">{% if kpis.avg_resolution_min %}{{ kpis.avg_resolution_min }}m{% else %}—{% endif %}</p></article>
+  </div>
+
+  <div class="hd-dash-grid">
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Open by type</h2>
+      <div class="hd-type-cards">
+        <a href="{{ url_for('helpdesk.index', view='incidents') }}"><strong>{{ kpis.incidents }}</strong><span>Incidents</span></a>
+        <a href="{{ url_for('helpdesk.index', view='service_requests') }}"><strong>{{ kpis.service_requests }}</strong><span>Service requests</span></a>
+        <a href="{{ url_for('helpdesk.index', view='problems') }}"><strong>{{ kpis.problems }}</strong><span>Problems</span></a>
+      </div>
+    </section>
+    <section class="sw-panel">
+      <h2 class="chart-panel-title">Recent queue</h2>
+      <div class="sw-table-wrap">
+        <table class="sw-table">
+          <thead><tr><th>Ticket</th><th>Type</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for t in tickets[:8] %}
+            <tr>
+              <td><code>{{ t.ticket_number }}</code><div><strong>{{ t.subject }}</strong></div></td>
+              <td>{{ t.type_label }}</td>
+              <td><span class="hd-priority-pill hd-priority-{{ t.priority|default('medium')|lower }}">{{ t.priority_label }}</span>{% if t.overdue %} <span class="sw-badge sw-badge--danger">Overdue</span>{% endif %}</td>
+              <td><span class="hd-status-pill hd-status-{{ t.status|default('open')|lower|replace('_','-') }}">{{ t.status_label }}</span></td>
+              <td><a class="btn btn-ghost btn-sm" href="{{ url_for('helpdesk.details', item_id=t.id) }}">Open</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No tickets yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  {% elif view in ['tickets','incidents','service_requests','problems'] %}
+  <div class="sw-toolbar">
+    <div class="sw-search">
       <i class="fas fa-magnifying-glass"></i>
-      <input type="search" placeholder="Search ID, subject, requester…" x-model="q" />
+      <input type="search" placeholder="Search ticket, subject, user…" x-model="q" />
     </div>
-    <select x-model="statusFilter" style="max-width:160px;">
+    <select x-model="priorityFilter">
+      <option value="">All priorities</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+    <select x-model="statusFilter">
       <option value="">All statuses</option>
       <option value="open">Open</option>
       <option value="in_progress">In progress</option>
@@ -42,68 +115,199 @@
       <option value="resolved">Resolved</option>
       <option value="closed">Closed</option>
     </select>
+    <select x-model="assigneeFilter">
+      <option value="">All technicians</option>
+      <option value="__me__">Assigned to me</option>
+      <option value="__unassigned__">Unassigned</option>
+      {% for u in users %}
+      <option value="{{ u.id }}">{{ u.full_name }}</option>
+      {% endfor %}
+    </select>
+    <select x-model="deptFilter">
+      <option value="">All departments</option>
+      {% for d in departments %}
+      <option value="{{ d.name }}">{{ d.name }}</option>
+      {% endfor %}
+    </select>
   </div>
 
-  <section class="comp-table-wrap">
-    <table class="comp-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Subject</th>
-          <th>Requester</th>
-          <th>Priority</th>
-          <th>Assignee</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <template x-for="t in filtered" :key="t.id">
+  <section class="sw-panel">
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead>
           <tr>
-            <td><code x-text="t.ticket_number"></code></td>
-            <td>
-              <strong x-text="t.subject"></strong>
-              <template x-if="t.sla_breached"><span class="badge badge-danger" style="margin-left:6px;">SLA</span></template>
-            </td>
-            <td x-text="t.requester"></td>
-            <td x-text="t.priority_label"></td>
-            <td x-text="t.assignee"></td>
-            <td>
-              <span class="badge"
-                :class="{
-                  'badge-warning': t.status === 'open' || t.status === 'pending',
-                  'badge-accent': t.status === 'in_progress',
-                  'badge-success': t.status === 'resolved' || t.status === 'closed',
-                  'badge-danger': t.sla_breached
-                }"
-                x-text="t.status_label"></span>
-            </td>
-            <td><a class="btn btn-ghost btn-sm" :href="'/helpdesk/' + t.id">View</a></td>
+            <th>Ticket</th>
+            <th>Subject</th>
+            <th>User</th>
+            <th>Type</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Assigned to</th>
+            <th>Created</th>
+            <th></th>
           </tr>
-        </template>
-      </tbody>
-    </table>
-    <p x-show="filtered.length === 0" style="padding:16px;color:#6b7c8c;">No tickets match.</p>
+        </thead>
+        <tbody>
+          <template x-for="t in pagedItems(filtered)" :key="t.id">
+            <tr>
+              <td><code x-text="t.ticket_number"></code></td>
+              <td>
+                <strong x-text="t.subject"></strong>
+                <template x-if="t.overdue"><span class="sw-badge sw-badge--danger" style="margin-left:6px;">Overdue</span></template>
+              </td>
+              <td x-text="t.requester"></td>
+              <td x-text="t.type_label"></td>
+              <td><span class="hd-priority-pill" :class="'hd-priority-' + (t.priority || 'medium')" x-text="t.priority_label"></span></td>
+              <td><span class="hd-status-pill" :class="'hd-status-' + (t.status || 'open').replace(/_/g, '-')" x-text="t.status_label"></span></td>
+              <td x-text="t.assignee"></td>
+              <td x-text="t.created"></td>
+              <td><a class="btn btn-ghost btn-sm" :href="'/helpdesk/' + t.id">View</a></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <p class="sw-empty" x-show="filtered.length === 0">No tickets match.</p>
+      {{ alpine_pager('filtered') }}
+    </div>
   </section>
+
+  {% elif view == 'knowledge' %}
+  <section class="sw-panel">
+    <header class="chart-panel-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div>
+        <h2 class="chart-panel-title">Knowledge Base</h2>
+        <p class="chart-panel-subtitle">Search live articles before opening tickets. Create guides for common municipal IT issues.</p>
+      </div>
+      {% if can('helpdesk:write') %}
+      <a class="btn btn-primary btn-sm" href="{{ url_for('helpdesk.knowledge_create') }}"><i class="fas fa-plus"></i> New article</a>
+      {% endif %}
+    </header>
+    <form method="get" class="hd-kb-search" action="{{ url_for('helpdesk.index') }}">
+      <input type="hidden" name="view" value="knowledge" />
+      <input type="search" name="q" value="{{ kb_q }}" placeholder="Search articles…" />
+      <select name="category">
+        <option value="">All categories</option>
+        {% for c in ['endpoint','network','printer','account','vpn','email','server','software','general'] %}
+        <option value="{{ c }}" {% if kb_category == c %}selected{% endif %}>{{ c|replace('_',' ')|title }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    </form>
+    <div class="hd-kb-grid">
+      {% for a in kb_articles %}
+      <a class="hd-kb-card" href="{{ url_for('helpdesk.knowledge_detail', article_id=a.id) }}">
+        <span class="hd-kb-cat">{{ a.category }}</span>
+        <h3>{{ a.title }}</h3>
+        <p>{{ a.summary or (a.body[:140] ~ '…') }}</p>
+        <em>{{ a.view_count }} views · {% if a.is_published %}Published{% else %}Draft{% endif %}</em>
+      </a>
+      {% else %}
+      <p class="chart-panel-subtitle">No articles match. Create the first guide for your team.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% elif view == 'remote' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">Remote Support</h2>
+    <p class="chart-panel-subtitle">Start remote actions from a linked computer on the ticket. Agent remote session orchestration is next.</p>
+    <p><a class="btn btn-secondary btn-sm" href="{{ url_for('computers.index') }}">Open Computers</a></p>
+  </section>
+
+  {% elif view == 'sla' %}
+  <section class="sw-panel">
+    <h2 class="chart-panel-title">SLA targets</h2>
+    <div class="sw-table-wrap">
+      <table class="sw-table">
+        <thead><tr><th>Priority</th><th>Respond within</th><th>Resolve within</th><th>Open now</th></tr></thead>
+        <tbody>
+          {% for row in (sla.targets if sla else []) %}
+          <tr>
+            <td>{{ row.priority|title }}</td>
+            <td>{{ row.respond }}</td>
+            <td>{{ row.resolve }}</td>
+            <td>{{ sla.open_by_priority.get(row.priority, 0) if sla else 0 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="chart-panel-subtitle" style="margin-top:12px;">
+      <strong>{{ sla.overdue_count if sla else kpis.overdue }}</strong> ticket(s) currently overdue against resolve SLA.
+    </p>
+    {% if sla and sla.overdue %}
+    <div class="sw-table-wrap" style="margin-top:1rem;">
+      <table class="sw-table">
+        <thead><tr><th>Ticket</th><th>Subject</th><th>Priority</th><th>Assignee</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for t in sla.overdue %}
+          <tr>
+            <td><a href="{{ url_for('helpdesk.details', item_id=t.id) }}">{{ t.ticket_number }}</a></td>
+            <td>{{ t.subject }}</td>
+            <td>{{ t.priority }}</td>
+            <td>{{ t.assignee }}</td>
+            <td>{{ t.status }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+
+  {% elif view == 'reports' %}
+  <section class="sw-panel">
+    <header class="chart-panel-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div>
+        <h2 class="chart-panel-title">Help Desk reports</h2>
+        <p class="chart-panel-subtitle">Live KPIs from UITOP tickets. Export the current queue as CSV.</p>
+      </div>
+      <a class="btn btn-primary btn-sm" href="{{ url_for('helpdesk.export_csv') }}"><i class="fas fa-download"></i> Export CSV</a>
+    </header>
+    <dl class="sw-stat-row">
+      <div class="sw-stat"><dt>Total tickets</dt><dd>{{ kpis.total }}</dd></div>
+      <div class="sw-stat"><dt>Open</dt><dd>{{ kpis.open }}</dd></div>
+      <div class="sw-stat"><dt>Resolved today</dt><dd>{{ kpis.resolved_today }}</dd></div>
+      <div class="sw-stat"><dt>Avg resolution</dt><dd>{% if kpis.avg_resolution_min %}{{ kpis.avg_resolution_min }} min{% else %}—{% endif %}</dd></div>
+      <div class="sw-stat"><dt>Overdue</dt><dd>{{ sla.overdue_count if sla else kpis.overdue }}</dd></div>
+    </dl>
+  </section>
+  {% endif %}
 </div>
+
 <script>
 window.__TICKETS__ = {{ tickets | tojson }};
-function helpdeskDash() {
-  return {
+window.__ME__ = {{ (current_user.get('id') if current_user else none) | tojson }};
+function helpdeskHub() {
+  return Object.assign({
     q: "",
-    statusFilter: "",
+    priorityFilter: {{ (filters.priority or '') | tojson }},
+    statusFilter: {{ (filters.status or '') | tojson }},
+    assigneeFilter: {{ ('__me__' if mine else '') | tojson }},
+    deptFilter: "",
+    meId: window.__ME__,
     tickets: window.__TICKETS__ || [],
+    init() { this.watchPagerReset(['q', 'priorityFilter', 'statusFilter', 'assigneeFilter', 'deptFilter']); },
     get filtered() {
       var q = this.q.trim().toLowerCase();
+      var pr = this.priorityFilter;
       var st = this.statusFilter;
+      var asg = this.assigneeFilter;
+      var dept = this.deptFilter;
+      var me = this.meId;
       return this.tickets.filter(function (t) {
+        if (pr && t.priority !== pr) return false;
         if (st && t.status !== st) return false;
+        if (dept && t.department !== dept) return false;
+        if (asg === "__me__" && t.assignee_user_id !== me) return false;
+        if (asg === "__unassigned__" && t.assignee_user_id) return false;
+        if (asg && asg !== "__me__" && asg !== "__unassigned__" && String(t.assignee_user_id) !== String(asg)) return false;
         if (!q) return true;
-        return [t.ticket_number, t.subject, t.requester, t.assignee, t.priority_label, t.status_label]
+        return [t.ticket_number, t.subject, t.requester, t.assignee, t.type_label, t.priority_label, t.status_label, t.department]
           .join(" ").toLowerCase().indexOf(q) !== -1;
       });
     }
-  };
+  }, UITOP.createPager(10));
 }
 </script>
 {% endblock %}

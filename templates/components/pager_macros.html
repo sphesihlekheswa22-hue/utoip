@@ -1,0 +1,47 @@
+{# Alpine client-side pager. Pass items_expr e.g. "filtered" or "filtered()" #}
+{% macro alpine_pager(items_expr='filtered') -%}
+<nav class="uitop-pager" x-show="uitopTotalPages({{ items_expr }}) > 1" x-cloak aria-label="Pagination">
+  <p class="uitop-pager-meta">
+    <span x-text="'Showing ' + uitopFrom({{ items_expr }}) + '–' + uitopTo({{ items_expr }}) + ' of ' + ({{ items_expr }} || []).length"></span>
+  </p>
+  <div class="uitop-pager-btns">
+    <button type="button" class="btn btn-ghost btn-sm" @click="goPage(page - 1, {{ items_expr }})" :disabled="page <= 1">← Prev</button>
+    <template x-for="n in uitopPageNumbers({{ items_expr }})" :key="n">
+      <button type="button" class="btn btn-sm" :class="n === page ? 'btn-primary' : 'btn-ghost'" @click="goPage(n, {{ items_expr }})" x-text="n"></button>
+    </template>
+    <button type="button" class="btn btn-ghost btn-sm" @click="goPage(page + 1, {{ items_expr }})" :disabled="page >= uitopTotalPages({{ items_expr }})">Next →</button>
+  </div>
+</nav>
+{%- endmacro %}
+
+{# Server-side pager. pager = paginate(...) dict; preserves other query args. #}
+{% macro server_pager(pager, param='page') -%}
+{% if pager and pager.pages > 1 %}
+{% set q = request.args.to_dict(flat=true) %}
+<nav class="uitop-pager" aria-label="Pagination">
+  <p class="uitop-pager-meta">Showing {{ pager.from_idx }}–{{ pager.to_idx }} of {{ pager.total }}</p>
+  <div class="uitop-pager-btns">
+    {% if pager.has_prev %}
+    {% set _ = q.update({param: pager.prev_page}) %}
+    <a class="btn btn-ghost btn-sm" href="{{ request.path }}?{{ q|urlencode }}">← Prev</a>
+    {% else %}
+    <button type="button" class="btn btn-ghost btn-sm" disabled>← Prev</button>
+    {% endif %}
+    {% for n in pager.page_numbers %}
+      {% if n == pager.page %}
+      <button type="button" class="btn btn-primary btn-sm" disabled>{{ n }}</button>
+      {% else %}
+      {% set _ = q.update({param: n}) %}
+      <a class="btn btn-ghost btn-sm" href="{{ request.path }}?{{ q|urlencode }}">{{ n }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if pager.has_next %}
+    {% set _ = q.update({param: pager.next_page}) %}
+    <a class="btn btn-ghost btn-sm" href="{{ request.path }}?{{ q|urlencode }}">Next →</a>
+    {% else %}
+    <button type="button" class="btn btn-ghost btn-sm" disabled>Next →</button>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{%- endmacro %}
