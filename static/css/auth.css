@@ -5,25 +5,32 @@
    ============================================================ */
 
    :root {
-    --auth-blue: #0b3a6e;
-    --auth-blue-deep: #061f3d;
-    --auth-blue-mid: #1a5fa8;
-    --auth-blue-light: #4a9de3;
-    --auth-green: #2f9e44;
-    --auth-green-deep: #1f7a34;
-    --auth-green-glow: #3dd65a;
+    /* UITOP login brand — anchored on #16865D */
+    --auth-brand: #16865d;
+    --auth-brand-deep: #0a3426;
+    --auth-brand-deep-bg: #062218;
+    --auth-brand-mid: #16865d;
+    --auth-brand-light: #2fa878;
+    --auth-brand-bright: #5ecf9a;
+    --auth-blue: #0f5c42;
+    --auth-blue-deep: var(--auth-brand-deep-bg);
+    --auth-blue-mid: var(--auth-brand);
+    --auth-blue-light: var(--auth-brand-light);
+    --auth-green: var(--auth-brand);
+    --auth-green-deep: #0d4a34;
+    --auth-green-glow: #3dd68a;
     --auth-ink: #0f1b2d;
     --auth-muted: #5a6b7d;
     --auth-line: rgba(15, 27, 45, 0.08);
-    --auth-soft: #f4f7fb;
+    --auth-soft: #f2f8f5;
     --auth-glass: rgba(255, 255, 255, 0.06);
     --auth-glass-border: rgba(255, 255, 255, 0.12);
-    --auth-shadow-sm: 0 2px 8px rgba(11, 58, 110, 0.08);
-    --auth-shadow-md: 0 8px 24px rgba(11, 58, 110, 0.12);
-    --auth-shadow-lg: 0 24px 60px rgba(11, 58, 110, 0.18);
-    --auth-shadow-xl: 0 32px 80px rgba(11, 58, 110, 0.25);
-    --auth-glow-green: 0 0 40px rgba(47, 158, 68, 0.3);
-    --auth-glow-blue: 0 0 40px rgba(26, 95, 168, 0.3);
+    --auth-shadow-sm: 0 2px 8px rgba(10, 52, 38, 0.08);
+    --auth-shadow-md: 0 8px 24px rgba(10, 52, 38, 0.12);
+    --auth-shadow-lg: 0 24px 60px rgba(10, 52, 38, 0.18);
+    --auth-shadow-xl: 0 32px 80px rgba(10, 52, 38, 0.22);
+    --auth-glow-green: 0 0 40px rgba(22, 134, 93, 0.35);
+    --auth-glow-blue: 0 0 40px rgba(47, 168, 120, 0.28);
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
     --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
@@ -75,10 +82,10 @@
     inset: 0;
     z-index: 1;
     background:
-      radial-gradient(ellipse 120% 80% at 20% 20%, rgba(47, 158, 68, 0.15), transparent 60%),
-      radial-gradient(ellipse 100% 100% at 80% 80%, rgba(26, 95, 168, 0.2), transparent 60%),
-      linear-gradient(160deg, rgba(7, 42, 82, 0.4) 0%, rgba(11, 58, 110, 0.6) 45%, rgba(6, 31, 61, 0.95) 100%),
-      linear-gradient(180deg, #0b3a6e 0%, #072a52 40%, #061f3d 100%);
+      radial-gradient(ellipse 120% 80% at 20% 20%, rgba(22, 134, 93, 0.2), transparent 60%),
+      radial-gradient(ellipse 100% 100% at 80% 80%, rgba(15, 74, 52, 0.25), transparent 60%),
+      linear-gradient(160deg, rgba(8, 52, 38, 0.45) 0%, rgba(10, 52, 38, 0.65) 45%, rgba(6, 34, 24, 0.95) 100%),
+      linear-gradient(180deg, #0f5c42 0%, #0a3426 40%, #062218 100%);
   }
   
   .auth-mesh {
@@ -86,11 +93,11 @@
     inset: 0;
     opacity: 0.4;
     background-image:
-      radial-gradient(at 40% 20%, rgba(47, 158, 68, 0.15) 0, transparent 50%),
-      radial-gradient(at 80% 0%, rgba(26, 95, 168, 0.15) 0, transparent 50%),
-      radial-gradient(at 0% 50%, rgba(47, 158, 68, 0.1) 0, transparent 50%),
-      radial-gradient(at 80% 50%, rgba(26, 95, 168, 0.1) 0, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(47, 158, 68, 0.15) 0, transparent 50%);
+      radial-gradient(at 40% 20%, rgba(22, 134, 93, 0.18) 0, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(15, 74, 52, 0.15) 0, transparent 50%),
+      radial-gradient(at 0% 50%, rgba(22, 134, 93, 0.12) 0, transparent 50%),
+      radial-gradient(at 80% 50%, rgba(47, 168, 120, 0.1) 0, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(22, 134, 93, 0.16) 0, transparent 50%);
     animation: mesh-drift 20s ease-in-out infinite alternate;
   }
   
@@ -116,7 +123,7 @@
     max-height: 600px;
     top: -15%;
     left: -10%;
-    background: radial-gradient(circle, rgba(47, 158, 68, 0.4), transparent 65%);
+    background: radial-gradient(circle, rgba(22, 134, 93, 0.45), transparent 65%);
     animation-duration: 18s;
   }
   
@@ -127,7 +134,7 @@
     max-height: 520px;
     right: -12%;
     bottom: -8%;
-    background: radial-gradient(circle, rgba(26, 95, 168, 0.5), transparent 70%);
+    background: radial-gradient(circle, rgba(15, 92, 66, 0.5), transparent 70%);
     animation-duration: 14s;
     animation-delay: -6s;
   }
@@ -140,7 +147,7 @@
     top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(47, 158, 68, 0.25), transparent 70%);
+    background: radial-gradient(circle, rgba(22, 134, 93, 0.3), transparent 70%);
     animation-duration: 22s;
     animation-delay: -3s;
   }
@@ -728,7 +735,7 @@
     margin-top: 0.35rem;
     border: 0;
     border-radius: 16px;
-    background: linear-gradient(135deg, var(--auth-blue-mid) 0%, var(--auth-blue) 45%, var(--auth-green-deep) 150%);
+    background: linear-gradient(135deg, var(--auth-brand-mid) 0%, var(--auth-green-deep) 55%, #0a3426 150%);
     color: #fff;
     font: inherit;
     font-size: 15px;
@@ -736,8 +743,8 @@
     letter-spacing: -0.01em;
     cursor: pointer;
     box-shadow:
-      0 4px 6px -1px rgba(11, 58, 110, 0.1),
-      0 16px 40px -12px rgba(11, 58, 110, 0.45),
+      0 4px 6px -1px rgba(10, 52, 38, 0.12),
+      0 16px 40px -12px rgba(22, 134, 93, 0.45),
       inset 0 1px 0 rgba(255, 255, 255, 0.15);
     transition: all 0.3s var(--ease-smooth);
     position: relative;
@@ -756,8 +763,8 @@
   .login-submit:hover {
     filter: brightness(1.06);
     box-shadow:
-      0 8px 16px -4px rgba(11, 58, 110, 0.15),
-      0 24px 48px -14px rgba(11, 58, 110, 0.5),
+      0 8px 16px -4px rgba(10, 52, 38, 0.15),
+      0 24px 48px -14px rgba(22, 134, 93, 0.5),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
   }
@@ -769,8 +776,8 @@
   .login-submit:active {
     transform: translateY(0) scale(0.98);
     box-shadow:
-      0 2px 4px -1px rgba(11, 58, 110, 0.1),
-      0 8px 16px -8px rgba(11, 58, 110, 0.3);
+      0 2px 4px -1px rgba(10, 52, 38, 0.12),
+      0 8px 16px -8px rgba(22, 134, 93, 0.35);
   }
   
   .login-submit:disabled {
@@ -1152,7 +1159,7 @@
 
 .auth-body {
   min-height: 100dvh;
-  background: #eef4fa;
+  background: #eef7f2;
 }
 
 .auth-shell {
@@ -1171,7 +1178,7 @@
   isolation: isolate;
   padding: 0;
   color: #fff;
-  background: #052b57;
+  background: #0a3426;
 }
 
 .auth-brand-bg {
@@ -1194,8 +1201,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(3,31,72,.96) 0%, rgba(3,48,91,.86) 43%, rgba(4,73,111,.55) 75%, rgba(3,32,67,.68) 100%),
-    linear-gradient(180deg, rgba(2,25,57,.42), rgba(2,28,62,.7));
+    linear-gradient(90deg, rgba(6,34,24,.96) 0%, rgba(8,52,38,.88) 43%, rgba(14,80,56,.58) 75%, rgba(6,34,24,.72) 100%),
+    linear-gradient(180deg, rgba(4,28,20,.45), rgba(6,34,24,.75));
 }
 
 .auth-brand-bg .auth-glow--a,
@@ -1269,7 +1276,7 @@
 .auth-eyebrow {
   display: flex;
   align-items: center;
-  color: #71d2ff;
+  color: #8ee4b8;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .15em;
@@ -1281,8 +1288,8 @@
   height: 7px;
   margin-right: 9px;
   border-radius: 50%;
-  background: #25d85c;
-  box-shadow: 0 0 14px rgba(37,216,92,.9);
+  background: #16865d;
+  box-shadow: 0 0 14px rgba(22,134,93,.85);
 }
 
 .auth-hero-copy h1 {
@@ -1295,7 +1302,7 @@
 }
 
 .auth-hero-copy h1 em {
-  color: #12cde9;
+  color: #6ee9a8;
   font-style: normal;
 }
 
@@ -1318,9 +1325,9 @@
 .auth-feature {
   min-height: 108px;
   padding: 16px 9px;
-  border: 1px solid rgba(96,199,255,.27);
+  border: 1px solid rgba(94, 207, 154, 0.32);
   border-radius: 18px;
-  background: rgba(3,48,91,.42);
+  background: rgba(6, 48, 35, 0.48);
   backdrop-filter: blur(10px);
   box-shadow: inset 0 1px rgba(255,255,255,.08), 0 15px 35px rgba(0,0,0,.12);
   display: flex;
@@ -1330,7 +1337,7 @@
   text-align: center;
 }
 
-.auth-feature i { color: #bcecff; font-size: 23px; margin-bottom: 10px; }
+.auth-feature i { color: #a7f3c9; font-size: 23px; margin-bottom: 10px; }
 .auth-feature span { color: #fff; font-size: 11.5px; font-weight: 800; line-height: 1.35; }
 
 .auth-hero-metrics {
@@ -1340,9 +1347,9 @@
   gap: 22px;
   margin-top: 23px;
   padding: 15px 24px;
-  border: 1px solid rgba(83,190,255,.25);
+  border: 1px solid rgba(94, 207, 154, 0.28);
   border-radius: 17px;
-  background: rgba(3,45,87,.5);
+  background: rgba(6, 45, 33, 0.52);
   backdrop-filter: blur(12px);
 }
 
@@ -1354,7 +1361,7 @@
 
 .auth-trust-row { display: flex; gap: 30px; margin-top: 23px; color: rgba(255,255,255,.9); font-size: 12px; font-weight: 700; }
 .auth-trust-row span { display: flex; align-items: center; gap: 8px; }
-.auth-trust-row i { color: #36aaff; }
+.auth-trust-row i { color: #5ecf9a; }
 
 .auth-brand-credit {
   position: absolute;
@@ -1378,8 +1385,8 @@
   min-height: 100dvh;
   padding: 38px clamp(22px, 3.5vw, 52px);
   background:
-    radial-gradient(circle at 100% 0%, rgba(42,156,228,.08), transparent 34%),
-    linear-gradient(180deg, #f8fbfe 0%, #edf3f8 100%);
+    radial-gradient(circle at 100% 0%, rgba(22,134,93,.08), transparent 34%),
+    linear-gradient(180deg, #f6fbf8 0%, #ecf5f0 100%);
   overflow-y: auto;
 }
 
@@ -1415,7 +1422,7 @@
   }
 }
 .login-card-head h1 { margin: 0; font-size: 36px; line-height: 1.08; letter-spacing: -.045em; font-weight: 850; color: #0d1e36; }
-.login-card-head h1 span { color: #0962d4; }
+.login-card-head h1 span { color: #16865d; }
 .login-card-head p { margin: 10px 0 0; color: #73839a; font-size: 14px; line-height: 1.55; }
 
 .login-card-content { width: 100%; }
