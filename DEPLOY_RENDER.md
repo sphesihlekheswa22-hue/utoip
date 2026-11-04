@@ -7,7 +7,7 @@ Repository: [sphesihlekheswa22-hue/utoip](https://github.com/sphesihlekheswa22-h
 1. Push this repo to GitHub (`main`).
 2. In [Render Dashboard](https://dashboard.render.com/) → **New** → **Blueprint**.
 3. Connect **utoip** and apply `render.yaml` (web service + PostgreSQL).
-4. First deploy runs **migrations and seed automatically** via `scripts/render_start.sh` (free tier has no `preDeployCommand` or reliable Shell).
+4. First deploy runs **migrations and seed automatically** when gunicorn loads `wsgi.py` (`BOOTSTRAP_DB=true`, `--preload`).
 
 5. Log in at `https://<your-service>.onrender.com/login`  
    Default admin: `admin@umzinyathi.gov.za` / `Admin@UITOP2026` — **change immediately**.
@@ -34,4 +34,4 @@ Repository: [sphesihlekheswa22-hue/utoip](https://github.com/sphesihlekheswa22-h
 ## Manual deploy (without Blueprint)
 
 - **Build:** `pip install -r requirements.txt`
-- **Start:** `bash scripts/render_start.sh` (migrate, seed if empty, then gunicorn)
+- **Start:** `gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --preload` (with `BOOTSTRAP_DB=true`)

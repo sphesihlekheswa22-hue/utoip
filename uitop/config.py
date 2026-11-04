@@ -17,9 +17,12 @@ def _normalize_database_url(raw: str | None) -> str | None:
     if not url:
         return None
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql+psycopg2://", 1)
+        url = url.replace("postgres://", "postgresql+psycopg2://", 1)
     if url.startswith("postgresql://") and "+psycopg2" not in url and "+psycopg" not in url:
-        return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    if "render.com" in url and "sslmode=" not in url:
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}sslmode=require"
     return url
 
 

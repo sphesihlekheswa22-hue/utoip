@@ -7,13 +7,15 @@ services:
     plan: free
     region: frankfurt
     buildCommand: pip install -r requirements.txt
-    startCommand: bash scripts/render_start.sh
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --preload
     healthCheckPath: /login
     envVars:
       - key: FLASK_APP
         value: app:app
       - key: FLASK_ENV
         value: production
+      - key: BOOTSTRAP_DB
+        value: "true"
       - key: PYTHON_VERSION
         value: 3.12.8
       - key: DEMO_MODE
