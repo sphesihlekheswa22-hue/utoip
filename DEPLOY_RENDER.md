@@ -7,14 +7,12 @@ Repository: [sphesihlekheswa22-hue/utoip](https://github.com/sphesihlekheswa22-h
 1. Push this repo to GitHub (`main`).
 2. In [Render Dashboard](https://dashboard.render.com/) → **New** → **Blueprint**.
 3. Connect **utoip** and apply `render.yaml` (web service + PostgreSQL).
-4. After the first successful deploy, open the service **Shell** and run:
-
-   ```bash
-   flask seed
-   ```
+4. First deploy runs **migrations and seed automatically** via `scripts/render_start.sh` (free tier has no `preDeployCommand` or reliable Shell).
 
 5. Log in at `https://<your-service>.onrender.com/login`  
-   Default admin (after seed): `admin@umzinyathi.gov.za` / `Admin@UITOP2026` — **change immediately**.
+   Default admin: `admin@umzinyathi.gov.za` / `Admin@UITOP2026` — **change immediately**.
+
+   To re-seed manually (paid Shell or local with production `DATABASE_URL`): `flask seed`
 
 ## Environment variables (Render → Environment)
 
@@ -35,5 +33,5 @@ Repository: [sphesihlekheswa22-hue/utoip](https://github.com/sphesihlekheswa22-h
 
 ## Manual deploy (without Blueprint)
 
-- **Build:** `pip install -r requirements.txt && flask db upgrade`
-- **Start:** `gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
+- **Build:** `pip install -r requirements.txt`
+- **Start:** `bash scripts/render_start.sh` (migrate, seed if empty, then gunicorn)
